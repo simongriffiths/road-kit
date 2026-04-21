@@ -1,5 +1,5 @@
 # Oracle ADB + ORDS + React Framework — Specification Index
-**Version:** 1.2  
+**Version:** 1.3  
 **Status:** Mixed (Approved + Draft)
 
 ---
@@ -31,6 +31,12 @@ Key architectural decisions:
 ---
 
 ## 3. Specification Suite
+
+### 3.0 Baseline Control
+
+| Spec | File | Purpose |
+|---|---|---|
+| Specification Baseline | `spec-baseline-v1.md` | Frozen implementation baseline, included spec set, draft-by-exception list, and change-control point |
 
 ### 3.1 Database & Deployment
 
@@ -104,18 +110,19 @@ Key architectural decisions:
 
 ### For a new LLM agent starting work on an application:
 
-1. **SQL Runner Framework** — understand the deployment model and directory structure
-2. **run-sql.sh** — understand how scripts are executed
-3. **Local Development Environment** — understand how to connect and deploy
-4. **ORDS API Design Standards** — understand the API contract before writing any handler
-5. **Error Handling Contract** — understand how errors flow before writing any package
-6. **Authentication** — understand provider profiles, token lifecycle, and auth boundary rules
-7. **ORDS Security Configuration** — understand privileges and JWT trust configuration
-8. **Database Session Context** — understand the intended PL/SQL-facing caller identity contract
-9. **React Project Structure & Conventions** — understand the frontend structure before writing any component
-10. **File Upload and UI Delivery** — understand how built UI assets are uploaded and served through ORDS
-11. **Automated Testing Strategy** — understand what tests are required at each layer
-12. **CI/CD Pipeline** — understand the full deployment and promotion flow
+1. **Specification Baseline** — understand the frozen build baseline and draft-by-exception areas
+2. **SQL Runner Framework** — understand the deployment model and directory structure
+3. **run-sql.sh** — understand how scripts are executed
+4. **Local Development Environment** — understand how to connect and deploy
+5. **ORDS API Design Standards** — understand the API contract before writing any handler
+6. **Error Handling Contract** — understand how errors flow before writing any package
+7. **Authentication** — understand provider profiles, token lifecycle, and auth boundary rules
+8. **ORDS Security Configuration** — understand privileges and JWT trust configuration
+9. **Database Session Context** — understand the intended PL/SQL-facing caller identity contract
+10. **React Project Structure & Conventions** — understand the frontend structure before writing any component
+11. **File Upload and UI Delivery** — understand how built UI assets are uploaded and served through ORDS
+12. **Automated Testing Strategy** — understand what tests are required at each layer
+13. **CI/CD Pipeline** — understand the full deployment and promotion flow
 
 ### For reviewing or extending the framework:
 
@@ -183,3 +190,4 @@ Read the relevant spec first, then check the "What This Spec Does Not Cover" sec
 | 1.0 | 2026-04-18 | Initial framework spec suite — 8 specifications |
 | 1.1 | 2026-04-21 | Integrated authentication, ORDS security configuration, and database session context into the suite; external list reduced to file upload |
 | 1.2 | 2026-04-21 | Integrated file upload and UI delivery into the suite; external specification list removed |
+| 1.3 | 2026-04-21 | Added frozen specification baseline control document and formalised the current build baseline |
