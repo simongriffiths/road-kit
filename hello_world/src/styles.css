@@ -1,0 +1,109 @@
+:root {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  color: #11221e;
+  background:
+    radial-gradient(circle at top left, rgba(249, 214, 101, 0.35), transparent 28rem),
+    linear-gradient(180deg, #f7f2e6 0%, #e7efe8 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+.app-shell {
+  width: min(64rem, calc(100vw - 2rem));
+  margin: 0 auto;
+  padding: 3rem 0 4rem;
+}
+
+.hero {
+  padding: 2.5rem;
+  border: 1px solid rgba(17, 34, 30, 0.12);
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 1rem 2rem rgba(17, 34, 30, 0.08);
+}
+
+.eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #456b61;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  line-height: 0.95;
+}
+
+.lede {
+  max-width: 40rem;
+  margin: 1rem 0 0;
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+.panel {
+  margin-top: 1.5rem;
+  padding: 2rem;
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(17, 34, 30, 0.1);
+  box-shadow: 0 1rem 2rem rgba(17, 34, 30, 0.08);
+}
+
+.stack {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.kv {
+  display: grid;
+  gap: 1rem;
+}
+
+.kv div {
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
+  background: #f3f8f5;
+  border: 1px solid rgba(17, 34, 30, 0.08);
+}
+
+.kv dt {
+  margin: 0;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #456b61;
+}
+
+.kv dd {
+  margin: 0.5rem 0 0;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .app-shell {
+    width: min(64rem, calc(100vw - 1rem));
+    padding-top: 1rem;
+  }
+
+  .hero,
+  .panel {
+    padding: 1.25rem;
+  }
+}
