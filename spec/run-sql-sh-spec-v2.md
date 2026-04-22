@@ -88,14 +88,14 @@ SQLCL_BIN="${SQLCL_BIN:-sql}"
 
 The script must not accept raw connection strings.
 
-It must resolve logical environments to stored SQLcl CONNMGR connections.
+It must resolve logical environments to stored SQLcl saved connections.
 
 Mapping (isolated in one section for easy refactoring):
 
 ```
-dev   -> app-dev
-test  -> app-test
-prod  -> app-prod
+dev   -> app_dev
+test  -> app_test
+prod  -> app_prod
 ```
 
 If the environment is unknown, the script must:
@@ -203,8 +203,7 @@ Console output additionally includes full SQLcl output via `tee`. Internal runne
 SQLcl must be driven via a here-doc to ensure the session settings and error handling are injected before the target script runs:
 
 ```bash
-"${SQLCL_BIN}" /nolog 2>&1 <<EOF | tee "${LOG_FILE}"
-connmgr connect ${CONNECTION}
+"${SQLCL_BIN}" -name "${CONNECTION}" 2>&1 <<EOF | tee "${LOG_FILE}"
 whenever oserror exit failure rollback
 whenever sqlerror exit sql.sqlcode rollback
 set feedback on
@@ -259,7 +258,7 @@ The runner must preserve the final SQLcl exit status without modification.
 | Unknown environment | 2 |
 | Log directory creation failure | 2 |
 | SQLcl binary not found | 127 |
-| CONNMGR connection failure | non-zero (treated as SQL/OS error) |
+| Saved connection failure | non-zero (treated as SQL/OS error) |
 
 Rules:
 
@@ -267,12 +266,13 @@ Rules:
 - `set -o pipefail` ensures the pipe does not swallow SQLcl's exit code
 - No "success with warnings" mode
 - No mode where a non-zero SQLcl result is reported as success
+- If SQLcl reports SQL*Plus-style session errors such as `SP2-` messages or `Unknown connection` while still returning `0`, the runner must treat the run as failed and return non-zero
 
 ---
 
-## 10. CONNMGR Connection Failures
+## 10. Saved Connection Failures
 
-If the named CONNMGR connection does not exist or the connection attempt fails:
+If the named saved connection does not exist or the connection attempt fails:
 
 - SQLcl will raise an error caught by `whenever oserror` or `whenever sqlerror`
 - The runner will receive a non-zero exit code
@@ -280,7 +280,7 @@ If the named CONNMGR connection does not exist or the connection attempt fails:
 - The runner will report failure with the SQLcl exit code
 - No retry or fallback is attempted
 
-CONNMGR connections are a prerequisite. The runner does not create or validate them beyond attempting to connect. See the Framework Specification Section 11.1 for provisioning instructions.
+Saved SQLcl connections are a prerequisite. The runner does not create or validate them beyond attempting to connect. See the Framework Specification Section 11.1 for provisioning instructions.
 
 ---
 
@@ -372,7 +372,7 @@ run-sql.sh --env dev --script db/views/customer_summary_v.create.sql --log-level
 Expected outcome:
 
 1. Arguments validated
-2. `dev` resolved to `app-dev`
+2. `dev` resolved to `app_dev`
 3. Log directory created if needed
 4. Script existence confirmed
 5. `$SQLCL_BIN` confirmed on PATH
@@ -406,7 +406,7 @@ Expected outcome:
 `run-sql.sh` is acceptable for version 1 if all of the following are true:
 
 - It rejects invalid arguments cleanly (exit 2)
-- It resolves logical environments to named SQLcl CONNMGR connections
+- It resolves logical environments to named SQLcl saved connections
 - It writes logs to `logs/<env>/runs/<timestamp>_<script_base>_<pid>.log`
 - It supports `normal` and `debug` log levels
 - It enforces `WHENEVER SQLERROR` and `WHENEVER OSERROR` via here-doc injection

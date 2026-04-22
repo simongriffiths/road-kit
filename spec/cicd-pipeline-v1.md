@@ -29,7 +29,7 @@ This document defines the deployment pipeline for applications built on this fra
 | `prod` | Production | N/A — terminal environment |
 
 Each environment maps to:
-- A named SQLcl CONNMGR connection (`app-dev`, `app-test`, `app-prod`)
+- A named SQLcl saved connection (`app_dev`, `app_test`, `app_prod`)
 - A separate ADB ORDS instance or URL base-path configuration for API and UI delivery
 - Its own wallet configuration under `/opt/oracle/wallet/<app_name>-<env>/`
 

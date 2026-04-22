@@ -315,9 +315,9 @@ The runner must be invoked from the project root. Script paths are always relati
 Environment maps to a named SQLcl CONNMGR connection:
 
 ```
-dev  -> app-dev
-test -> app-test
-prod -> app-prod
+dev  -> app_dev
+test -> app_test
+prod -> app_prod
 ```
 
 Connections are managed via SQLcl CONNMGR. No inline credentials are permitted.
@@ -330,7 +330,7 @@ CONNMGR connections must be provisioned before using the framework. The runner d
 
 ```bash
 sql /nolog
-connmgr add app-dev --url jdbc:oracle:thin:@<host>:<port>/<service> --username <user>
+connect -save app_dev --url jdbc:oracle:thin:@<host>:<port>/<service> --username <user>
 ```
 
 **CI setup:**  

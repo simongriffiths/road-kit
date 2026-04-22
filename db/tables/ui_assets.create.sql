@@ -14,4 +14,3 @@ lob (content) store as securefile (
   compress medium
   cache reads
 );
-/

@@ -4,7 +4,7 @@ These scripts are for manual database bootstrap work and are intentionally separ
 
 ## Purpose
 
-Use this folder for operations that require an admin-capable database account, especially before the ROAD application schema and normal `app-dev` / `app-test` / `app-prod` connections exist.
+Use this folder for operations that require an admin-capable database account, especially before the ROAD application schema and normal `app_dev` / `app_test` / `app_prod` connections exist.
 
 Current scripts:
 
@@ -30,8 +30,8 @@ Do **not** run these scripts through `bin/run-sql.sh`.
 
 `bin/run-sql.sh` is reserved for normal application-schema deployment and test execution through named app connections such as:
 
-- `app-dev`
-- `app-test`
-- `app-prod`
+- `app_dev`
+- `app_test`
+- `app_prod`
 
 The admin scripts are bootstrap operations and sit outside that contract.

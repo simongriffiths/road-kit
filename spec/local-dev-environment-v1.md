@@ -53,7 +53,7 @@ The following must be present before any framework tooling is used:
 |---|---|
 | SQLcl | Installed, available on PATH or via `$SQLCL_BIN` |
 | ADB wallet | Downloaded from OCI console, extracted to wallet path |
-| CONNMGR connections | Provisioned for each target environment |
+| SQLcl saved connections | Provisioned for each target environment |
 | Node.js + npm | Installed for React builds |
 | Bash | Available (Mac/Linux only — Windows not supported in v1) |
 
@@ -145,23 +145,23 @@ This is standard for ADB wallet connectivity and should be present in the downlo
 
 ---
 
-## 7. SQLcl CONNMGR Setup
+## 7. SQLcl Saved Connection Setup
 
 ### 7.1 Connection Provisioning
 
-Before using the framework, CONNMGR connections must be created for each environment:
+Before using the framework, SQLcl saved connections must be created for each environment:
 
 ```bash
 export TNS_ADMIN=/opt/oracle/wallet/<app_name>-dev
 
 sql /nolog <<EOF
-connmgr add app-dev \
+connect -save app_dev \
   --url "jdbc:oracle:thin:@<tns_alias>?TNS_ADMIN=/opt/oracle/wallet/<app_name>-dev" \
   --username <schema_user>
 EOF
 ```
 
-Equivalent named connections must be created for `test` and `prod`, each pointing at that environment's wallet path.
+Equivalent named saved connections must be created for `test` and `prod`, each pointing at that environment's wallet path.
 
 Where `<tns_alias>` matches an entry in the selected wallet's `tnsnames.ora`.
 
@@ -181,7 +181,7 @@ run-sql.sh --env dev --script bin/verify-connection.sql
 select 'connected' as status from dual;
 ```
 
-A successful run confirms SQLcl, the wallet, and CONNMGR are all correctly configured.
+A successful run confirms SQLcl, the wallet, and the saved connection are all correctly configured.
 
 ---
 

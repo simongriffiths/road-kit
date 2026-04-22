@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# --- Configuration ---
+# Configure tool locations relative to the project root.
 SQLCL_BIN="${SQLCL_BIN:-sql}"
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# Print the accepted command-line contract.
 usage() {
   cat >&2 <<'EOF'
 Usage: bin/run-sql.sh --env <dev|test|prod> --script <file.sql> [--log-level normal|debug]
@@ -15,6 +16,7 @@ ENV_NAME=""
 SCRIPT_ARG=""
 LOG_LEVEL="normal"
 
+# Parse required environment and script arguments.
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --env)
@@ -39,6 +41,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Reject incomplete or invalid invocation parameters early.
 if [[ -z "${ENV_NAME}" || -z "${SCRIPT_ARG}" ]]; then
   usage
   exit 2
@@ -50,15 +53,16 @@ if [[ "${LOG_LEVEL}" != "normal" && "${LOG_LEVEL}" != "debug" ]]; then
   exit 2
 fi
 
+# Map the logical environment to its saved SQLcl connection.
 case "${ENV_NAME}" in
   dev)
-    CONNECTION="app-dev"
+    CONNECTION="app_dev"
     ;;
   test)
-    CONNECTION="app-test"
+    CONNECTION="app_test"
     ;;
   prod)
-    CONNECTION="app-prod"
+    CONNECTION="app_prod"
     ;;
   *)
     echo "[ERROR] Unknown environment: ${ENV_NAME}" >&2
@@ -67,23 +71,14 @@ case "${ENV_NAME}" in
     ;;
 esac
 
-TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
-SCRIPT_BASE="$(basename "${SCRIPT_ARG}")"
-SCRIPT_BASE="${SCRIPT_BASE%.sql}"
-LOG_DIR="${PROJECT_ROOT}/logs/${ENV_NAME}/runs"
-LOG_FILE="${LOG_DIR}/${TIMESTAMP}_${SCRIPT_BASE}_$$.log"
-
-if ! mkdir -p "${LOG_DIR}"; then
-  echo "[ERROR] Failed to create log directory: ${LOG_DIR}" >&2
-  exit 2
-fi
-
+# Resolve the script path so callers can use absolute or project-relative paths.
 if [[ "${SCRIPT_ARG}" = /* ]]; then
   SCRIPT_PATH="${SCRIPT_ARG}"
 else
   SCRIPT_PATH="${PROJECT_ROOT}/${SCRIPT_ARG}"
 fi
 
+# Fail before execution if the target script or SQLcl binary is missing.
 if [[ ! -f "${SCRIPT_PATH}" ]]; then
   echo "[ERROR] SQL script not found: ${SCRIPT_ARG}" >&2
   exit 2
@@ -94,12 +89,28 @@ if ! command -v "${SQLCL_BIN}" >/dev/null 2>&1; then
   exit 127
 fi
 
-if [[ "${LOG_LEVEL}" = "debug" ]]; then
-  ECHO_SETTING="set echo on"
-else
-  ECHO_SETTING="set echo off"
+# Build a collision-free log file name using the resolved script name.
+TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
+SCRIPT_NAME="$(basename "${SCRIPT_PATH}")"
+SCRIPT_STEM="${SCRIPT_NAME%.sql}"
+LOG_DIR="${PROJECT_ROOT}/logs/${ENV_NAME}/runs"
+LOG_FILE="${LOG_DIR}/${TIMESTAMP}_${SCRIPT_STEM}_$$.log"
+
+if ! mkdir -p "${LOG_DIR}"; then
+  echo "[ERROR] Failed to create log directory: ${LOG_DIR}" >&2
+  exit 2
 fi
 
+# In debug mode mirror SQLcl output to the console; otherwise log only.
+if [[ "${LOG_LEVEL}" = "debug" ]]; then
+  ECHO_SETTING="set echo on"
+  TEE_STDOUT="/dev/fd/1"
+else
+  ECHO_SETTING="set echo off"
+  TEE_STDOUT="/dev/null"
+fi
+
+# Write a stable log header before invoking SQLcl.
 cat >"${LOG_FILE}" <<EOF
 [INFO] START
 [INFO] ENV=${ENV_NAME}
@@ -116,9 +127,8 @@ echo "[INFO] SCRIPT=${SCRIPT_ARG}"
 echo "[INFO] LOG_FILE=${LOG_FILE}"
 echo "[INFO] LOG_LEVEL=${LOG_LEVEL}"
 
-if [[ "${LOG_LEVEL}" = "debug" ]]; then
-  "${SQLCL_BIN}" /nolog 2>&1 <<EOF | tee -a "${LOG_FILE}"
-connmgr connect ${CONNECTION}
+# Run the target script inside a controlled SQLcl session and capture all output.
+"${SQLCL_BIN}" -name "${CONNECTION}" 2>&1 <<EOF | tee -a "${LOG_FILE}" >"${TEE_STDOUT}"
 whenever oserror exit failure rollback
 whenever sqlerror exit sql.sqlcode rollback
 set feedback on
@@ -130,24 +140,14 @@ ${ECHO_SETTING}
 @${SCRIPT_PATH}
 exit success
 EOF
-  SQLCL_EXIT=$?
-else
-  "${SQLCL_BIN}" /nolog 2>&1 <<EOF | tee -a "${LOG_FILE}" >/dev/null
-connmgr connect ${CONNECTION}
-whenever oserror exit failure rollback
-whenever sqlerror exit sql.sqlcode rollback
-set feedback on
-set timing on
-set serveroutput on size unlimited
-set define off
-set sqlblanklines on
-${ECHO_SETTING}
-@${SCRIPT_PATH}
-exit success
-EOF
-  SQLCL_EXIT=$?
+SQLCL_EXIT=$?
+
+# Treat known SQLcl connection failures as hard failures even if SQLcl returns zero.
+if [[ "${SQLCL_EXIT}" -eq 0 ]] && grep -Eq '(^SP2-|^Unknown connection\b)' "${LOG_FILE}"; then
+  SQLCL_EXIT=1
 fi
 
+# Append the final execution status to the log and console summary.
 cat >>"${LOG_FILE}" <<EOF
 [INFO] SQLCL_EXIT=${SQLCL_EXIT}
 [INFO] END
