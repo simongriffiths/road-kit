@@ -45,6 +45,10 @@ grant create type to &&schema_user;
 grant create trigger to &&schema_user;
 grant create synonym to &&schema_user;
 
+grant execute on dbms_crypto to &&schema_user;
+grant execute on utl_encode to &&schema_user;
+grant execute on utl_i18n to &&schema_user;
+
 prompt
 prompt Grants applied to:
 prompt   &&schema_user
@@ -58,6 +62,9 @@ prompt   CREATE PROCEDURE
 prompt   CREATE TYPE
 prompt   CREATE TRIGGER
 prompt   CREATE SYNONYM
+prompt   EXECUTE ON DBMS_CRYPTO
+prompt   EXECUTE ON UTL_ENCODE
+prompt   EXECUTE ON UTL_I18N
 prompt
 
 undefine schema_user

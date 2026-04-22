@@ -3,6 +3,7 @@ set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ROAD_CONFIG="${PROJECT_ROOT}/road.config"
+GET_TEST_TOKEN_SCRIPT="${PROJECT_ROOT}/bin/get-test-token.sh"
 
 usage() {
   cat >&2 <<'EOF'
@@ -64,6 +65,7 @@ export ORDS_BASE_URL="${HOST_BASE}/ords/${API_BASE_PATH}/api/v1"
 export UI_ROOT_URL="${HOST_BASE}/ords/${UI_BASE_PATH}/ui/${APP_NAME}"
 export APP_NAME
 export UI_BASE_PATH
+export TEST_TOKEN="$("${GET_TEST_TOKEN_SCRIPT}" --env "${ENV_NAME}")"
 
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 LOG_DIR="${PROJECT_ROOT}/logs/${ENV_NAME}/runs"
@@ -76,5 +78,6 @@ echo "[INFO] HOST_BASE=${HOST_BASE}"
 echo "[INFO] ORDS_BASE_URL=${ORDS_BASE_URL}"
 echo "[INFO] UI_ROOT_URL=${UI_ROOT_URL}"
 echo "[INFO] LOG_FILE=${LOG_FILE}"
+echo "[INFO] TEST_TOKEN_READY=true"
 
 bash "${PROJECT_ROOT}/test/endpoint/00_endpoint.sh" 2>&1 | tee "${LOG_FILE}"

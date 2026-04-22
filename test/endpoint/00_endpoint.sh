@@ -8,4 +8,5 @@ bash test/endpoint/health.endpoint.sh
 bash test/endpoint/ui-root.endpoint.sh
 bash test/endpoint/ui-asset.endpoint.sh
 bash test/endpoint/ui-spa.endpoint.sh
+bash test/endpoint/session-me.endpoint.sh
 echo "[INFO] Endpoint tests complete"
