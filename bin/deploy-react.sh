@@ -58,6 +58,21 @@ detect_content_type() {
   esac
 }
 
+should_skip_asset() {
+  local relative_path="$1"
+  local file_name
+
+  file_name="$(basename "${relative_path}")"
+
+  case "${file_name}" in
+    .*)
+      return 0
+      ;;
+  esac
+
+  return 1
+}
+
 upload_asset() {
   local env_name="$1"
   local app_name="$2"
@@ -236,6 +251,12 @@ echo "[INFO] Uploading built assets to Oracle"
 
 while IFS= read -r asset_path; do
   relative_path="${asset_path#${DIST_DIR}/}"
+
+  if should_skip_asset "${relative_path}"; then
+    echo "[INFO] SKIP=${relative_path}"
+    continue
+  fi
+
   safe_name="$(printf "%s" "${relative_path}" | tr '/.' '__')"
   temp_sql="${TEMP_DIR}/${safe_name}.sql"
   append_sql="${TEMP_DIR}/${safe_name}.append.sql"
