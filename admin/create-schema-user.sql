@@ -1,3 +1,6 @@
+whenever oserror exit failure rollback
+whenever sqlerror exit sql.sqlcode rollback
+
 set define on
 set verify off
 set feedback on
@@ -45,3 +48,5 @@ undefine schema_password
 undefine default_tablespace
 undefine temporary_tablespace
 undefine quota_mb
+
+exit success

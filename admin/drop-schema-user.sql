@@ -1,3 +1,6 @@
+whenever oserror exit failure rollback
+whenever sqlerror exit sql.sqlcode rollback
+
 set define on
 set verify off
 set feedback on
@@ -32,3 +35,5 @@ prompt   &&schema_user
 prompt
 
 undefine schema_user
+
+exit success

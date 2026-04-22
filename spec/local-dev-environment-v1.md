@@ -165,6 +165,8 @@ Equivalent named connections must be created for `test` and `prod`, each pointin
 
 Where `<tns_alias>` matches an entry in the selected wallet's `tnsnames.ora`.
 
+Admin/bootstrap scripts that create or drop schema users are outside the `run-sql.sh` contract. They must be run manually from SQLcl using an admin-capable connection, not through the application connection mapping.
+
 ### 7.2 Verifying Connectivity
 
 After provisioning, verify the connection:

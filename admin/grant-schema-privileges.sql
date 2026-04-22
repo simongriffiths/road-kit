@@ -1,3 +1,6 @@
+whenever oserror exit failure rollback
+whenever sqlerror exit sql.sqlcode rollback
+
 set define on
 set verify off
 set feedback on
@@ -41,7 +44,6 @@ grant create procedure to &&schema_user;
 grant create type to &&schema_user;
 grant create trigger to &&schema_user;
 grant create synonym to &&schema_user;
-grant create index to &&schema_user;
 
 prompt
 prompt Grants applied to:
@@ -56,10 +58,11 @@ prompt   CREATE PROCEDURE
 prompt   CREATE TYPE
 prompt   CREATE TRIGGER
 prompt   CREATE SYNONYM
-prompt   CREATE INDEX
 prompt
 
 undefine schema_user
 undefine default_tablespace
 undefine temporary_tablespace
 undefine quota_mb
+
+exit success
