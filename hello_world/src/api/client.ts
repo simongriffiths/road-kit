@@ -1,4 +1,5 @@
 import type { ApiError } from '../types/api';
+import { getOrdsBaseUrl } from '../config/runtime';
 import { getToken } from '../utils/auth';
 
 function buildError(status: number, error: string, message: string): ApiError {
@@ -13,7 +14,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(`${import.meta.env.VITE_ORDS_BASE_URL}${path}`, {
+  const response = await fetch(`${getOrdsBaseUrl()}${path}`, {
     ...options,
     headers
   });

@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 
+import { getOrdsBaseUrl } from '../config/runtime';
+
 export function HomePage() {
   return (
     <div className="stack">
@@ -39,7 +41,7 @@ export function HomePage() {
         </div>
         <div>
           <dt>API Base URL</dt>
-          <dd>{import.meta.env.VITE_ORDS_BASE_URL}</dd>
+          <dd>{getOrdsBaseUrl()}</dd>
         </div>
       </dl>
     </div>

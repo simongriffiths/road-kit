@@ -1,11 +1,8 @@
 import type { ApiError, LoginResponse } from '../types/api';
+import { getAuthBaseUrl } from '../config/runtime';
 
 function buildError(status: number, error: string, message: string): ApiError {
   return { status, error, message };
-}
-
-function getAuthBaseUrl(): string {
-  return import.meta.env.VITE_ORDS_BASE_URL.replace(/\/api\/v1\/?$/, '');
 }
 
 export async function loginRequest(
