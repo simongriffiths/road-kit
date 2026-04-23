@@ -158,7 +158,7 @@ ORDS handlers must assume ORDS has already applied the correct security gate. Ha
 At the ORDS security boundary:
 
 - invalid or missing authentication yields `401`
-- valid authentication without sufficient authorisation yields `403`
+- valid authentication without sufficient ORDS privilege/scope also yields `401` in the v1 ORDS-first profile
 
 ---
 
@@ -329,7 +329,7 @@ At minimum, ORDS security configuration must be validated with tests covering:
 |---|---|
 | Protected endpoint without token | 401 |
 | Protected endpoint with valid token | 200 |
-| Valid token with wrong scope or missing privilege | 403 |
+| Valid token with wrong scope or missing privilege | 401 in the v1 ORDS-first profile |
 | Wrong issuer / audience / signature | 401 |
 | Public login endpoint reachable where intended | 200 or profile-specific success |
 | Public JWKS endpoint reachable where intended | 200 |

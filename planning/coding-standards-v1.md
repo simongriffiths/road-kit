@@ -169,7 +169,7 @@ If a proposed implementation conflicts with the normative specs, the spec wins.
 ### 7.4 Security
 
 - Protected routes must be separated from public UI routes.
-- Enforce `401` for unauthenticated access and `403` for insufficient privilege/scope.
+- Enforce `401` for ORDS-boundary authentication and privilege rejection in the v1 ORDS-first profile; reserve `403` for downstream application-level authorization where ROAD chooses to distinguish it.
 - Keep provider-specific security details out of generic handler code.
 
 ---

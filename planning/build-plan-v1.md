@@ -170,7 +170,7 @@ Implement one authenticated slice after the hosted foundation is stable:
 - one PL/SQL package using session context
 - one React auth flow sufficient to store a token in `sessionStorage`
 - one protected React route
-- one endpoint test covering `401` and `403`
+- endpoint tests covering unauthenticated and wrong-scope rejection
 
 ### 6.3 Recommended Endpoint
 
@@ -202,7 +202,7 @@ without requiring full business-domain complexity.
 
 - unauthenticated request returns `401`
 - authenticated request with valid access returns `200`
-- authenticated request without required privilege/scope returns `403`
+- authenticated request without required privilege/scope returns `401` at the ORDS boundary in the v1 ORDS-first profile
 - React stores token only through `src/utils/auth.ts`
 - protected route redirects correctly when not authenticated
 - endpoint tests and component tests covering this slice pass

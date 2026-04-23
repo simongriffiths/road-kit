@@ -66,6 +66,7 @@ export UI_ROOT_URL="${HOST_BASE}/ords/${UI_BASE_PATH}/ui/${APP_NAME}"
 export APP_NAME
 export UI_BASE_PATH
 export TEST_TOKEN="$("${GET_TEST_TOKEN_SCRIPT}" --env "${ENV_NAME}")"
+export WRONG_SCOPE_TOKEN="$("${GET_TEST_TOKEN_SCRIPT}" --env "${ENV_NAME}" --scope "wrong.scope")"
 
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 LOG_DIR="${PROJECT_ROOT}/logs/${ENV_NAME}/runs"
@@ -79,5 +80,6 @@ echo "[INFO] ORDS_BASE_URL=${ORDS_BASE_URL}"
 echo "[INFO] UI_ROOT_URL=${UI_ROOT_URL}"
 echo "[INFO] LOG_FILE=${LOG_FILE}"
 echo "[INFO] TEST_TOKEN_READY=true"
+echo "[INFO] WRONG_SCOPE_TOKEN_READY=true"
 
 bash "${PROJECT_ROOT}/test/endpoint/00_endpoint.sh" 2>&1 | tee "${LOG_FILE}"

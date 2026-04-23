@@ -18,7 +18,7 @@ The goal is one framework-level authentication interface with provider-specific 
 2. **Bearer token transport is standard.** Protected API access always uses `Authorization: Bearer <token>`.
 3. **ORDS is always the resource server.** Regardless of who issues the token, protected ROAD endpoints are enforced by ORDS privileges.
 4. **Authentication and authorisation are distinct.** A valid token proves identity. ORDS privileges and downstream rules decide access.
-5. **401 and 403 must remain distinct.** `401 Unauthorized` means the caller is not authenticated. `403 Forbidden` means the caller is authenticated but not allowed to access the resource.
+5. **ORDS-boundary rejection is normalised to 401 in v1.** In the ORDS-first ROAD profile, missing authentication and ORDS privilege rejection both surface as `401 Unauthorized`. `403 Forbidden` is reserved for downstream application-level authorization if ROAD later chooses to distinguish it inside handler or package logic after ORDS has already admitted the request.
 6. **Provider-specific differences must not leak into feature code.** React pages, hooks, and feature components must consume a stable auth interface.
 
 ---
@@ -69,7 +69,7 @@ Protected ROAD endpoints must follow this status model:
 | Invalid token | 401 |
 | Expired token | 401 |
 | Wrong issuer / audience / signature | 401 |
-| Valid token but missing required privilege / scope | 403 |
+| Valid token but missing required privilege / scope | 401 at the ORDS boundary in the v1 ORDS-first profile |
 
 ### 4.4 Token Storage Rules
 
@@ -262,7 +262,7 @@ Typical failures include:
 - invalid signature
 - missing required scope
 
-These must surface as `401` or `403` according to Section 4.3.
+These must surface according to Section 4.3. In the v1 ORDS-first profile, missing required scope also returns `401`.
 
 ### 9.6 ROAD Recommendation
 
@@ -297,7 +297,7 @@ Even when ORDS issues the token:
 
 - the client still stores and sends a bearer token
 - protected API requests still use the same auth client pattern
-- `401` and `403` semantics remain unchanged
+- protected endpoint rejection semantics remain those defined in Section 4.3
 
 ### 10.5 Modernization Note
 
@@ -356,7 +356,7 @@ Minimum required tests:
 | Invalid token | 401 |
 | Expired token | 401 |
 | Wrong issuer or audience | 401 |
-| Missing required scope / privilege | 403 |
+| Missing required scope / privilege | 401 in the v1 ORDS-first profile |
 
 Where the provider supports key rotation or JWKS refresh behaviour, additional tests should verify that behaviour explicitly.
 
@@ -369,7 +369,7 @@ A ROAD authentication provider is conformant only if:
 1. React feature code remains provider-agnostic.
 2. Protected endpoints are enforced by ORDS privileges.
 3. Protected requests use bearer token transport.
-4. `401` and `403` behaviour matches this spec.
+4. ORDS-boundary auth and privilege rejection behaviour matches this spec.
 5. The token or equivalent auth artifact exposes the claims required by ROAD.
 
 ---

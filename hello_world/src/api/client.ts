@@ -18,9 +18,17 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     headers
   });
 
+  const payload = await response.json().catch(() => null);
+
   if (!response.ok) {
-    throw buildError(response.status, 'HTTP_ERROR', `Request failed with status ${response.status}`);
+    throw buildError(
+      response.status,
+      typeof payload?.code === 'string' ? payload.code : 'HTTP_ERROR',
+      typeof payload?.message === 'string'
+        ? payload.message
+        : `Request failed with status ${response.status}`
+    );
   }
 
-  return response.json() as Promise<T>;
+  return payload as T;
 }
