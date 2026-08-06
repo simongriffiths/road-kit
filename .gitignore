@@ -6,3 +6,5 @@ dist/
 .playwright-browsers/
 test-results/
 playwright-report/
+.codex/
+config/connections.conf

@@ -1,0 +1,7 @@
+interface:
+  display_name: "sql-runner"
+  short_description: "Run Oracle SQL safely through SQLcl"
+  default_prompt: "Use $sql-runner to install the runner here and execute SQL through the logged workflow."
+
+policy:
+  allow_implicit_invocation: true
