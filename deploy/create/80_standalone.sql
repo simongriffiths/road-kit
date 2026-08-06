@@ -1,6 +1,20 @@
 whenever oserror exit failure rollback
 whenever sqlerror exit sql.sqlcode rollback
 
+-- INTENT:
+-- Purpose: Seed the single JWT_SCAFFOLD_CONFIG row used by the dev auth scaffold.
+-- Approach: MERGE on config_id = 1 so the script is idempotent and re-runnable.
+-- Reason: The auth scaffold needs issuer/audience/scope and signing key material
+--   present before any token can be minted or validated.
+-- Expected objects:
+--   JWT_SCAFFOLD_CONFIG (one row, config_id = 1)
+-- Risk: Medium. This script carries dev signing key material and an environment-specific
+--   issuer/JWKS URL. Confirm both are correct for the target environment before running -
+--   a wrong issuer produces tokens that fail validation with an unhelpful error.
+-- Prior history checked: Search db-history for prior 80_standalone runs and confirm the
+--   issuer URL matches this environment.
+-- END INTENT
+
 prompt === deploy standalone objects ===
 
 merge into jwt_scaffold_config target
