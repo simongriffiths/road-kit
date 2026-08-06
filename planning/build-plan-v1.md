@@ -21,7 +21,7 @@ It is not a normative spec. It is a delivery plan for building the first executa
 - `APP_NAME` in `road.config` is the canonical project identity
 - Production must use the hosted ADB ORDS deployment model
 - Development and test may use local runtime tooling where useful, but the standard build path should target hosted ORDS
-- Oracle-specific build work should use the available `oracle-db-skills` reference set for SQL, PL/SQL, ORDS, SQLcl, and Oracle security guidance
+- Oracle-specific build work should use the available `db@oracle-skills` plugin (Oracle's own skill set) for SQL, PL/SQL, ORDS, SQLcl, and Oracle security guidance
 
 ---
 
@@ -38,7 +38,7 @@ The implementation should proceed in four controlled stages:
 
 Each stage should leave the repository in a runnable, testable state.
 
-For Oracle-specific implementation work, the build should prefer the local `oracle-db-skills` guidance set as the first reference source before inventing patterns ad hoc.
+For Oracle-specific implementation work, the build should prefer the installed `db@oracle-skills` guidance set as the first reference source before inventing patterns ad hoc.
 
 ---
 

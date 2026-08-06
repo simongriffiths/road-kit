@@ -29,7 +29,9 @@ When standards overlap, apply them in this order:
 1. Frozen baseline in `spec/spec-baseline-v1.md`
 2. Relevant normative spec in `spec/`
 3. This coding standards guide
-4. Oracle-specific guidance from the local `oracle-db-skills` set
+4. Oracle-specific guidance from the `db@oracle-skills` plugin (Oracle's own skill set,
+   `github.com/oracle/skills`, installed at user scope). Formerly referenced here as
+   `oracle-db-skills`, which was never actually installed; the reference is now real.
 
 If a proposed implementation conflicts with the normative specs, the spec wins.
 
@@ -103,6 +105,44 @@ If a proposed implementation conflicts with the normative specs, the spec wins.
 - Transaction ownership must be deliberate.
 - Do not scatter commits through generic data-access code without reason.
 - Deployment scripts may control transaction boundaries explicitly.
+
+### 5.5 Row Modification Timestamps (standard)
+
+Every mutable table carries a last-modified timestamp, maintained by the database:
+
+```sql
+updated_at TIMESTAMP WITH TIME ZONE DEFAULT SYSTIMESTAMP NOT NULL
+```
+
+Add `created_at TIMESTAMP WITH TIME ZONE DEFAULT SYSTIMESTAMP NOT NULL` where creation time is
+independently useful (it is not derivable once a row has been updated).
+
+Rules:
+
+- **Maintained by a `BEFORE INSERT OR UPDATE` trigger, not by application code.** The value is
+  internal to the database back-end and must be *unavoidable* — no caller, no handler, no ad hoc
+  `UPDATE` issued during an incident, and no future second consumer of the schema can write a row
+  without it being set correctly. An application-maintained timestamp is only as reliable as the
+  most careless write path, which is precisely the wrong guarantee for the one field you reach for
+  first when diagnosing data corruption.
+- **Never client-supplied.** A value arriving in a request body is rejected, not honoured — client
+  clock skew would reintroduce the unreliability the field exists to remove.
+- **Readable is fine.** Exposing it for display ("last edited 3 minutes ago") is encouraged;
+  "internal" governs who *writes* it, not who may read it.
+- **Mutable tables only.** Append-only audit/log tables whose rows are never updated are exempt —
+  they carry their own insert-time timestamp, and a last-modified value that can never change
+  carries no information.
+
+Diagnostic value is the point: when something has gone wrong, "which rows changed, and when" is the
+first question asked, and it is unanswerable after the fact if the field was optional or
+inconsistently maintained.
+
+> **Known gap in this repo (not yet remediated).** `UI_ASSETS` and `JWT_SCAFFOLD_CONFIG` already
+> carry `updated_at`, but it is maintained in **application code** — `ui_assets_api.pkb` and
+> `deploy/create/80_standalone.sql` both assign `updated_at = systimestamp` by hand — and there are
+> no triggers anywhere in the repo. That is the exact pattern this section prohibits. Retrofitting
+> is a schema change to already-deployed tables and must not be done without explicit sign-off;
+> it is deliberately left outstanding rather than applied silently.
 
 ---
 
