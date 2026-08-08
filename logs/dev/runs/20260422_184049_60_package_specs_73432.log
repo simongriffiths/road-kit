@@ -1,0 +1,41 @@
+[INFO] START
+[INFO] ENV=dev
+[INFO] CONNECTION=app_dev
+[INFO] SCRIPT=deploy/create/60_package_specs.sql
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260422_184049
+
+SQLcl: Release 25.4 Production on Wed Apr 22 18:40:50 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+
+=== deploy package specs ===
+
+Package UI_ASSETS_API compiled
+
+Elapsed: 00:00:00.586
+Elapsed: 00:00:00.731
+
+Package HEALTH_API compiled
+
+Elapsed: 00:00:00.577
+Elapsed: 00:00:00.723
+
+Package JWT_SCAFFOLD_AUTH_API compiled
+
+Elapsed: 00:00:00.587
+Elapsed: 00:00:00.732
+
+Package SESSION_API compiled
+
+Elapsed: 00:00:01.129
+Elapsed: 00:00:01.274
+Elapsed: 00:00:01.418
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+[INFO] SQLCL_EXIT=0
+[INFO] END

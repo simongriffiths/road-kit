@@ -1,0 +1,2 @@
+[INFO] Starting endpoint tests
+test/endpoint/health.endpoint.sh: line 9: assert_http: command not found

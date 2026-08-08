@@ -1,0 +1,52 @@
+[INFO] START
+[INFO] ENV=dev
+[INFO] CONNECTION=app_dev
+[INFO] SCRIPT=deploy/create/70_package_bodies.sql
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260422_184049
+
+SQLcl: Release 25.4 Production on Wed Apr 22 18:40:50 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+
+=== deploy package bodies ===
+
+Package Body UI_ASSETS_API compiled
+
+Elapsed: 00:00:00.594
+Elapsed: 00:00:00.740
+
+Package Body HEALTH_API compiled
+
+Elapsed: 00:00:00.581
+Elapsed: 00:00:00.725
+
+Package Body JWT_SCAFFOLD_AUTH_API compiled
+
+Elapsed: 00:00:00.601
+Elapsed: 00:00:00.746
+
+Package Body SESSION_API compiled
+
+
+Errors for PACKAGE BODY SESSION_API:
+
+LINE/COL ERROR
+-------- -----------------------------------------------------------------
+53/5     PL/SQL: Statement ignored
+53/23    PLS-00225: subprogram or cursor 'GET_CONFIG' reference is out of scope
+58/5     PL/SQL: Statement ignored
+58/23    PLS-00225: subprogram or cursor 'GET_CONFIG' reference is out of scope
+63/5     PL/SQL: Statement ignored
+63/23    PLS-00225: subprogram or cursor 'GET_CONFIG' reference is out of scope
+Elapsed: 00:00:01.140
+Elapsed: 00:00:01.285
+Elapsed: 00:00:01.431
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+[INFO] SQLCL_EXIT=0
+[INFO] END

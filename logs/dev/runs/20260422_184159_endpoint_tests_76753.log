@@ -1,0 +1,26 @@
+[INFO] Starting endpoint tests
+[TEST] GET /health/ returns 200
+[PASS] HTTP 200
+[TEST] GET /ui/<app>/ returns 200
+[PASS] HTTP 200
+[TEST] UI root returns HTML shell
+[PASS] Body contains expected fragment
+[TEST] GET /ui/<app>/index.html returns 200
+[PASS] HTTP 200
+[TEST] GET bundled JS asset returns 200
+[PASS] HTTP 200
+[TEST] Bundled JS asset references deployed UI path
+[PASS] Body contains expected fragment
+[TEST] GET SPA fallback route returns 200
+[PASS] HTTP 200
+[TEST] SPA fallback returns index.html shell
+[PASS] Body contains expected fragment
+[TEST] GET /session/me/ without token returns 401
+[PASS] HTTP 401
+[TEST] GET /session/me/ with token returns 200
+[PASS] HTTP 200
+[TEST] session/me returns ADMIN principal
+[PASS] Body contains expected fragment
+[TEST] session/me returns configured scope
+[PASS] Body contains expected fragment
+[INFO] Endpoint tests complete

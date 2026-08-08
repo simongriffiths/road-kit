@@ -1,0 +1,144 @@
+[INFO] START
+[INFO] ENV=dev
+[INFO] CONNECTION=app_dev
+[INFO] SCRIPT=deploy/create/00_full.sql
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260422_183106
+
+SQLcl: Release 25.4 Production on Wed Apr 22 18:31:07 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+
+=== full deploy ===
+=== deploy types ===
+Elapsed: 00:00:00.597
+=== deploy tables ===
+
+Table UI_ASSETS created.
+
+Elapsed: 00:00:00.362
+Elapsed: 00:00:00.506
+
+Table JWT_SCAFFOLD_CONFIG created.
+
+Elapsed: 00:00:00.371
+Elapsed: 00:00:00.518
+Elapsed: 00:00:00.663
+=== deploy indexes ===
+Elapsed: 00:00:00.586
+=== deploy synonyms ===
+Elapsed: 00:00:00.591
+=== deploy views ===
+Elapsed: 00:00:00.579
+=== deploy package specs ===
+
+Package UI_ASSETS_API compiled
+
+Elapsed: 00:00:00.596
+Elapsed: 00:00:00.741
+
+Package HEALTH_API compiled
+
+Elapsed: 00:00:00.587
+Elapsed: 00:00:00.734
+
+Package JWT_SCAFFOLD_AUTH_API compiled
+
+Elapsed: 00:00:00.590
+Elapsed: 00:00:00.737
+
+Package SESSION_API compiled
+
+Elapsed: 00:00:00.587
+Elapsed: 00:00:00.730
+Elapsed: 00:00:00.878
+=== deploy package bodies ===
+
+Package Body UI_ASSETS_API compiled
+
+Elapsed: 00:00:00.590
+Elapsed: 00:00:00.737
+
+Package Body HEALTH_API compiled
+
+Elapsed: 00:00:00.592
+Elapsed: 00:00:00.737
+
+Package Body JWT_SCAFFOLD_AUTH_API compiled
+
+
+Errors for PACKAGE BODY JWT_SCAFFOLD_AUTH_API:
+
+LINE/COL ERROR
+-------- -----------------------------------------------------------------
+50/5     PL/SQL: Statement ignored
+50/12    PLS-00201: identifier 'DBMS_CRYPTO' must be declared
+149/5    PL/SQL: Statement ignored
+149/24   PLS-00201: identifier 'DBMS_CRYPTO' must be declared
+Elapsed: 00:00:01.424
+Elapsed: 00:00:01.568
+
+Package Body SESSION_API compiled
+
+Elapsed: 00:00:01.106
+Elapsed: 00:00:01.252
+Elapsed: 00:00:01.398
+=== deploy type bodies ===
+Elapsed: 00:00:00.588
+=== deploy standalone objects ===
+Elapsed: 00:00:00.583
+=== deploy ords modules ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.683
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.301
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.297
+Elapsed: 00:00:00.441
+=== public health endpoint requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.579
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.323
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.292
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.303
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.369
+Rollback
+declare
+*
+ERROR at line 1:
+ORA-01403: no data found
+ORA-06512: at line 7
+
+https://docs.oracle.com/error-help/db/ora-01403/
+
+
+More Details :
+https://docs.oracle.com/error-help/db/ora-01403/
+https://docs.oracle.com/error-help/db/ora-06512/
+Elapsed: 00:00:00.641
+Elapsed: 00:00:00.785
+Elapsed: 00:00:00.929
+Elapsed: 00:00:01.073
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0

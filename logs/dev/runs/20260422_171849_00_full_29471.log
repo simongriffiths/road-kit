@@ -1,0 +1,68 @@
+[INFO] START
+[INFO] ENV=dev
+[INFO] CONNECTION=app_dev
+[INFO] SCRIPT=deploy/drop/00_full.sql
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260422_171849
+
+SQLcl: Release 25.4 Production on Wed Apr 22 17:18:50 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+
+=== full teardown ===
+=== drop ords modules ===
+=== no ORDS privilege cleanup required for public health endpoint ===
+Elapsed: 00:00:00.585
+Note: Module may not exist - ORA-20012: Schema not REST enabled : DEV_SCHEMA
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.708
+
+Commit complete.
+
+Elapsed: 00:00:00.293
+Elapsed: 00:00:00.438
+Elapsed: 00:00:00.582
+=== drop standalone objects ===
+Elapsed: 00:00:00.593
+=== drop type bodies ===
+Elapsed: 00:00:00.580
+=== drop package bodies ===
+health_api body is dropped with the package spec
+Elapsed: 00:00:00.723
+=== drop package specs ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.303
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.300
+Elapsed: 00:00:00.448
+=== drop views ===
+Elapsed: 00:00:00.587
+=== drop synonyms ===
+Elapsed: 00:00:00.582
+=== drop indexes ===
+Elapsed: 00:00:00.579
+=== drop tables ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.369
+Elapsed: 00:00:00.515
+Elapsed: 00:00:00.669
+=== drop types ===
+Elapsed: 00:00:00.603
+Elapsed: 00:00:00.752
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+[INFO] SQLCL_EXIT=0
+[INFO] END

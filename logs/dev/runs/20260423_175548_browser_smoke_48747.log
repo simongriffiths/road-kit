@@ -1,0 +1,14 @@
+
+Running 2 tests using 1 worker
+
+[1A[2K(node:48775) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:48775) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/2] e2e/login.smoke.spec.ts:17:1 › protected route redirects to login when no token is present
+[1A[2K[2/2] e2e/login.smoke.spec.ts:25:1 › browser login reaches the protected session page
+[1A[2K  2 passed (3.7s)

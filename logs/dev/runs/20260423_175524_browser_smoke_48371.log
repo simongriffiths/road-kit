@@ -1,0 +1,59 @@
+
+Running 2 tests using 1 worker
+
+[1A[2K(node:48401) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:48401) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/2] e2e/login.smoke.spec.ts:17:1 › protected route redirects to login when no token is present
+[1A[2K[2/2] e2e/login.smoke.spec.ts:25:1 › browser login reaches the protected session page
+[1A[2K  1) e2e/login.smoke.spec.ts:25:1 › browser login reaches the protected session page ───────────────
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByText('ADMIN', { exact: true })
+    Expected: visible
+    Error: strict mode violation: getByText('ADMIN', { exact: true }) resolved to 2 elements:
+        1) <dd>ADMIN</dd> aka getByText('ADMIN').first()
+        2) <dd>ADMIN</dd> aka getByText('ADMIN').nth(1)
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByText('ADMIN', { exact: true })[22m
+
+
+      35 |   await expect(page).toHaveURL(/\/session$/);
+      36 |   await expect(page.getByRole('heading', { name: 'Protected Session' })).toBeVisible();
+    > 37 |   await expect(page.getByText(username, { exact: true })).toBeVisible();
+         |                                                           ^
+      38 |
+      39 |   const token = await page.evaluate(() => window.sessionStorage.getItem('auth_token'));
+      40 |   expect(token).toBeTruthy();
+        at /Users/simon/Oracle/road2/hello_world/e2e/login.smoke.spec.ts:37:59
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/login.smoke-browser-login-reaches-the-protected-session-page/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/login.smoke-browser-login-reaches-the-protected-session-page/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/login.smoke-browser-login-reaches-the-protected-session-page/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/login.smoke-browser-login-reaches-the-protected-session-page/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/login.smoke-browser-login-reaches-the-protected-session-page/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  1 failed
+    e2e/login.smoke.spec.ts:25:1 › browser login reaches the protected session page ────────────────
+  1 passed (4.5s)

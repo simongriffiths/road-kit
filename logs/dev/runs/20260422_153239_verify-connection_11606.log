@@ -1,0 +1,17 @@
+[INFO] START
+[INFO] ENV=dev
+[INFO] CONNECTION=app-dev
+[INFO] SCRIPT=bin/verify-connection.sql
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260422_153239
+
+SQLcl: Release 25.4 Production on Wed Apr 22 15:32:40 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Unknown connection app-dev
+SP2-0640: Not connected
+Elapsed: 00:00:00.001
+Elapsed: 00:00:00.002
+[INFO] SQLCL_EXIT=1
+[INFO] END

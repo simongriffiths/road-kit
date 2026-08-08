@@ -1,0 +1,51 @@
+[INFO] START
+[INFO] ENV=dev
+[INFO] CONNECTION=app_dev
+[INFO] SCRIPT=deploy/create/90_rest.sql
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260422_175947
+
+SQLcl: Release 25.4 Production on Wed Apr 22 17:59:48 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+
+=== deploy ords modules ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.678
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.302
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.306
+Elapsed: 00:00:00.451
+=== public health endpoint requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.589
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.323
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.295
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.311
+Elapsed: 00:00:00.457
+=== public ui delivery requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.587
+Elapsed: 00:00:00.733
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+[INFO] SQLCL_EXIT=0
+[INFO] END

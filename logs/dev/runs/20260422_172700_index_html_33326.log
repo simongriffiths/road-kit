@@ -1,0 +1,24 @@
+[INFO] START
+[INFO] ENV=dev
+[INFO] CONNECTION=app_dev
+[INFO] SCRIPT=/var/folders/79/xscqxgbs36s2gc1c40cctsj00000gp/T/tmp.fP5inXTSLe/index_html.sql
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260422_172700
+
+SQLcl: Release 25.4 Production on Wed Apr 22 17:27:01 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.648
+Elapsed: 00:00:00.796
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+[INFO] SQLCL_EXIT=0
+[INFO] END

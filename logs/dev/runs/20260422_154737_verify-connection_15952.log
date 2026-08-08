@@ -1,0 +1,25 @@
+[INFO] START
+[INFO] ENV=dev
+[INFO] CONNECTION=app_dev
+[INFO] SCRIPT=bin/verify-connection.sql
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260422_154737
+
+SQLcl: Release 25.4 Production on Wed Apr 22 15:47:38 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected.
+
+[1mSTATUS[m       
+____________ 
+connected    
+
+1 row selected. 
+
+Elapsed: 00:00:00.613
+Elapsed: 00:00:00.761
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+[INFO] SQLCL_EXIT=0
+[INFO] END

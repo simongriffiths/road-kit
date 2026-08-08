@@ -1,0 +1,101 @@
+[INFO] START
+[INFO] ENV=dev
+[INFO] CONNECTION=app_dev
+[INFO] SCRIPT=deploy/create/00_full.sql
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260422_171909
+
+SQLcl: Release 25.4 Production on Wed Apr 22 17:19:10 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+
+=== full deploy ===
+=== deploy types ===
+Elapsed: 00:00:00.589
+=== deploy tables ===
+
+Table UI_ASSETS created.
+
+Elapsed: 00:00:00.360
+Elapsed: 00:00:00.504
+Elapsed: 00:00:00.650
+=== deploy indexes ===
+Elapsed: 00:00:00.586
+=== deploy synonyms ===
+Elapsed: 00:00:00.585
+=== deploy views ===
+Elapsed: 00:00:00.589
+=== deploy package specs ===
+
+Package UI_ASSETS_API compiled
+
+Elapsed: 00:00:00.821
+Elapsed: 00:00:00.966
+
+Package HEALTH_API compiled
+
+Elapsed: 00:00:00.621
+Elapsed: 00:00:00.767
+Elapsed: 00:00:00.912
+=== deploy package bodies ===
+
+Package Body UI_ASSETS_API compiled
+
+Elapsed: 00:00:00.637
+Elapsed: 00:00:00.780
+
+Package Body HEALTH_API compiled
+
+Elapsed: 00:00:00.586
+Elapsed: 00:00:00.729
+Elapsed: 00:00:00.874
+=== deploy type bodies ===
+Elapsed: 00:00:00.587
+=== deploy standalone objects ===
+Elapsed: 00:00:00.586
+=== deploy ords modules ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:01.537
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.332
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.351
+Elapsed: 00:00:00.496
+=== public health endpoint requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.584
+Elapsed: 00:00:00.728
+=== deploy seed data ===
+Elapsed: 00:00:00.584
+=== verify deployment ===
+
+[1mSTATUS[m    
+_________ 
+ok        
+
+1 row selected. 
+
+Elapsed: 00:00:00.394
+
+   [1mUI_ASSET_COUNT[m 
+_________________ 
+                0 
+
+1 row selected. 
+
+Elapsed: 00:00:00.405
+Elapsed: 00:00:00.548
+Elapsed: 00:00:00.691
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+[INFO] SQLCL_EXIT=0
+[INFO] END

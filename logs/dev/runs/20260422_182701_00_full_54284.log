@@ -1,0 +1,123 @@
+[INFO] START
+[INFO] ENV=dev
+[INFO] CONNECTION=app_dev
+[INFO] SCRIPT=deploy/drop/00_full.sql
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260422_182701
+
+SQLcl: Release 25.4 Production on Wed Apr 22 18:27:02 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+
+=== full teardown ===
+=== drop ords modules ===
+=== no ORDS privilege cleanup required for public ui delivery ===
+Elapsed: 00:00:00.593
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.699
+
+Commit complete.
+
+Elapsed: 00:00:00.293
+Elapsed: 00:00:00.440
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.315
+
+Commit complete.
+
+Elapsed: 00:00:00.290
+Elapsed: 00:00:00.435
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.301
+
+Commit complete.
+
+Elapsed: 00:00:00.293
+Elapsed: 00:00:00.439
+=== no ORDS privilege cleanup required for public jwt auth scaffold ===
+Elapsed: 00:00:00.597
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.301
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.383
+
+Commit complete.
+
+Elapsed: 00:00:00.291
+Elapsed: 00:00:00.436
+=== no ORDS privilege cleanup required for public health endpoint ===
+Elapsed: 00:00:00.583
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.302
+
+Commit complete.
+
+Elapsed: 00:00:00.295
+Elapsed: 00:00:00.440
+Elapsed: 00:00:00.675
+=== drop standalone objects ===
+Elapsed: 00:00:00.718
+=== drop type bodies ===
+Elapsed: 00:00:00.677
+=== drop package bodies ===
+health_api body is dropped with the package spec
+Elapsed: 00:00:00.894
+=== drop package specs ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.521
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.332
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.332
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.380
+Elapsed: 00:00:00.524
+=== drop views ===
+Elapsed: 00:00:00.712
+=== drop synonyms ===
+Elapsed: 00:00:00.718
+=== drop indexes ===
+Elapsed: 00:00:00.668
+=== drop tables ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.374
+Elapsed: 00:00:00.520
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.517
+Elapsed: 00:00:00.704
+Elapsed: 00:00:00.896
+=== drop types ===
+Elapsed: 00:00:00.669
+Elapsed: 00:00:00.857
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+[INFO] SQLCL_EXIT=0
+[INFO] END

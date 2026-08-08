@@ -1,0 +1,351 @@
+[INFO] START
+[INFO] ENV=dev
+[INFO] CONNECTION=app-dev
+[INFO] SCRIPT=bin/verify-connection.sql
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260422_153036
+
+SQLcl: Release 25.4 Production on Wed Apr 22 15:30:37 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+'connect' at column 8: Expected a subcommand, use 'connmgr [TAB]' for a list of subcommands or enter 'help connmgr'
+The Connection manager (CONNMGR) command allows you to import connections from
+SQLDeveloper, list and test them.
+These connections can be used with the connect command to connect to a database.
+
+
+Subcommands:
+
+  [1mIMPORT[0m
+
+  Import connection definitions into the common connection store from JSON files
+  
+  (exported from SQL Developer) or from Oracle Cloud Infrastructure
+  DatabaseTools Service.
+  - From JSON Files: Connection files exported from SQL Developer may contain
+  encrypted passwords and credentials.
+    If passwords are encrypted, provide the encryption key (stored as a secret)
+  or enter it when prompted. 
+    Alternatively, strip passwords during import and provide them later when
+  connecting.
+  - From OCI DatabaseTools Service: Import a reference to a cloud-based
+  connection definition. 
+    The connection name is stored locally, but username, connect string, and
+  other details are retrieved from the DatabaseTools Service when needed.
+
+  Usage:
+
+    [33mimport[0m {OPTIONS} {PARAMETERS}
+
+  Options:
+
+    [33m-duplicates[0m|[33m-d[0m|[33m-dups[0m <duplicates> (IGNORE)
+    How to handle imported connections whose names match an existing connection
+    IGNORE: (Default) skip the duplicate connections
+    RENAME: rename the duplicate connections by appending a unique number to the
+    end of the name
+    REPLACE: replace the existing connection with the new connection
+
+    [33m-key[0m <key>
+    The public name of a secret that protects the encryption key used to encrypt
+    passwords in the file
+
+    [33m-strip-passwords[0m|[33m-s[0m|[33m-strip[0m
+    Indicates that any encrypted passwords should be stripped from imported
+    connections
+
+    [33m-oci[0m
+    Import a connection from the DatabaseTools Service
+
+  Parameters:
+
+    [33m<import-location>[0m [required]
+    A single JSON file containing connections exported from SQL Developer, or
+    the DisplayName of a DatabaseTools Service connection when used in
+    conjunction with the -oci flag
+
+  Examples:
+
+    To import connections from a file, ignoring duplicates and prompting for an
+    encryption key for passwords in the file (if needed):
+    
+      [33mSQL> CONNMGR IMPORT myconns.json[0m
+    
+    To import connections from a file, renaming duplicates and stripping
+    passwords:
+    
+      [33mSQL> CONNMGR IMPORT -STRIP-PASSWORDS myconns.json[0m
+    
+    To create a secret for the encryption key and specify the secret name when
+    importing connections from a file:
+    
+      [33mSQL> SECRET SET mySecret <encryption key>[0m
+      [33mSQL> CONNMGR IMPORT -KEY mySecret myconns.json[0m
+
+
+  [1mLIST[0m
+
+  List the existing connection folders and the connections contained within them
+
+  Usage:
+
+    [33mlist[0m {OPTIONS}
+
+  Options:
+
+    [33m-folder[0m <folder>
+    Path of the folder to start listing from
+
+    [33m-flat[0m
+    List only the name of the connections in a flatten way without the folders
+    structure
+
+    [33m-oci[0m
+    List connections in the DatabaseTools Service
+
+  Examples:
+
+    To list the currently defined connections in a tree view:
+    
+      [33mSQL> CONNMGR LIST[0m
+    
+    To list only the folders and connection under a specific folder (e.g.:
+    /prod):
+    
+      [33mSQL> CONNMGR LIST -folder /prod[0m
+    
+    To list only the names of the connections without the folders structure:
+    
+      [33mSQL> CONNMGR LIST -flat[0m
+    
+    To list all the names of the connections under a folder (e.g.: /dev/) in a
+    flatten way:
+    
+      [33mSQL> CONNMGR LIST -folder /dev/ -flat[0m
+
+
+  [1mSHOW[0m
+
+  Show the details for a connection
+
+  Usage:
+
+    [33mshow[0m {OPTIONS} {PARAMETERS}
+
+  Options:
+
+    [33m-oci[0m
+    Look up the connection in the DatabaseTools Service
+
+  Parameters:
+
+    [33m<connection-name>[0m [required]
+    The case-sensitive name of the connection to show the connection details
+
+  Examples:
+
+    To show the details for a connection:
+    
+      [33mSQL> CONNMGR SHOW MyConnection[0m
+
+
+  [1mTEST[0m
+
+  Test a connection
+
+  Usage:
+
+    [33mtest[0m {OPTIONS} {PARAMETERS}
+
+  Options:
+
+    [33m-username[0m|[33m-u[0m <username>
+    Replace the stored username (if any) with the specified user when testing
+    the connection
+
+  Parameters:
+
+    [33m<connection-name>[0m [required]
+    The case-sensitive name of the connection to test
+
+  Examples:
+
+    To test a connection:
+    
+      [33mSQL> CONNMGR TEST MyConnection[0m
+    
+    To test a connection with a different user:
+    
+      [33mSQL> CONNMGR TEST -USER SCOTT MyConnection[0m
+
+
+  [1mCLONE[0m
+
+  Clone an existing connection
+
+  Usage:
+
+    [33mclone[0m {OPTIONS} {PARAMETERS}
+
+  Options:
+
+    [33m-original[0m|[33m-o[0m <original> [required]
+    The name of the source connection being cloned
+
+    [33m-username[0m|[33m-u[0m <username>
+    The username to store with the connection
+
+    [33m-nopwd[0m
+    Create the connection without a stored password
+
+  Parameters:
+
+    [33m<connection-name>[0m [required]
+    The case-sensitive name of the connection to add
+
+  Examples:
+
+    To clone an existing connection:
+    
+      [33mSQL> CONNMGR CLONE -original original_name newname[0m
+    
+    To clone an existing connection, replacing the username:
+    
+      [33mSQL> CONNMGR CLONE -original original_name -user newuser newname[0m
+
+
+  [1mADD[0m
+
+  Add a new connection folder
+
+  Usage:
+
+    [33madd[0m {OPTIONS}
+
+  Options:
+
+    [33m-folder[0m <folder> [required]
+    Path of the folder to be added
+
+  Examples:
+
+    To add a new folder:
+    
+      [33mSQL> connmgr add -folder /dev/local[0m
+
+
+  [1mDELETE[0m
+
+  Delete a connection or a folder, non-empty folders cannot be deleted unless
+  the -force flag is used, which permanently removes the folder along with all
+  its contents, including the connections
+
+  Usage:
+
+    [33mdelete[0m {OPTIONS}
+
+  Options:
+
+    [33m-folder[0m <folder>
+    Path of the folder to be deleted
+
+    [33m-conn[0m <conn>
+    The name of the connection to be deleted
+
+    [33m-force[0m
+    Force deleting the folder, even if it's not empty. This will also delete
+    permanently the connections that are in that folder
+
+  Examples:
+
+    To delete an empty folder:
+    
+      [33mSQL> connmgr delete -folder /dev/local[0m
+    
+    To delete an non-empty folder:
+    
+      [33mSQL> connmgr delete -folder /dev/local -force[0m
+    
+    To delete a connection:
+    
+      [33mSQL> connmgr delete -conn conn_name[0m
+
+
+  [1mMOVE[0m
+
+  Move a connection name or a folder to another location
+
+  Usage:
+
+    [33mmove[0m {OPTIONS} {PARAMETERS}
+
+  Options:
+
+    [33m-folder[0m <folder>
+    The path of the folder
+
+    [33m-conn[0m <conn>
+    The name of the connection
+
+  Parameters:
+
+    [33m<dest-path>[0m [required]
+    The path of the Destination folder
+
+  Examples:
+
+    To move a connection to a specific folder:
+    
+      [33mSQL> CONNMGR MOVE -conn conn_name /dev/local [0m
+    
+    To move a folder from one location to another:
+    
+      [33mSQL> CONNMGR MOVE -folder /dev/remote /prod/[0m
+
+
+  [1mRENAME[0m
+
+  Rename a connection name or a folder
+
+  Usage:
+
+    [33mrename[0m {OPTIONS} {PARAMETERS}
+
+  Options:
+
+    [33m-folder[0m <folder>
+    The path of the folder
+
+    [33m-conn[0m <conn>
+    The name of the connection
+
+  Parameters:
+
+    [33m<dest-path>[0m [required]
+    The path of the Destination folder
+
+  Examples:
+
+    To rename a connection to a another unique name:
+    
+      [33mSQL> CONNMGR RENAME -conn conn_name new_conn_name [0m
+    
+    To rename a folder:
+    
+      [33mSQL> CONNMGR RENAME -folder /dev/remote /prod/[0m
+
+Examples:
+
+  To import connections from a file:
+  
+    [33mSQL> CONNMGR IMPORT -DUPLICATES REPLACE myconns.json[0m
+  
+  To list the current connections:
+  
+    [33mSQL> CONNMGR LIST[0m
+SP2-0640: Not connected
+Elapsed: 00:00:00.002
+Elapsed: 00:00:00.003
+[INFO] SQLCL_EXIT=0
+[INFO] END

@@ -1,0 +1,198 @@
+[INFO] START
+[INFO] ENV=dev
+[INFO] CONNECTION=app_dev
+[INFO] SCRIPT=deploy/create/00_full.sql
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260422_183805
+
+SQLcl: Release 25.4 Production on Wed Apr 22 18:38:06 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+
+=== full deploy ===
+=== deploy types ===
+Elapsed: 00:00:00.588
+=== deploy tables ===
+
+Table UI_ASSETS created.
+
+Elapsed: 00:00:00.363
+Elapsed: 00:00:00.507
+
+Table JWT_SCAFFOLD_CONFIG created.
+
+Elapsed: 00:00:00.339
+Elapsed: 00:00:00.483
+Elapsed: 00:00:00.627
+=== deploy indexes ===
+Elapsed: 00:00:00.587
+=== deploy synonyms ===
+Elapsed: 00:00:00.582
+=== deploy views ===
+Elapsed: 00:00:00.585
+=== deploy package specs ===
+
+Package UI_ASSETS_API compiled
+
+Elapsed: 00:00:00.599
+Elapsed: 00:00:00.743
+
+Package HEALTH_API compiled
+
+Elapsed: 00:00:00.590
+Elapsed: 00:00:00.734
+
+Package JWT_SCAFFOLD_AUTH_API compiled
+
+Elapsed: 00:00:00.592
+Elapsed: 00:00:00.735
+
+Package SESSION_API compiled
+
+Elapsed: 00:00:00.589
+Elapsed: 00:00:00.734
+Elapsed: 00:00:00.880
+=== deploy package bodies ===
+
+Package Body UI_ASSETS_API compiled
+
+Elapsed: 00:00:00.597
+Elapsed: 00:00:00.741
+
+Package Body HEALTH_API compiled
+
+Elapsed: 00:00:00.585
+Elapsed: 00:00:00.730
+
+Package Body JWT_SCAFFOLD_AUTH_API compiled
+
+Elapsed: 00:00:00.676
+Elapsed: 00:00:00.820
+
+Package Body SESSION_API compiled
+
+Elapsed: 00:00:00.610
+Elapsed: 00:00:00.754
+Elapsed: 00:00:00.898
+=== deploy type bodies ===
+Elapsed: 00:00:00.587
+=== deploy standalone objects ===
+
+1 row merged.
+
+Elapsed: 00:00:00.690
+Elapsed: 00:00:00.835
+=== deploy ords modules ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.389
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.295
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.296
+Elapsed: 00:00:00.442
+=== public health endpoint requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.580
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.314
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.295
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.292
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.315
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.302
+Elapsed: 00:00:00.446
+=== public jwt auth scaffold requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.582
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.311
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.292
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.298
+Elapsed: 00:00:00.441
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.297
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.319
+Elapsed: 00:00:00.466
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.329
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.296
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.304
+Elapsed: 00:00:00.448
+=== public ui delivery requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.586
+Elapsed: 00:00:00.733
+=== deploy seed data ===
+Elapsed: 00:00:00.581
+=== verify deployment ===
+
+[1mSTATUS[m    
+_________ 
+ok        
+
+1 row selected. 
+
+Elapsed: 00:00:00.319
+
+   [1mUI_ASSET_COUNT[m 
+_________________ 
+                0 
+
+1 row selected. 
+
+Elapsed: 00:00:00.292
+
+[1mAUDIENCE[m    [1mAUTH_SCOPE[m         
+___________ __________________ 
+road-dev    session.me.read    
+
+1 row selected. 
+
+Elapsed: 00:00:00.296
+Elapsed: 00:00:00.438
+Elapsed: 00:00:00.581
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+[INFO] SQLCL_EXIT=0
+[INFO] END

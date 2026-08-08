@@ -1,0 +1,61 @@
+[INFO] START
+[INFO] ENV=dev
+[INFO] CONNECTION=app_dev
+[INFO] SCRIPT=deploy/create/90_rest.sql
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260422_175906
+
+SQLcl: Release 25.4 Production on Wed Apr 22 17:59:07 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+
+=== deploy ords modules ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.786
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.337
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.303
+Elapsed: 00:00:00.447
+=== public health endpoint requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.587
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.327
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.299
+Rollback
+begin
+*
+ERROR at line 1:
+ORA-01400: cannot insert NULL into ("ORDS_METADATA"."ORDS_TEMPLATES"."URI_TEMPLATE")
+ORA-06512: at "ORDS_METADATA.ORDS", line 1075
+ORA-06512: at "ORDS_METADATA.ORDS_SERVICES_INTERNAL", line 667
+ORA-06512: at "ORDS_METADATA.ORDS_SERVICES_INTERNAL", line 4495
+ORA-06512: at "ORDS_METADATA.ORDS", line 1059
+ORA-06512: at line 10
+
+https://docs.oracle.com/error-help/db/ora-01400/
+
+
+More Details :
+https://docs.oracle.com/error-help/db/ora-01400/
+https://docs.oracle.com/error-help/db/ora-06512/
+Elapsed: 00:00:00.645
+Elapsed: 00:00:00.790
+Elapsed: 00:00:00.933
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0

@@ -1,0 +1,96 @@
+[INFO] START
+[INFO] ENV=dev
+[INFO] CONNECTION=app_dev
+[INFO] SCRIPT=deploy/create/90_rest.sql
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260422_184049
+
+SQLcl: Release 25.4 Production on Wed Apr 22 18:40:50 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+
+=== deploy ords modules ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.704
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.312
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.296
+Elapsed: 00:00:00.443
+=== public health endpoint requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.589
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.332
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.303
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.297
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.320
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.292
+Elapsed: 00:00:00.437
+=== public jwt auth scaffold requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.584
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.319
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.309
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.304
+Elapsed: 00:00:00.450
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.334
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.310
+Elapsed: 00:00:00.455
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.320
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.298
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.304
+Elapsed: 00:00:00.449
+=== public ui delivery requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.589
+Elapsed: 00:00:00.733
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+[INFO] SQLCL_EXIT=0
+[INFO] END

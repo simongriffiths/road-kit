@@ -1,0 +1,164 @@
+[INFO] START
+[INFO] ENV=dev
+[INFO] CONNECTION=app_dev
+[INFO] SCRIPT=deploy/create/00_full.sql
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260422_183615
+
+SQLcl: Release 25.4 Production on Wed Apr 22 18:36:16 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
+
+=== full deploy ===
+=== deploy types ===
+Elapsed: 00:00:00.593
+=== deploy tables ===
+
+Table UI_ASSETS created.
+
+Elapsed: 00:00:00.478
+Elapsed: 00:00:00.622
+
+Table JWT_SCAFFOLD_CONFIG created.
+
+Elapsed: 00:00:00.340
+Elapsed: 00:00:00.484
+Elapsed: 00:00:00.628
+=== deploy indexes ===
+Elapsed: 00:00:00.585
+=== deploy synonyms ===
+Elapsed: 00:00:00.585
+=== deploy views ===
+Elapsed: 00:00:00.578
+=== deploy package specs ===
+
+Package UI_ASSETS_API compiled
+
+Elapsed: 00:00:00.592
+Elapsed: 00:00:00.735
+
+Package HEALTH_API compiled
+
+Elapsed: 00:00:00.587
+Elapsed: 00:00:00.736
+
+Package JWT_SCAFFOLD_AUTH_API compiled
+
+Elapsed: 00:00:00.586
+Elapsed: 00:00:00.730
+
+Package SESSION_API compiled
+
+Elapsed: 00:00:00.589
+Elapsed: 00:00:00.735
+Elapsed: 00:00:00.884
+=== deploy package bodies ===
+
+Package Body UI_ASSETS_API compiled
+
+Elapsed: 00:00:00.596
+Elapsed: 00:00:00.740
+
+Package Body HEALTH_API compiled
+
+Elapsed: 00:00:00.587
+Elapsed: 00:00:00.731
+
+Package Body JWT_SCAFFOLD_AUTH_API compiled
+
+Elapsed: 00:00:00.674
+Elapsed: 00:00:00.817
+
+Package Body SESSION_API compiled
+
+Elapsed: 00:00:00.606
+Elapsed: 00:00:00.751
+Elapsed: 00:00:00.895
+=== deploy type bodies ===
+Elapsed: 00:00:00.588
+=== deploy standalone objects ===
+
+1 row merged.
+
+Elapsed: 00:00:00.715
+Elapsed: 00:00:00.859
+=== deploy ords modules ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.383
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.293
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.297
+Elapsed: 00:00:00.443
+=== public health endpoint requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.586
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.317
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.293
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.299
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.318
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.328
+Elapsed: 00:00:00.473
+=== public jwt auth scaffold requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.583
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.321
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.295
+Rollback
+begin
+*
+ERROR at line 1:
+ORA-01403: no data found
+ORA-06512: at "ORDS_METADATA.ORDS", line 947
+ORA-06512: at "ORDS_METADATA.ORDS_SERVICES_INTERNAL", line 452
+ORA-06512: at "ORDS_METADATA.ORDS_SERVICES_INTERNAL", line 4422
+ORA-00001: unique constraint (ORDS_METADATA.ORDS_UNIQUE_PREFIX_UC) violated on table ORDS_METADATA.ORDS_MODULES columns (URI_PREFIX, SCHEMA_ID)
+ORA-03301: (ORA-00001 details) row with column values (URI_PREFIX:'/api/v1/', SCHEMA_ID:11599) already exists
+ORA-06512: at "ORDS_METADATA.ORDS_SERVICES_INTERNAL", line 317
+ORA-06512: at "ORDS_METADATA.ORDS_SERVICES_INTERNAL", line 4400
+ORA-06512: at "ORDS_METADATA.ORDS", line 932
+ORA-06512: at line 2
+
+https://docs.oracle.com/error-help/db/ora-01403/
+
+
+More Details :
+https://docs.oracle.com/error-help/db/ora-01403/
+https://docs.oracle.com/error-help/db/ora-06512/
+https://docs.oracle.com/error-help/db/ora-00001/
+https://docs.oracle.com/error-help/db/ora-03301/
+Elapsed: 00:00:00.659
+Elapsed: 00:00:00.803
+Elapsed: 00:00:00.946
+Elapsed: 00:00:01.090
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.2.1.0 - Production
+Version 23.26.2.1.0
