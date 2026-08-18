@@ -51,6 +51,9 @@ grant create synonym to &&schema_user;
 -- broader than the grants above and can also alter or drop contexts owned by other schemas. Granted
 -- because road_ctx is framework baseline for every ROAD application, not app-specific.
 grant create any context to &&schema_user;
+-- DROP is a separate privilege from CREATE. Without it deploy/drop/65_contexts.sql cannot remove
+-- the context (ORA-41726) and a teardown-then-rebuild leaves the old definition in place.
+grant drop any context to &&schema_user;
 
 grant execute on dbms_crypto to &&schema_user;
 grant execute on utl_encode to &&schema_user;
@@ -70,6 +73,7 @@ prompt   CREATE TYPE
 prompt   CREATE TRIGGER
 prompt   CREATE SYNONYM
 prompt   CREATE ANY CONTEXT
+prompt   DROP ANY CONTEXT
 prompt   EXECUTE ON DBMS_CRYPTO
 prompt   EXECUTE ON UTL_ENCODE
 prompt   EXECUTE ON UTL_I18N
