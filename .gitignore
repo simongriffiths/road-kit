@@ -7,6 +7,7 @@ test-results/
 playwright-report/
 .codex/
 config/connections.conf
+config/local.env
 
 # Rendered by bin/render-auth-config.sh from 80_standalone.sql.tmpl - carries the
 # environment-specific JWKS URL, so it is per-machine/per-env, not source.
