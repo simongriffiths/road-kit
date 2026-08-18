@@ -18,3 +18,9 @@ prompt === deploy package bodies ===
 @db/package_bodies/health_api.pkb
 @db/package_bodies/jwt_scaffold_auth_api.pkb
 @db/package_bodies/session_api.pkb
+@db/package_bodies/error_api.pkb
+@db/package_bodies/error_api_test.pkb
+@db/package_bodies/road_ctx_pkg.pkb
+@db/package_bodies/road_ctx_pkg_test.pkb
+@db/package_bodies/road_admin_api.pkb
+@db/package_bodies/road_admin_api_test.pkb

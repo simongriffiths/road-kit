@@ -16,3 +16,12 @@ whenever sqlerror exit sql.sqlcode rollback
 prompt === deploy tables ===
 @db/tables/ui_assets.create.sql
 @db/tables/jwt_scaffold_config.create.sql
+
+prompt === deploy identity tables (spec patch 06) ===
+@db/tables/error_log.create.sql
+@db/tables/road_config.create.sql
+@db/tables/road_principals.create.sql
+@db/tables/road_roles.create.sql
+@db/tables/road_permissions.create.sql
+@db/tables/road_role_permissions.create.sql
+@db/tables/road_principal_roles.create.sql

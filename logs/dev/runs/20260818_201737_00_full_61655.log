@@ -1,0 +1,260 @@
+[INFO] START
+
+[INFO] RUN_ID=20260818_201737_00_full_61655
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=deploy/drop/00_full.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/deploy/drop/00_full.sql
+[INFO] SCRIPT_SHA256=ee5b5c4f32778c96dd8cdca01afbfe266bbe1932f2e0c89d32ee980aa92f4851
+[INFO] GIT_COMMIT=d993444
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260818_201737
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260818_201737_00_full_61655.log
+
+[INTENT]
+Purpose: Tear down the entire ROAD framework scaffold from an application schema.
+Approach: Run the drop/ chain in reverse dependency order (ORDS modules first,
+  tables last).
+Reason: Clean-slate rebuild during development.
+Expected objects: ALL scaffold objects REMOVED -
+  ORDS modules: health, auth, session, ui
+  UI_ASSETS_API, HEALTH_API, JWT_SCAFFOLD_AUTH_API, SESSION_API
+  UI_ASSETS, JWT_SCAFFOLD_CONFIG (and all data in them)
+Risk: HIGH - DESTRUCTIVE AND IRREVERSIBLE. Drops tables and every row they contain,
+  including uploaded UI assets and JWT signing key material. There is no backup step
+  in this script. Never run against test or prod without an explicit, separately
+  confirmed decision; prod additionally requires ALLOW_PROD_SQL=yes.
+Prior history checked: Confirm the target environment in db-history before running,
+  and confirm the connection is the one you think it is.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Tue Aug 18 20:17:38 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+=== full teardown ===
+=== drop ords modules ===
+=== no ORDS privilege cleanup required for public ui delivery ===
+Elapsed: 00:00:00.071
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.281
+
+Commit complete.
+
+Elapsed: 00:00:00.038
+Elapsed: 00:00:00.055
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.053
+
+Commit complete.
+
+Elapsed: 00:00:00.035
+Elapsed: 00:00:00.052
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.041
+
+Commit complete.
+
+Elapsed: 00:00:00.035
+Elapsed: 00:00:00.052
+=== no ORDS privilege cleanup required for public jwt auth scaffold ===
+Elapsed: 00:00:00.074
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.043
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.041
+
+Commit complete.
+
+Elapsed: 00:00:00.035
+Elapsed: 00:00:00.053
+=== no ORDS privilege cleanup required for public health endpoint ===
+Elapsed: 00:00:00.070
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.040
+
+Commit complete.
+
+Elapsed: 00:00:00.036
+Elapsed: 00:00:00.053
+Elapsed: 00:00:00.071
+=== drop standalone objects ===
+Elapsed: 00:00:00.070
+=== drop type bodies ===
+Elapsed: 00:00:00.074
+=== drop application contexts ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.055
+Elapsed: 00:00:00.072
+=== drop package bodies ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.061
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.052
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.054
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.055
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.050
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.051
+health_api body is dropped with the package spec
+Elapsed: 00:00:00.084
+=== drop package specs ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.049
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.052
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.051
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.056
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.053
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.055
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.057
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.051
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.064
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.063
+Elapsed: 00:00:00.080
+=== drop views ===
+Elapsed: 00:00:00.073
+=== drop synonyms ===
+Elapsed: 00:00:00.074
+=== drop indexes ===
+Elapsed: 00:00:00.082
+=== drop triggers ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.051
+Elapsed: 00:00:00.067
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.047
+Elapsed: 00:00:00.066
+Elapsed: 00:00:00.084
+=== drop tables ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.232
+Elapsed: 00:00:00.252
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.083
+Elapsed: 00:00:00.102
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.102
+Elapsed: 00:00:00.120
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.101
+Elapsed: 00:00:00.120
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.118
+Elapsed: 00:00:00.136
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.132
+Elapsed: 00:00:00.148
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.121
+Elapsed: 00:00:00.137
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.204
+Elapsed: 00:00:00.222
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.073
+Elapsed: 00:00:00.091
+Elapsed: 00:00:00.110
+=== drop types ===
+Elapsed: 00:00:00.083
+Elapsed: 00:00:00.101
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.052
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

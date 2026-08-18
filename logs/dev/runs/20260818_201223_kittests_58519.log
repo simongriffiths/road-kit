@@ -1,0 +1,56 @@
+[INFO] START
+
+[INFO] RUN_ID=20260818_201223_kittests_58519
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/2c4392ff-1eba-49e0-a1d5-f25503992e50/scratchpad/kittests.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/2c4392ff-1eba-49e0-a1d5-f25503992e50/scratchpad/kittests.sql
+[INFO] SCRIPT_SHA256=a62da75fd23910fc06f465c1af54db19a017433af35bc277f66915451f654162
+[INFO] GIT_COMMIT=d993444
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260818_201223
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260818_201223_kittests_58519.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Tue Aug 18 20:12:24 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+Rollback
+begin road_ctx_pkg_test.run_all; end;
+*
+ERROR at line 1:
+ORA-20000: same subject under another issuer establishes separately: expected TRUE, got FALSE
+ORA-06512: at "ROAD_KIT_DEV.ROAD_CTX_PKG_TEST", line 446
+ORA-06512: at "ROAD_KIT_DEV.ROAD_CTX_PKG_TEST", line 15
+ORA-06512: at "ROAD_KIT_DEV.ROAD_CTX_PKG_TEST", line 22
+ORA-06512: at "ROAD_KIT_DEV.ROAD_CTX_PKG_TEST", line 222
+ORA-06512: at "ROAD_KIT_DEV.ROAD_CTX_PKG_TEST", line 431
+ORA-06512: at line 1
+
+https://docs.oracle.com/error-help/db/ora-20000/
+
+
+More Details :
+https://docs.oracle.com/error-help/db/ora-20000/
+https://docs.oracle.com/error-help/db/ora-06512/
+Elapsed: 00:00:01.125
+Elapsed: 00:00:01.147
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=FAILURE
+SQLCL_EXIT=32
+
+[INFO] SQLCL_EXIT=32
+[INFO] END

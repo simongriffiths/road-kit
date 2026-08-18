@@ -22,3 +22,5 @@ prompt === deploy ords modules ===
 @api/modules/session/privileges.create.sql
 @api/modules/ui/module.create.sql
 @api/modules/ui/privileges.create.sql
+@api/modules/admin/module.create.sql
+@api/modules/admin/privileges.create.sql

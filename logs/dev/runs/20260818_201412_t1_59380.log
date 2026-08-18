@@ -1,0 +1,61 @@
+[INFO] START
+
+[INFO] RUN_ID=20260818_201412_t1_59380
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/2c4392ff-1eba-49e0-a1d5-f25503992e50/scratchpad/t1.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/2c4392ff-1eba-49e0-a1d5-f25503992e50/scratchpad/t1.sql
+[INFO] SCRIPT_SHA256=2ff606b4c6603bdef3390c30e5a5009aa0c81ea49d19e1aa9c36888b69195b08
+[INFO] GIT_COMMIT=d993444
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260818_201412
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260818_201412_t1_59380.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Tue Aug 18 20:14:13 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+Rollback
+begin road_ctx_pkg_test.run_all; end;
+*
+ERROR at line 1:
+ORA-01031: insufficient privileges
+ORA-06512: at "SYS.DBMS_SESSION", line 240
+ORA-06512: at "ROAD_KIT_DEV.ROAD_CTX_PKG", line 116
+ORA-06512: at "ROAD_KIT_DEV.ROAD_CTX_PKG_TEST", line 146
+ORA-06512: at "ROAD_KIT_DEV.ROAD_CTX_PKG_TEST", line 445
+ORA-20000: A establishes: expected TRUE, got FALSE
+ORA-06512: at "ROAD_KIT_DEV.ROAD_CTX_PKG_TEST", line 15
+ORA-06512: at "ROAD_KIT_DEV.ROAD_CTX_PKG_TEST", line 22
+ORA-06512: at "ROAD_KIT_DEV.ROAD_CTX_PKG_TEST", line 152
+ORA-06512: at "ROAD_KIT_DEV.ROAD_CTX_PKG_TEST", line 427
+ORA-06512: at line 1
+
+https://docs.oracle.com/error-help/db/ora-01031/
+
+
+More Details :
+https://docs.oracle.com/error-help/db/ora-01031/
+https://docs.oracle.com/error-help/db/ora-06512/
+https://docs.oracle.com/error-help/db/ora-20000/
+Elapsed: 00:00:00.497
+Elapsed: 00:00:00.517
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=FAILURE
+SQLCL_EXIT=7
+
+[INFO] SQLCL_EXIT=7
+[INFO] END

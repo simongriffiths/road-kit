@@ -1,0 +1,69 @@
+[INFO] START
+
+[INFO] RUN_ID=20260818_202002_module.create_63425
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=api/modules/session/module.create.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/api/modules/session/module.create.sql
+[INFO] SCRIPT_SHA256=061fee29fc1df152f9665f233c9238fa8ef95045ddafb0dfbda42b4a063f11e1
+[INFO] GIT_COMMIT=d993444
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260818_202002
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260818_202002_module.create_63425.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Tue Aug 18 20:20:03 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.301
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.041
+Rollback
+begin
+*
+ERROR at line 1:
+ORA-01403: no data found
+ORA-06512: at "ORDS_METADATA.ORDS", line 947
+ORA-06512: at "ORDS_METADATA.ORDS_SERVICES_INTERNAL", line 454
+ORA-06512: at "ORDS_METADATA.ORDS_SERVICES_INTERNAL", line 4425
+ORA-00001: unique constraint (ORDS_METADATA.ORDS_UNIQUE_PREFIX_UC) violated on table ORDS_METADATA.ORDS_MODULES columns (URI_PREFIX, SCHEMA_ID)
+ORA-03301: (ORA-00001 details) row with column values (URI_PREFIX:'/api/v1/session/', SCHEMA_ID:14794) already exists
+ORA-06512: at "ORDS_METADATA.ORDS_SERVICES_INTERNAL", line 319
+ORA-06512: at "ORDS_METADATA.ORDS_SERVICES_INTERNAL", line 4403
+ORA-06512: at "ORDS_METADATA.ORDS", line 932
+ORA-06512: at line 2
+
+https://docs.oracle.com/error-help/db/ora-01403/
+
+
+More Details :
+https://docs.oracle.com/error-help/db/ora-01403/
+https://docs.oracle.com/error-help/db/ora-06512/
+https://docs.oracle.com/error-help/db/ora-00001/
+https://docs.oracle.com/error-help/db/ora-03301/
+Elapsed: 00:00:00.116
+Elapsed: 00:00:00.131
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=FAILURE
+SQLCL_EXIT=123
+
+[INFO] SQLCL_EXIT=123
+[INFO] END

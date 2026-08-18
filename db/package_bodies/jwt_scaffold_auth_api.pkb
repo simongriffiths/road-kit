@@ -101,8 +101,11 @@ create or replace package body jwt_scaffold_auth_api as
   end check_credentials;
 
   function issue_token(
-    p_username in varchar2,
-    p_scope    in varchar2 default null
+    p_username    in varchar2,
+    p_scope       in varchar2 default null,
+    p_issuer      in varchar2 default null,
+    p_audience    in varchar2 default null,
+    p_ttl_minutes in number   default null
   ) return clob is
     l_config        t_config;
     l_iat           number;
@@ -117,7 +120,9 @@ create or replace package body jwt_scaffold_auth_api as
   begin
     l_config := get_config;
     l_iat := epoch_seconds_now;
-    l_exp := l_iat + (l_config.ttl_minutes * 60);
+    -- A negative TTL yields an already-expired token, which is how the conformance suite builds the
+    -- "expired token" case without touching the stored configuration.
+    l_exp := l_iat + (nvl(p_ttl_minutes, l_config.ttl_minutes) * 60);
     l_scope := nvl(p_scope, l_config.scope_name);
 
     select json_object(
@@ -131,8 +136,8 @@ create or replace package body jwt_scaffold_auth_api as
 
     select json_object(
              'sub'   value upper(trim(p_username)),
-             'iss'   value l_config.issuer,
-             'aud'   value l_config.audience,
+             'iss'   value nvl(p_issuer, l_config.issuer),
+             'aud'   value nvl(p_audience, l_config.audience),
              'exp'   value l_exp,
              'iat'   value l_iat,
              'scope' value l_scope,

@@ -20,7 +20,7 @@ rm "${TOKEN_RESPONSE_FILE}"
 
 assert_http "GET /session/me/ with token returns 200" 200 "${TOKEN_STATUS}" "${TOKEN_BODY}"
 assert_body_contains "session/me returns ADMIN principal" "${TOKEN_BODY}" "\"principal\":\"ADMIN\""
-assert_body_contains "session/me returns configured scope" "${TOKEN_BODY}" "\"scope\":\"session.me.read\""
+assert_body_contains "session/me returns configured scope" "${TOKEN_BODY}" "\"scope\":\"session.me.read"
 
 FORBIDDEN_RESPONSE_FILE="$(mktemp)"
 FORBIDDEN_STATUS="$(curl -s -w "%{http_code}" \

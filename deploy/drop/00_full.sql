@@ -22,10 +22,12 @@ prompt === full teardown ===
 @deploy/drop/90_rest.sql
 @deploy/drop/80_standalone.sql
 @deploy/drop/75_type_bodies.sql
+@deploy/drop/65_contexts.sql
 @deploy/drop/70_package_bodies.sql
 @deploy/drop/60_package_specs.sql
 @deploy/drop/40_views.sql
 @deploy/drop/30_synonyms.sql
 @deploy/drop/20_indexes.sql
+@deploy/drop/15_triggers.sql
 @deploy/drop/10_tables.sql
 @deploy/drop/05_types.sql

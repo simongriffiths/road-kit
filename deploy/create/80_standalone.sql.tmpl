@@ -44,7 +44,12 @@ using (
   select 1 as config_id,
          '@@ROAD_ISSUER@@' as issuer,
          'road-dev' as audience,
-         'session.me.read' as scope_name,
+         -- road.admin.rw added by the spec patch 06 backport, for the role administration
+         -- endpoints. Note what it does not do: the scaffold issues this same list to every user,
+         -- so every signed-in caller reaches /admin/* at the ORDS layer and is then denied -- or
+         -- not -- by road_admin_api's require_permission against database-held roles. The
+         -- permission check is the control; this is routing.
+         'session.me.read road.admin.rw' as scope_name,
          60 as ttl_minutes,
          '@@ROAD_JWK_URL@@' as jwk_url
     from dual

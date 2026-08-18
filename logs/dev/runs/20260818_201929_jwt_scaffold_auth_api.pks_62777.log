@@ -1,0 +1,47 @@
+[INFO] START
+
+[INFO] RUN_ID=20260818_201929_jwt_scaffold_auth_api.pks_62777
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=db/package_specs/jwt_scaffold_auth_api.pks
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/db/package_specs/jwt_scaffold_auth_api.pks
+[INFO] SCRIPT_SHA256=7a0a86b3d5b92c8ed43c08c2d1e069b6bae42adfc5cecaa3bc9e3cdb6293ec7d
+[INFO] GIT_COMMIT=d993444
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260818_201929
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260818_201929_jwt_scaffold_auth_api.pks_62777.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Tue Aug 18 20:19:30 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+
+Package JWT_SCAFFOLD_AUTH_API compiled
+
+Elapsed: 00:00:00.091
+Elapsed: 00:00:00.108
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.240
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

@@ -12,5 +12,12 @@ whenever sqlerror exit sql.sqlcode rollback
 -- END INTENT
 
 prompt === drop tables ===
+@db/tables/road_principal_roles.drop.sql
+@db/tables/road_role_permissions.drop.sql
+@db/tables/road_permissions.drop.sql
+@db/tables/road_roles.drop.sql
+@db/tables/road_principals.drop.sql
+@db/tables/road_config.drop.sql
+@db/tables/error_log.drop.sql
 @db/tables/jwt_scaffold_config.drop.sql
 @db/tables/ui_assets.drop.sql

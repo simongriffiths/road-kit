@@ -16,3 +16,9 @@ prompt === deploy package specs ===
 @db/package_specs/health_api.pks
 @db/package_specs/jwt_scaffold_auth_api.pks
 @db/package_specs/session_api.pks
+@db/package_specs/error_api.pks
+@db/package_specs/error_api_test.pks
+@db/package_specs/road_ctx_pkg.pks
+@db/package_specs/road_ctx_pkg_test.pks
+@db/package_specs/road_admin_api.pks
+@db/package_specs/road_admin_api_test.pks

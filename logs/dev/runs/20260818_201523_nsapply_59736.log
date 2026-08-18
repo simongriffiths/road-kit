@@ -1,0 +1,966 @@
+[INFO] START
+
+[INFO] RUN_ID=20260818_201523_nsapply_59736
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/2c4392ff-1eba-49e0-a1d5-f25503992e50/scratchpad/nsapply.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/2c4392ff-1eba-49e0-a1d5-f25503992e50/scratchpad/nsapply.sql
+[INFO] SCRIPT_SHA256=f52e7509f09b393bf8292ce8ccec5cdb87d13fb1087f47116dc1fd5701f321df
+[INFO] GIT_COMMIT=d993444
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=debug
+[INFO] TIMESTAMP=20260818_201523
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260818_201523_nsapply_59736.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Tue Aug 18 20:15:24 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+SQL> set serveroutput on size unlimited
+SQL> @db/package_specs/road_ctx_pkg.pks
+SQL> create or replace package road_ctx_pkg as
+  2  
+  3    -- Session identity and authorisation for ROAD applications (spec-patch-06 section 6).
+  4    --
+  5    -- The ROAD_CTX application context is created WITH THIS PACKAGE as its trusted setter
+  6    -- (`create or replace context road_ctx using road_ctx_pkg`). That USING clause is the security
+  7    -- control, not decoration: no other code in the schema can write identity into the context, so a
+  8    -- handler cannot promote itself by calling dbms_session.set_context directly.
+  9    --
+ 10    -- Usage at the top of a protected handler:
+ 11    --
+ 12    --   if not road_ctx_pkg.begin_request(:current_user) then
+ 13    --     :status_code := 401;
+ 14    --     return;
+ 15    --   end if;
+ 16    --   road_ctx_pkg.require_permission('events.create');
+ 17    --
+ 18    -- ORDS does not fire a schema-level pre-hook -- there is no registration API reachable from the
+ 19    -- schema -- so begin_request is called per handler. Everything here therefore fails closed: an
+ 20    -- unestablished context grants nothing, never everything.
+ 21  
+ 22    -- The application context namespace this schema uses.
+ 23    --
+ 24    -- Application contexts are DATABASE-GLOBAL, not schema-scoped: `create or replace context road_ctx
+ 25    -- using road_ctx_pkg` run from a second schema silently re-points the one shared namespace at that
+ 26    -- schema's package, and the first schema then gets ORA-01031 from dbms_session on every request.
+ 27    -- Found the hard way when the road-kit backport was deployed to the same ADB as road-cal.
+ 28    --
+ 29    -- Deriving it from the current schema makes two ROAD applications on one database independent.
+ 30    -- The deploy script creates a context with exactly this name.
+ 31    function namespace return varchar2;
+ 32  
+ 33    -- Raised by require_permission and require_role when an AUTHENTICATED principal lacks the
+ 34    -- requirement. Mapped by error_api to HTTP 403. The number is mnemonic: -20403 -> 403.
+ 35    -- A caller who is not authenticated at all is ORDS's 401 and never reaches here.
+ 36    c_forbidden constant number := -20403;
+ 37  
+ 38    -- Establishes session identity for one request. Resolves (issuer, subject) to a principal,
+ 39    -- requires status ACTIVE, and loads that principal's effective permissions into the context in
+ 40    -- one pass. Returns false -- never raises -- on any failure, including an unknown subject, a
+ 41    -- suspended principal, or an unresolvable issuer.
+ 42    --
+ 43    -- p_issuer defaults to null, in which case the issuer is read from the schema's own ORDS JWT
+ 44    -- profile. ORDS validates a token's iss against that profile before admitting the request, so the
+ 45    -- profile issuer is by construction the issuer the caller presented.
+ 46    --
+ 47    -- ALWAYS clears any existing context first. ORDS pools connections, so this session may still
+ 48    -- hold the previous caller's identity.
+ 49    function begin_request(
+ 50      p_subject in varchar2,
+ 51      p_issuer  in varchar2 default null
+ 52    ) return boolean;
+ 53  
+ 54    -- Clears all session identity. Safe to call when nothing was established.
+ 55    procedure end_request;
+ 56  
+ 57    function principal_id return number;
+ 58    function subject      return varchar2;
+ 59    function issuer       return varchar2;
+ 60  
+ 61    -- True only after a successful begin_request on this session.
+ 62    function is_authenticated return boolean;
+ 63  
+ 64    -- Coarse check, kept so a simple application can ignore permissions entirely. Permissions are
+ 65    -- what the framework teaches, because they make role composition a data change (section 6.1).
+ 66    function has_role(p_role_name in varchar2) return boolean;
+ 67  
+ 68    -- Reads the context, never the tables -- one query per request, not one per check.
+ 69    function has_permission(p_permission_name in varchar2) return boolean;
+ 70  
+ 71    -- Raise c_forbidden unless held.
+ 72    procedure require_role(p_role_name in varchar2);
+ 73    procedure require_permission(p_permission_name in varchar2);
+ 74  
+ 75  end road_ctx_pkg;
+ 76  /
+
+Package ROAD_CTX_PKG compiled
+
+Elapsed: 00:00:00.106
+Elapsed: 00:00:00.124
+SQL> @deploy/create/65_contexts.sql
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> 
+SQL> prompt === deploy application contexts ===
+=== deploy application contexts ===
+SQL> 
+SQL> -- The USING clause is the security control, not decoration: it names the only package permitted to
+SQL> -- write this namespace, so application code cannot set its own identity by calling
+SQL> -- dbms_session.set_context directly (spec-patch-06 section 6.2).
+SQL> --
+SQL> -- The namespace is DERIVED FROM THE SCHEMA, not fixed, because application contexts are
+SQL> -- database-global objects. A fixed 'ROAD_CTX' means the second ROAD application deployed to a
+SQL> -- database silently re-points the namespace at its own package, and the first one then gets
+SQL> -- ORA-01031 from dbms_session on every request -- with nothing in its own repo having changed.
+SQL> -- Confirmed on this ADB: deploying road-kit broke road-cal, and re-deploying road-cal broke
+SQL> -- road-kit. road_ctx_pkg.namespace derives the same value at runtime.
+SQL> --
+SQL> -- Requires CREATE ANY CONTEXT; the drop script additionally requires DROP ANY CONTEXT. Oracle has
+SQL> -- no schema-scoped equivalent of either.
+SQL> declare
+  2    l_namespace varchar2(30) := substr('ROAD_CTX_' || sys_context('USERENV', 'CURRENT_SCHEMA'), 1, 30);
+  3  begin
+  4    execute immediate 'create or replace context ' || l_namespace || ' using road_ctx_pkg';
+  5    dbms_output.put_line('[INFO] Context ' || l_namespace || ' created for road_ctx_pkg');
+  6  end;
+  7  /
+[INFO] Context ROAD_CTX_ROAD_KIT_DEV created for road_ctx_pkg
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.315
+SQL> 
+SQL> -- Remove the pre-namespacing context if this schema still has one. Harmless when absent, and
+SQL> -- leaving it would keep a globally-shared namespace alive that another schema could re-point.
+SQL> begin
+  2    execute immediate 'drop context road_ctx';
+  3  exception
+  4    when others then
+  5      if sqlcode not in (-4043, -1031, -41726) then
+  6        raise;
+  7      end if;
+  8  end;
+  9  /
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.043
+Elapsed: 00:00:00.058
+SQL> @db/package_bodies/road_ctx_pkg.pkb
+SQL> create or replace package body road_ctx_pkg as
+  2  
+  3    -- Namespace names are limited to 30 bytes, so this is the prefix plus as much of the schema name
+  4    -- as fits. A schema name long enough to be truncated into a collision would fail loudly at deploy
+  5    -- time -- dbms_session raises ORA-01031 when the namespace belongs to another schema's package --
+  6    -- rather than silently sharing state, which is the failure mode that matters.
+  7    c_namespace   constant varchar2(30)  :=
+  8      substr('ROAD_CTX_' || sys_context('USERENV', 'CURRENT_SCHEMA'), 1, 30);
+  9  
+ 10    -- Fixed attributes.
+ 11    c_attr_established  constant varchar2(30) := 'ESTABLISHED';
+ 12    c_attr_principal_id constant varchar2(30) := 'PRINCIPAL_ID';
+ 13    c_attr_subject      constant varchar2(30) := 'SUBJECT';
+ 14    c_attr_issuer       constant varchar2(30) := 'ISSUER';
+ 15  
+ 16    -- Roles and permissions are stored one attribute each, prefixed to keep them out of the fixed
+ 17    -- attribute space. Verified on ADB: context attribute names accept up to 128 bytes, so a 64-char
+ 18    -- role or permission name plus a 5-char prefix fits with room to spare. The alternative -- packing
+ 19    -- a delimited list into one 4000-byte value -- would have imposed a ceiling on how many
+ 20    -- permissions a role may compose, and needed parsing on every check.
+ 21    c_prefix_role constant varchar2(5) := 'ROLE$';
+ 22    c_prefix_perm constant varchar2(5) := 'PERM$';
+ 23  
+ 24    -- SYS_CONTEXT truncates at 256 bytes unless an explicit length is passed. issuer is
+ 25    -- varchar2(512 char) and subject varchar2(255 char), so the length argument is mandatory here,
+ 26    -- not defensive: without it a long issuer silently comes back truncated and no principal ever
+ 27    -- matches. Verified on dev -- a 1000-byte value read back as 256 without it, 1000 with it.
+ 28    c_len_issuer  constant pls_integer := 512;
+ 29    c_len_subject constant pls_integer := 255;
+ 30  
+ 31    -- Reads the issuer from the schema's own ORDS JWT profile. Correct only while trust is
+ 32    -- schema-level with a single profile; 99_verify asserts exactly one row for that reason. See
+ 33    -- planning/spike-06-1-iss-reachability.md section 4 for the constraint and the migration path.
+ 34    function resolve_issuer return varchar2 is
+ 35      l_issuer varchar2(512 char);
+ 36    begin
+ 37      select issuer into l_issuer from user_ords_jwt_profile;
+ 38      return l_issuer;
+ 39    exception
+ 40      -- Zero profiles or more than one: both are unresolvable, and guessing would be worse than
+ 41      -- denying. Fail closed.
+ 42      when others then
+ 43        return null;
+ 44    end resolve_issuer;
+ 45  
+ 46    function namespace return varchar2 is
+ 47    begin
+ 48      return c_namespace;
+ 49    end namespace;
+ 50  
+ 51    function config_value(p_key in varchar2) return varchar2 is
+ 52      l_value road_config.config_value%type;
+ 53    begin
+ 54      select config_value into l_value from road_config where config_key = p_key;
+ 55      return l_value;
+ 56    exception
+ 57      when no_data_found then
+ 58        return null;
+ 59    end config_value;
+ 60  
+ 61    -- Creates a principal for a subject the issuer has authenticated but this application has never
+ 62    -- seen, and grants it road_config.default_principal_role.
+ 63    --
+ 64    -- Gated on road_config.auto_provision_principals = 'Y'. Off means an unknown subject is denied,
+ 65    -- which is rule 3's default; on means the issuer is trusted to decide who exists. That is a
+ 66    -- posture decision per deployment, not a mechanism, which is why it is a row rather than code.
+ 67    --
+ 68    -- Returns the principal_id, or null when provisioning is off or fails.
+ 69    function provision_principal(
+ 70      p_issuer  in varchar2,
+ 71      p_subject in varchar2
+ 72    ) return number is
+ 73      pragma autonomous_transaction;
+ 74      l_principal_id number;
+ 75      l_role         road_config.config_value%type;
+ 76    begin
+ 77      if nvl(config_value('auto_provision_principals'), 'N') != 'Y' then
+ 78        rollback;
+ 79        return null;
+ 80      end if;
+ 81  
+ 82      l_role := config_value('default_principal_role');
+ 83  
+ 84      begin
+ 85        insert into road_principals (issuer, subject, display_name)
+ 86        values (p_issuer, p_subject, p_subject)
+ 87        returning principal_id into l_principal_id;
+ 88      exception
+ 89        when dup_val_on_index then
+ 90          -- Two first requests for the same new subject can race. The unique constraint on
+ 91          -- (issuer, subject) is what makes that safe: the loser reads the winner's row rather than
+ 92          -- failing the request, so a genuine user is never denied because they arrived twice at once.
+ 93          rollback;
+ 94          select principal_id into l_principal_id
+ 95            from road_principals
+ 96           where issuer = p_issuer and subject = p_subject;
+ 97          return l_principal_id;
+ 98      end;
+ 99  
+100      -- No default role configured, or it has been deleted: the principal exists but holds nothing.
+101      -- Fail closed -- an account with no permissions is recoverable by an administrator, whereas
+102      -- silently substituting some other role would not be.
+103      if l_role is not null then
+104        begin
+105          insert into road_principal_roles (principal_id, role_name)
+106          values (l_principal_id, l_role);
+107        exception
+108          when others then
+109            null;
+110        end;
+111      end if;
+112  
+113      -- Autonomous so the new principal survives even if the request that triggered it later rolls
+114      -- back. Otherwise a failing first request would leave the user unprovisioned and they would hit
+115      -- the same path again on every retry.
+116      commit;
+117      return l_principal_id;
+118    exception
+119      when others then
+120        rollback;
+121        return null;
+122    end provision_principal;
+123  
+124    procedure end_request is
+125    begin
+126      dbms_session.clear_all_context(c_namespace);
+127    end end_request;
+128  
+129    function begin_request(
+130      p_subject in varchar2,
+131      p_issuer  in varchar2 default null
+132    ) return boolean is
+133      l_issuer       varchar2(512 char);
+134      l_subject      varchar2(255 char);
+135      l_principal_id number;
+136      l_status       varchar2(20 char);
+137    begin
+138      -- 1. Clear FIRST, unconditionally, before any validation. ORDS pools connections, so this
+139      --    session may still be carrying the previous caller's principal and permissions. Clearing
+140      --    up front means every failure path below -- including an exception -- leaves the session
+141      --    holding nothing rather than holding somebody else.
+142      dbms_session.clear_all_context(c_namespace);
+143  
+144      l_subject := trim(p_subject);
+145      if l_subject is null then
+146        return false;
+147      end if;
+148  
+149      l_issuer := nvl(p_issuer, resolve_issuer);
+150      if l_issuer is null then
+151        return false;
+152      end if;
+153  
+154      begin
+155        select principal_id, status
+156          into l_principal_id, l_status
+157          from road_principals
+158         where issuer = l_issuer
+159           and subject = l_subject;
+160      exception
+161        when no_data_found then
+162          -- The issuer authenticated them; this application has simply never seen them before.
+163          l_principal_id := provision_principal(l_issuer, l_subject);
+164          if l_principal_id is null then
+165            return false;
+166          end if;
+167          l_status := 'ACTIVE';
+168      end;
+169  
+170      -- 2. Only ACTIVE principals get a session. SUSPENDED and RETIRED authenticate at ORDS -- their
+171      --    token is still valid -- and are denied here.
+172      if l_status != 'ACTIVE' then
+173        return false;
+174      end if;
+175  
+176      dbms_session.set_context(c_namespace, c_attr_principal_id, to_char(l_principal_id));
+177      dbms_session.set_context(c_namespace, c_attr_subject, l_subject);
+178      dbms_session.set_context(c_namespace, c_attr_issuer, l_issuer);
+179  
+180      -- 3. Roles and effective permissions, loaded once. Permissions are the union across the
+181      --    principal's roles with no hierarchy (rule 2), so a plain DISTINCT join is the whole rule.
+182      for r in (
+183        select role_name
+184          from road_principal_roles
+185         where principal_id = l_principal_id
+186      ) loop
+187        dbms_session.set_context(c_namespace, c_prefix_role || r.role_name, 'Y');
+188      end loop;
+189  
+190      for p in (
+191        select distinct rp.permission_name
+192          from road_principal_roles pr
+193          join road_role_permissions rp
+194            on rp.role_name = pr.role_name
+195         where pr.principal_id = l_principal_id
+196      ) loop
+197        dbms_session.set_context(c_namespace, c_prefix_perm || p.permission_name, 'Y');
+198      end loop;
+199  
+200      -- 4. ESTABLISHED goes last, deliberately. If loading raised part-way through, this is never
+201      --    set, so is_authenticated stays false and a half-populated context cannot be mistaken for
+202      --    a complete one.
+203      dbms_session.set_context(c_namespace, c_attr_established, 'Y');
+204  
+205      return true;
+206    exception
+207      when others then
+208        -- Any unexpected failure denies and leaves nothing behind. Fail closed, per rule 3.
+209        begin
+210          dbms_session.clear_all_context(c_namespace);
+211        exception
+212          when others then
+213            null;
+214        end;
+215        return false;
+216    end begin_request;
+217  
+218    -- NVL is load-bearing, not decoration. SYS_CONTEXT returns NULL for an attribute that was never
+219    -- set, and NULL = 'Y' evaluates to NULL rather than FALSE. A NULL returned from here would make
+220    -- "if not is_authenticated then return false" fail to fire, and "if not has_permission then
+221    -- raise" fail to raise -- so an unheld permission would pass silently. Rule 3 requires false,
+222    -- never null. Caught by test_pooled_session_does_not_bleed, which asserted FALSE and got NULL.
+223    function is_authenticated return boolean is
+224    begin
+225      return nvl(sys_context(c_namespace, c_attr_established), 'N') = 'Y';
+226    end is_authenticated;
+227  
+228    function principal_id return number is
+229    begin
+230      if not is_authenticated then
+231        return null;
+232      end if;
+233      return to_number(sys_context(c_namespace, c_attr_principal_id));
+234    end principal_id;
+235  
+236    function subject return varchar2 is
+237    begin
+238      if not is_authenticated then
+239        return null;
+240      end if;
+241      return sys_context(c_namespace, c_attr_subject, c_len_subject);
+242    end subject;
+243  
+244    function issuer return varchar2 is
+245    begin
+246      if not is_authenticated then
+247        return null;
+248      end if;
+249      return sys_context(c_namespace, c_attr_issuer, c_len_issuer);
+250    end issuer;
+251  
+252    function has_role(p_role_name in varchar2) return boolean is
+253    begin
+254      -- The is_authenticated gate is what makes an unestablished context return false rather than
+255      -- null-tolerant nonsense (section 6.3). Never true, never null.
+256      if not is_authenticated or p_role_name is null then
+257        return false;
+258      end if;
+259      return nvl(sys_context(c_namespace, c_prefix_role || p_role_name), 'N') = 'Y';
+260    end has_role;
+261  
+262    function has_permission(p_permission_name in varchar2) return boolean is
+263    begin
+264      if not is_authenticated or p_permission_name is null then
+265        return false;
+266      end if;
+267      return nvl(sys_context(c_namespace, c_prefix_perm || p_permission_name), 'N') = 'Y';
+268    end has_permission;
+269  
+270    procedure require_role(p_role_name in varchar2) is
+271    begin
+272      if not has_role(p_role_name) then
+273        raise_application_error(c_forbidden, 'Role required: ' || p_role_name);
+274      end if;
+275    end require_role;
+276  
+277    procedure require_permission(p_permission_name in varchar2) is
+278    begin
+279      if not has_permission(p_permission_name) then
+280        raise_application_error(c_forbidden, 'Permission required: ' || p_permission_name);
+281      end if;
+282    end require_permission;
+283  
+284  end road_ctx_pkg;
+285  /
+
+Package Body ROAD_CTX_PKG compiled
+
+Elapsed: 00:00:00.144
+Elapsed: 00:00:00.161
+SQL> @db/package_bodies/road_ctx_pkg_test.pkb
+SQL> create or replace package body road_ctx_pkg_test as
+  2  
+  3    -- Fail-closed tests for road_ctx_pkg. Build plan 06 phase 2.3 -- "the ones the design rests on".
+  4    --
+  5    -- The pooled-session test is written first because it is the highest risk in the whole patch
+  6    -- (risk 10.1): ORDS reuses connections, so a session genuinely does carry the previous caller's
+  7    -- state. Confirmed on dev during phase 0.1 -- PROXY_USER is ORDS_PUBLIC_USER over a shared
+  8    -- service. If context survived between requests, road_ctx_pkg.principal_id would return the wrong
+  9    -- principal, and concurrency-only bugs reach production.
+ 10  
+ 11    c_issuer constant varchar2(64) := 'urn:road:test:road_ctx';
+ 12  
+ 13    procedure fail(p_message in varchar2) is
+ 14    begin
+ 15      raise_application_error(-20000, p_message);
+ 16    end fail;
+ 17  
+ 18    procedure assert_true(p_label in varchar2, p_actual in boolean) is
+ 19    begin
+ 20      if not nvl(p_actual, false) then
+ 21        fail(p_label || ': expected TRUE, got ' ||
+ 22             case when p_actual is null then 'NULL' else 'FALSE' end);
+ 23      end if;
+ 24    end assert_true;
+ 25  
+ 26    procedure assert_false(p_label in varchar2, p_actual in boolean) is
+ 27    begin
+ 28      -- Note "not false" is not the same as "null" here: rule 3 requires false, never null.
+ 29      if nvl(p_actual, true) then
+ 30        fail(p_label || ': expected FALSE, got ' ||
+ 31             case when p_actual is null then 'NULL' else 'TRUE' end);
+ 32      end if;
+ 33    end assert_false;
+ 34  
+ 35    procedure assert_null(p_label in varchar2, p_actual in varchar2) is
+ 36    begin
+ 37      if p_actual is not null then
+ 38        fail(p_label || ': expected NULL, got [' || p_actual || ']');
+ 39      end if;
+ 40    end assert_null;
+ 41  
+ 42    function principal_of(p_subject in varchar2) return number is
+ 43      l_id number;
+ 44    begin
+ 45      select principal_id into l_id
+ 46        from road_principals
+ 47       where issuer = c_issuer and subject = p_subject;
+ 48      return l_id;
+ 49    end principal_of;
+ 50  
+ 51    procedure setup is
+ 52      l_a    number;
+ 53      l_b    number;
+ 54      l_susp number;
+ 55    begin
+ 56      -- Autonomous Database enables parallel DML by default, and every insert below reads the table
+ 57      -- it writes (the NOT EXISTS guard). Once serial DML has happened in the transaction a parallel
+ 58      -- one raises ORA-12839, which then surfaces as a deadlock in teardown. Same reason
+ 59      -- deploy/create/95_data.sql disables it.
+ 60      execute immediate 'alter session disable parallel dml';
+ 61  
+ 62      -- Two roles sharing one permission, so the union case has something to collapse.
+ 63      insert into road_permissions (permission_name, description)
+ 64      select 'test.perm.a', 'road_ctx test fixture' from dual
+ 65       where not exists (select 1 from road_permissions where permission_name = 'test.perm.a');
+ 66      insert into road_permissions (permission_name, description)
+ 67      select 'test.perm.b', 'road_ctx test fixture' from dual
+ 68       where not exists (select 1 from road_permissions where permission_name = 'test.perm.b');
+ 69      insert into road_permissions (permission_name, description)
+ 70      select 'test.perm.shared', 'road_ctx test fixture' from dual
+ 71       where not exists (select 1 from road_permissions where permission_name = 'test.perm.shared');
+ 72  
+ 73      insert into road_roles (role_name, display_name, is_reserved)
+ 74      select 'test.role1', 'road_ctx test fixture', 'N' from dual
+ 75       where not exists (select 1 from road_roles where role_name = 'test.role1');
+ 76      insert into road_roles (role_name, display_name, is_reserved)
+ 77      select 'test.role2', 'road_ctx test fixture', 'N' from dual
+ 78       where not exists (select 1 from road_roles where role_name = 'test.role2');
+ 79  
+ 80      insert into road_role_permissions (role_name, permission_name)
+ 81      select 'test.role1', 'test.perm.a' from dual
+ 82       where not exists (select 1 from road_role_permissions
+ 83                          where role_name = 'test.role1' and permission_name = 'test.perm.a');
+ 84      insert into road_role_permissions (role_name, permission_name)
+ 85      select 'test.role1', 'test.perm.shared' from dual
+ 86       where not exists (select 1 from road_role_permissions
+ 87                          where role_name = 'test.role1' and permission_name = 'test.perm.shared');
+ 88      insert into road_role_permissions (role_name, permission_name)
+ 89      select 'test.role2', 'test.perm.b' from dual
+ 90       where not exists (select 1 from road_role_permissions
+ 91                          where role_name = 'test.role2' and permission_name = 'test.perm.b');
+ 92      insert into road_role_permissions (role_name, permission_name)
+ 93      select 'test.role2', 'test.perm.shared' from dual
+ 94       where not exists (select 1 from road_role_permissions
+ 95                          where role_name = 'test.role2' and permission_name = 'test.perm.shared');
+ 96  
+ 97      -- TESTA holds both roles, TESTB only the first, TESTSUSP is suspended.
+ 98      insert into road_principals (issuer, subject, display_name, status)
+ 99      select c_issuer, 'TESTA', 'road_ctx test fixture', 'ACTIVE' from dual
+100       where not exists (select 1 from road_principals where issuer = c_issuer and subject = 'TESTA');
+101      insert into road_principals (issuer, subject, display_name, status)
+102      select c_issuer, 'TESTB', 'road_ctx test fixture', 'ACTIVE' from dual
+103       where not exists (select 1 from road_principals where issuer = c_issuer and subject = 'TESTB');
+104      insert into road_principals (issuer, subject, display_name, status)
+105      select c_issuer, 'TESTSUSP', 'road_ctx test fixture', 'SUSPENDED' from dual
+106       where not exists (select 1 from road_principals where issuer = c_issuer and subject = 'TESTSUSP');
+107  
+108      -- Resolved into locals first: principal_of is body-private, and a private packaged function
+109      -- cannot be referenced from inside SQL (PLS-00231).
+110      l_a := principal_of('TESTA');
+111      l_b := principal_of('TESTB');
+112      l_susp := principal_of('TESTSUSP');
+113  
+114      insert into road_principal_roles (principal_id, role_name)
+115      select l_a, 'test.role1' from dual
+116       where not exists (select 1 from road_principal_roles
+117                          where principal_id = l_a and role_name = 'test.role1');
+118      insert into road_principal_roles (principal_id, role_name)
+119      select l_a, 'test.role2' from dual
+120       where not exists (select 1 from road_principal_roles
+121                          where principal_id = l_a and role_name = 'test.role2');
+122      insert into road_principal_roles (principal_id, role_name)
+123      select l_b, 'test.role1' from dual
+124       where not exists (select 1 from road_principal_roles
+125                          where principal_id = l_b and role_name = 'test.role1');
+126      insert into road_principal_roles (principal_id, role_name)
+127      select l_susp, 'test.role1' from dual
+128       where not exists (select 1 from road_principal_roles
+129                          where principal_id = l_susp and role_name = 'test.role1');
+130  
+131      commit;
+132    end setup;
+133  
+134    procedure teardown is
+135    begin
+136      delete from road_principal_roles
+137       where principal_id in (select principal_id from road_principals
+138                               where issuer like 'urn:road:test:%');
+139      -- Covers NEWCOMER, STRANGER and anything auto-provisioned under a second test issuer.
+140      delete from road_principals where issuer like 'urn:road:test:%';
+141      delete from road_role_permissions where role_name in ('test.role1', 'test.role2');
+142      delete from road_roles where role_name in ('test.role1', 'test.role2');
+143      delete from road_permissions
+144       where permission_name in ('test.perm.a', 'test.perm.b', 'test.perm.shared');
+145      commit;
+146      road_ctx_pkg.end_request;
+147    end teardown;
+148  
+149    -- THE test. B must never see A's permissions on a reused session.
+150    procedure test_pooled_session_does_not_bleed is
+151    begin
+152      assert_true('A establishes', road_ctx_pkg.begin_request('TESTA', c_issuer));
+153      assert_true('A has perm.b', road_ctx_pkg.has_permission('test.perm.b'));
+154      assert_true('A has role2', road_ctx_pkg.has_role('test.role2'));
+155  
+156      -- Same session, no end_request in between -- exactly what a pooled connection does.
+157      assert_true('B establishes', road_ctx_pkg.begin_request('TESTB', c_issuer));
+158      assert_false('B must NOT inherit A perm.b', road_ctx_pkg.has_permission('test.perm.b'));
+159      assert_false('B must NOT inherit A role2', road_ctx_pkg.has_role('test.role2'));
+160      assert_true('B keeps its own perm.a', road_ctx_pkg.has_permission('test.perm.a'));
+161  
+162      if road_ctx_pkg.principal_id != principal_of('TESTB') then
+163        fail('principal_id must be B, got ' || road_ctx_pkg.principal_id);
+164      end if;
+165    end test_pooled_session_does_not_bleed;
+166  
+167    -- A FAILED begin_request must also clear the previous caller, not leave them established.
+168    --
+169    -- The failure used to be an unknown subject. With auto-provisioning enabled that is no longer a
+170    -- failure -- it creates the principal -- so this uses a SUSPENDED one, which also exercises a
+171    -- later exit point: past the lookup, with identity partially resolved.
+172    procedure test_failed_begin_clears_previous is
+173    begin
+174      assert_true('A establishes', road_ctx_pkg.begin_request('TESTA', c_issuer));
+175      assert_false('suspended principal denied', road_ctx_pkg.begin_request('TESTSUSP', c_issuer));
+176      assert_false('previous identity gone', road_ctx_pkg.is_authenticated);
+177      assert_false('previous permission gone', road_ctx_pkg.has_permission('test.perm.a'));
+178      assert_null('principal_id cleared', to_char(road_ctx_pkg.principal_id));
+179  
+180      -- A null subject fails earliest of all, and must also leave nothing behind.
+181      assert_true('A re-establishes', road_ctx_pkg.begin_request('TESTA', c_issuer));
+182      assert_false('null subject denied', road_ctx_pkg.begin_request(null, c_issuer));
+183      assert_false('and cleared', road_ctx_pkg.is_authenticated);
+184    end test_failed_begin_clears_previous;
+185  
+186    procedure test_unestablished_denies_everything is
+187    begin
+188      road_ctx_pkg.end_request;
+189      assert_false('is_authenticated', road_ctx_pkg.is_authenticated);
+190      assert_false('has_permission', road_ctx_pkg.has_permission('test.perm.a'));
+191      assert_false('has_role', road_ctx_pkg.has_role('test.role1'));
+192      assert_null('principal_id', to_char(road_ctx_pkg.principal_id));
+193      assert_null('subject', road_ctx_pkg.subject);
+194      assert_null('issuer', road_ctx_pkg.issuer);
+195      -- Null arguments must deny too, not error.
+196      assert_false('null permission', road_ctx_pkg.has_permission(null));
+197      assert_false('null role', road_ctx_pkg.has_role(null));
+198    end test_unestablished_denies_everything;
+199  
+200    procedure test_suspended_principal_denied is
+201    begin
+202      assert_false('suspended denied', road_ctx_pkg.begin_request('TESTSUSP', c_issuer));
+203      assert_false('context not established', road_ctx_pkg.is_authenticated);
+204      assert_false('no permissions loaded', road_ctx_pkg.has_permission('test.perm.a'));
+205    end test_suspended_principal_denied;
+206  
+207    -- Same subject, different issuer: the whole reason section 4.1 keys on both.
+208    --
+209    -- With auto-provisioning on, the property under test is no longer "denied" -- a subject from
+210    -- another issuer is a legitimate new person, and gets their own principal. What must NEVER happen
+211    -- is that they resolve to the EXISTING principal and inherit its permissions. That is precisely
+212    -- the collision section 4.1 exists to prevent: two issuers may both legitimately mint 'TESTA'.
+213    procedure test_wrong_issuer_is_a_different_principal is
+214      l_other constant varchar2(64) := 'urn:road:test:somewhere-else';
+215      l_mine  number;
+216      l_other_id number;
+217    begin
+218      assert_true('A establishes under its own issuer', road_ctx_pkg.begin_request('TESTA', c_issuer));
+219      l_mine := road_ctx_pkg.principal_id;
+220      assert_true('and holds its permission', road_ctx_pkg.has_permission('test.perm.a'));
+221  
+222      -- Created explicitly rather than relying on auto-provisioning: this test is about issuer
+223      -- isolation, and must pass whether or not the deployment provisions on first sight. road-kit
+224      -- defaults auto_provision_principals to N, and the earlier version of this test failed there --
+225      -- caught by the phase 8 backport running the suite rather than reading it.
+226      insert into road_principals (issuer, subject, display_name, status)
+227      select l_other, 'TESTA', 'road_ctx test fixture (other issuer)', 'ACTIVE' from dual
+228       where not exists (select 1 from road_principals
+229                          where issuer = l_other and subject = 'TESTA');
+230      commit;
+231  
+232      assert_true('same subject under another issuer establishes separately',
+233                  road_ctx_pkg.begin_request('TESTA', l_other));
+234      l_other_id := road_ctx_pkg.principal_id;
+235  
+236      if l_mine = l_other_id then
+237        fail('same subject from a different issuer resolved to the SAME principal');
+238      end if;
+239      assert_false('and must NOT inherit the other issuer''s permissions',
+240                   road_ctx_pkg.has_permission('test.perm.a'));
+241    end test_wrong_issuer_is_a_different_principal;
+242  
+243    procedure test_permission_union_no_duplicates is
+244      l_expected number;
+245      l_a        number;
+246    begin
+247      l_a := principal_of('TESTA');
+248      assert_true('A establishes', road_ctx_pkg.begin_request('TESTA', c_issuer));
+249      assert_true('perm.a from role1', road_ctx_pkg.has_permission('test.perm.a'));
+250      assert_true('perm.b from role2', road_ctx_pkg.has_permission('test.perm.b'));
+251      assert_true('perm.shared from both', road_ctx_pkg.has_permission('test.perm.shared'));
+252  
+253      -- The union really is three distinct permissions, not four rows collapsed by luck.
+254      select count(distinct rp.permission_name)
+255        into l_expected
+256        from road_principal_roles pr
+257        join road_role_permissions rp on rp.role_name = pr.role_name
+258       where pr.principal_id = l_a;
+259      if l_expected != 3 then
+260        fail('fixture wrong: expected 3 distinct permissions, got ' || l_expected);
+261      end if;
+262  
+263      assert_false('unheld permission still denied', road_ctx_pkg.has_permission('road.role.define'));
+264    end test_permission_union_no_duplicates;
+265  
+266    procedure test_require_permission_raises_403 is
+267      l_raised boolean := false;
+268    begin
+269      assert_true('B establishes', road_ctx_pkg.begin_request('TESTB', c_issuer));
+270  
+271      -- Held: must not raise.
+272      road_ctx_pkg.require_permission('test.perm.a');
+273  
+274      -- Not held: must raise the dedicated forbidden code, which error_api maps to 403.
+275      begin
+276        road_ctx_pkg.require_permission('test.perm.b');
+277      exception
+278        when others then
+279          l_raised := true;
+280          if sqlcode != road_ctx_pkg.c_forbidden then
+281            fail('expected ' || road_ctx_pkg.c_forbidden || ', got ' || sqlcode);
+282          end if;
+283      end;
+284      assert_true('require_permission raised', l_raised);
+285  
+286      l_raised := false;
+287      begin
+288        road_ctx_pkg.require_role('test.role2');
+289      exception
+290        when others then
+291          l_raised := true;
+292          if sqlcode != road_ctx_pkg.c_forbidden then
+293            fail('expected ' || road_ctx_pkg.c_forbidden || ', got ' || sqlcode);
+294          end if;
+295      end;
+296      assert_true('require_role raised', l_raised);
+297    end test_require_permission_raises_403;
+298  
+299    -- require_* on an UNESTABLISHED session must deny, not pass. The dangerous failure would be a
+300    -- handler that forgot begin_request sailing through its permission check.
+301    procedure test_require_denies_when_unestablished is
+302      l_raised boolean := false;
+303    begin
+304      road_ctx_pkg.end_request;
+305      begin
+306        road_ctx_pkg.require_permission('test.perm.a');
+307      exception
+308        when others then
+309          l_raised := true;
+310      end;
+311      assert_true('require_permission denied with no session', l_raised);
+312    end test_require_denies_when_unestablished;
+313  
+314    -- p_issuer defaulted: resolved from the schema's ORDS JWT profile. Uses the seeded bootstrap
+315    -- principal, which is the only one that exists under the real issuer.
+316    procedure test_default_issuer_resolution is
+317      l_subject road_config.config_value%type;
+318    begin
+319      select config_value into l_subject
+320        from road_config where config_key = 'bootstrap_admin_subject';
+321  
+322      assert_true('bootstrap principal establishes with defaulted issuer',
+323                  road_ctx_pkg.begin_request(l_subject));
+324      assert_true('and holds road.role.define', road_ctx_pkg.has_permission('road.role.define'));
+325  
+326      -- The resolved issuer must equal the JWT profile's, not a guess.
+327      for r in (select issuer from user_ords_jwt_profile) loop
+328        if road_ctx_pkg.issuer != r.issuer then
+329          fail('issuer mismatch: context [' || road_ctx_pkg.issuer || '] profile [' || r.issuer || ']');
+330        end if;
+331      end loop;
+332    end test_default_issuer_resolution;
+333  
+334    -- The USING clause is the security control. Prove it: this package is not road_ctx_pkg, so it
+335    -- must not be able to write the namespace. Without this, "secured context" is an unverified
+336    -- claim and any handler could grant itself permissions.
+337    procedure test_context_is_not_writable_by_others is
+338      l_raised boolean := false;
+339    begin
+340      -- Start from a genuinely cleared session, otherwise the second assertion would just be
+341      -- observing the previous test's establishment rather than this one's failure to establish.
+342      road_ctx_pkg.end_request;
+343      begin
+344        dbms_session.set_context(road_ctx_pkg.namespace, 'ESTABLISHED', 'Y');
+345      exception
+346        when others then
+347          l_raised := true;
+348      end;
+349      assert_true('non-trusted package must not write the namespace', l_raised);
+350      assert_false('and identity must not be established', road_ctx_pkg.is_authenticated);
+351    end test_context_is_not_writable_by_others;
+352  
+353    -- Auto-provisioning: a subject the issuer authenticated but this application has never seen.
+354    procedure test_auto_provision_creates_principal is
+355      l_before number;
+356      l_after  number;
+357      l_role   road_config.config_value%type;
+358      l_saved  road_config.config_value%type;
+359    begin
+360      select config_value into l_role from road_config where config_key = 'default_principal_role';
+361  
+362      -- Enabled for the duration and restored afterwards. road-cal ships this on and road-kit ships
+363      -- it off, so a test that assumed either would fail in the other repo.
+364      select config_value into l_saved
+365        from road_config where config_key = 'auto_provision_principals';
+366      update road_config set config_value = 'Y' where config_key = 'auto_provision_principals';
+367      commit;
+368  
+369      delete from road_principal_roles
+370       where principal_id in (select principal_id from road_principals
+371                               where issuer = c_issuer and subject = 'NEWCOMER');
+372      delete from road_principals where issuer = c_issuer and subject = 'NEWCOMER';
+373      commit;
+374  
+375      select count(*) into l_before
+376        from road_principals where issuer = c_issuer and subject = 'NEWCOMER';
+377      assert_true('fixture starts absent', l_before = 0);
+378  
+379      assert_true('unknown subject is provisioned and establishes',
+380                  road_ctx_pkg.begin_request('NEWCOMER', c_issuer));
+381  
+382      select count(*) into l_after
+383        from road_principals where issuer = c_issuer and subject = 'NEWCOMER';
+384      assert_true('principal row created', l_after = 1);
+385      assert_true('holds the default role', road_ctx_pkg.has_role(l_role));
+386  
+387      -- Second visit must reuse the row, not create another.
+388      assert_true('second request establishes', road_ctx_pkg.begin_request('NEWCOMER', c_issuer));
+389      select count(*) into l_after
+390        from road_principals where issuer = c_issuer and subject = 'NEWCOMER';
+391      assert_true('still exactly one principal', l_after = 1);
+392  
+393      update road_config set config_value = l_saved where config_key = 'auto_provision_principals';
+394      commit;
+395    exception
+396      when others then
+397        update road_config set config_value = l_saved where config_key = 'auto_provision_principals';
+398        commit;
+399        raise;
+400    end test_auto_provision_creates_principal;
+401  
+402    -- With provisioning off, an unknown subject must be denied -- rule 3's default.
+403    procedure test_auto_provision_off_denies is
+404      l_saved road_config.config_value%type;
+405    begin
+406      select config_value into l_saved
+407        from road_config where config_key = 'auto_provision_principals';
+408  
+409      update road_config set config_value = 'N' where config_key = 'auto_provision_principals';
+410      commit;
+411  
+412      begin
+413        assert_false('unknown subject denied when provisioning is off',
+414                     road_ctx_pkg.begin_request('STRANGER', c_issuer));
+415        assert_false('context not established', road_ctx_pkg.is_authenticated);
+416  
+417        declare
+418          l_count number;
+419        begin
+420          select count(*) into l_count
+421            from road_principals where issuer = c_issuer and subject = 'STRANGER';
+422          assert_true('no principal created', l_count = 0);
+423        end;
+424      exception
+425        when others then
+426          update road_config set config_value = l_saved
+427           where config_key = 'auto_provision_principals';
+428          commit;
+429          raise;
+430      end;
+431  
+432      update road_config set config_value = l_saved where config_key = 'auto_provision_principals';
+433      commit;
+434    end test_auto_provision_off_denies;
+435  
+436    -- A SUSPENDED principal must stay denied even with provisioning on: it is a known subject, so
+437    -- provisioning never runs, and the status check is what holds. Getting this wrong would let a
+438    -- suspended user be silently re-provisioned as active.
+439    procedure test_suspended_is_not_reprovisioned is
+440      l_count number;
+441    begin
+442      assert_false('suspended still denied', road_ctx_pkg.begin_request('TESTSUSP', c_issuer));
+443      select count(*) into l_count
+444        from road_principals where issuer = c_issuer and subject = 'TESTSUSP';
+445      assert_true('still exactly one TESTSUSP row', l_count = 1);
+446      assert_false('context not established', road_ctx_pkg.is_authenticated);
+447    end test_suspended_is_not_reprovisioned;
+448  
+449    procedure run_all is
+450    begin
+451      setup;
+452  
+453      test_pooled_session_does_not_bleed;
+454      test_failed_begin_clears_previous;
+455      test_unestablished_denies_everything;
+456      test_suspended_principal_denied;
+457      test_wrong_issuer_is_a_different_principal;
+458      test_permission_union_no_duplicates;
+459      test_require_permission_raises_403;
+460      test_require_denies_when_unestablished;
+461      test_default_issuer_resolution;
+462      test_context_is_not_writable_by_others;
+463      test_auto_provision_creates_principal;
+464      test_suspended_is_not_reprovisioned;
+465      test_auto_provision_off_denies;
+466  
+467      teardown;
+468      dbms_output.put_line('[PASS] road_ctx_pkg_test: 13 tests');
+469    exception
+470      when others then
+471        teardown;
+472        raise;
+473    end run_all;
+474  
+475  end road_ctx_pkg_test;
+476  /
+
+Package Body ROAD_CTX_PKG_TEST compiled
+
+Elapsed: 00:00:00.176
+Elapsed: 00:00:00.192
+SQL> begin road_ctx_pkg_test.run_all; end;
+  2  /
+[PASS] road_ctx_pkg_test: 13 tests
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.416
+SQL> select road_ctx_pkg.namespace as ns from dual;
+
+[1mNS[m                       
+________________________ 
+ROAD_CTX_ROAD_KIT_DEV    
+
+1 row selected. 
+
+Elapsed: 00:00:00.072
+Elapsed: 00:00:00.089
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.034
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

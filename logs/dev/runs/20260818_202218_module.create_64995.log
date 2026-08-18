@@ -1,0 +1,55 @@
+[INFO] START
+
+[INFO] RUN_ID=20260818_202218_module.create_64995
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=api/modules/session/module.create.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/api/modules/session/module.create.sql
+[INFO] SCRIPT_SHA256=2aa07a09e607b01aa46cbceec59d88e621780acd853c2d0a33548885e729bf45
+[INFO] GIT_COMMIT=d993444
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260818_202218
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260818_202218_module.create_64995.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Tue Aug 18 20:22:19 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.288
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.039
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.067
+Elapsed: 00:00:00.080
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.036
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END
