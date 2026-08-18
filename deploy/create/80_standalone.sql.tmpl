@@ -1,0 +1,118 @@
+whenever oserror exit failure rollback
+whenever sqlerror exit sql.sqlcode rollback
+
+-- INTENT:
+-- Purpose: Seed the CONFIG half of the JWT_SCAFFOLD_CONFIG row, then register the ORDS JWT
+--   profile from it. Deliberately writes NO key material - see below.
+-- Approach: MERGE on config_id = 1 so the script is idempotent and re-runnable, followed by
+--   delete_jwt_profile + create_jwt_profile reading the row just written.
+-- Reason: This script is committed, so it must never carry a private key. Key columns are
+--   populated separately by bin/ensure-auth-key.sh and are left untouched here, so a redeploy
+--   never rotates a live key. create_jwt_profile SNAPSHOTS this row - it is not a
+--   view over it - so seeding config without re-registering leaves validation on stale values.
+--   The two must move together; see planning/spec-patch-04-auth-config-derivation.md section 5.3.
+-- Expected objects:
+--   JWT_SCAFFOLD_CONFIG (one row, config_id = 1)
+--   ORDS JWT profile (schema-level, one per schema)
+-- Risk: Medium. Re-registering the JWT profile invalidates nothing already issued, but a wrong
+--   jwk_url produces tokens that fail validation with a generic ORDS 401 and no useful diagnostic.
+-- Prior history checked: Search db-history for prior 80_standalone runs in this environment.
+-- END INTENT
+
+-- GENERATED FILE - DO NOT EDIT.
+-- Rendered from deploy/create/80_standalone.sql.tmpl by bin/render-auth-config.sh.
+-- Edits here are lost on the next render. Change the template instead.
+
+prompt === deploy standalone objects ===
+
+begin
+  ords.enable_schema(
+    p_enabled             => true,
+    p_schema              => user,
+    p_url_mapping_type    => 'BASE_PATH',
+    p_url_mapping_pattern => '@@ROAD_API_BASE_PATH@@',
+    p_auto_rest_auth      => false
+  );
+exception
+  when others then
+    null;
+end;
+/
+
+merge into jwt_scaffold_config target
+using (
+  select 1 as config_id,
+         '@@ROAD_ISSUER@@' as issuer,
+         'road-dev' as audience,
+         'session.me.read' as scope_name,
+         60 as ttl_minutes,
+         '@@ROAD_JWK_URL@@' as jwk_url
+    from dual
+) source
+on (target.config_id = source.config_id)
+when matched then
+  update set issuer      = source.issuer,
+             audience    = source.audience,
+             scope_name  = source.scope_name,
+             ttl_minutes = source.ttl_minutes,
+             jwk_url     = source.jwk_url,
+             updated_at  = systimestamp
+when not matched then
+  insert (
+    config_id,
+    issuer,
+    audience,
+    scope_name,
+    ttl_minutes,
+    jwk_url
+  )
+  values (
+    source.config_id,
+    source.issuer,
+    source.audience,
+    source.scope_name,
+    source.ttl_minutes,
+    source.jwk_url
+  );
+
+commit;
+
+prompt === register ORDS JWT profile from the seeded config ===
+
+begin
+  ords_security.delete_jwt_profile;
+exception
+  when others then
+    null;
+end;
+/
+
+declare
+  l_jwk_url jwt_scaffold_config.jwk_url%type;
+  l_issuer  jwt_scaffold_config.issuer%type;
+  l_aud     jwt_scaffold_config.audience%type;
+  l_ttl     jwt_scaffold_config.ttl_minutes%type;
+begin
+  select jwk_url,
+         issuer,
+         audience,
+         ttl_minutes
+    into l_jwk_url,
+         l_issuer,
+         l_aud,
+         l_ttl
+    from jwt_scaffold_config
+   where config_id = 1;
+
+  ords_security.create_jwt_profile(
+    p_issuer       => l_issuer,
+    p_audience     => l_aud,
+    p_jwk_url      => l_jwk_url,
+    p_description  => 'ROAD development-only JWT scaffold profile',
+    p_allowed_skew => 5,
+    p_allowed_age  => l_ttl * 60
+  );
+
+  commit;
+end;
+/

@@ -4,6 +4,36 @@
 
 ---
 
+## Provenance
+
+*Added 2026-08-17. This spec's source implementations were previously cited as `oauthords/TestCase01`
+and `oauthords/TestCase02`, which do not exist as repositories. Those citations sent readers to a
+dead end and caused a full design cycle to be repeated. The real lineage is below.*
+
+| Artefact | Location | Contains | Does **not** contain |
+|---|---|---|---|
+| **Quorate** | `~/Projects/Quorate` (private) | Auth0 + ORDS JWT profile, ORDS pre-hook, secured application context, VPD policies, user table keyed on `auth0_sub` | — |
+| **auth0-ords-adb-companion** | `~/Projects/auth0-ords-adb-companion` (public) | ORDS JWT profile + privileges, **machine-to-machine only** | end-user identity, session context, VPD |
+| **OATH_Demo** | `~/Projects/OATH_Demo` | blog/tutorial material, the companion repo, and the `ords-authentication` skill (ORDS API reference) | session context, VPD, principals |
+| **road-kit** | `~/Projects/road-kit` | companion-derived JWT validation + a local JWT scaffold added for dev login | session context, VPD, principals |
+| **road-cal** | `~/Projects/road-cal` | inherits road-kit | as above |
+
+**The key fact:** the companion repo is a deliberately minimal blog companion using the
+`client_credentials` grant. It has no end user, therefore no principal, therefore no session context
+or row-level security. road-kit inherited it faithfully — the second half was never in the source.
+`JWT_SCAFFOLD_AUTH_API` and its hardcoded users exist because something had to supply the
+user-facing login that a machine-to-machine reference lacked.
+
+**Consequence for readers of this spec:** sections 9–11 describe the *target* model, much of which
+is implemented in Quorate and not in road-kit. **Copy from Quorate**, specifically
+`Quorate/db/02_schema_ddl.sql`, not from the companion repo. See
+`planning/identity-and-session-context-design.md`.
+
+The `ords-authentication` skill (`skills/ords-authentication/`) is the authoritative reference for
+ORDS privileges, roles, OAuth flows and JWT profile configuration.
+
+---
+
 ## 1. Purpose
 
 This document defines the authentication contract for applications built on this framework. It standardises the application-facing authentication model used by React, ORDS, and testing tooling, while allowing multiple authentication provider profiles behind that contract.
@@ -224,7 +254,12 @@ Further application-specific authorisation may exist in PL/SQL, but it must not 
 
 ## 9. Provider Profile: `external_oidc`
 
-This profile is based on the working Auth0 + ORDS companion implementation.
+This profile is based on the working Auth0 + ORDS implementation in **Quorate**, of which
+`auth0-ords-adb-companion` is a published extract. See the Provenance section above.
+
+**Read the two differently.** The companion covers token validation only, for machine-to-machine
+callers. Quorate covers the full end-user path — pre-hook, session context and VPD. For anything
+involving a human user, Quorate is the reference.
 
 ### 9.1 Flow Summary
 
@@ -272,7 +307,13 @@ These must surface according to Section 4.3. In the v1 ORDS-first profile, missi
 
 ## 10. Provider Profile: `ords_oauth`
 
-This profile is based on the working ORDS-native OAuth prototype in `oauthords/TestCase01`.
+This profile is based on ORDS-native OAuth. See the Provenance section above; the previously cited
+`oauthords/TestCase01` does not exist. The authoritative reference is
+`skills/ords-authentication/references/ords-authentication.md`.
+
+**Note on end users:** ORDS first-party authentication maps ORDS users to **database accounts**.
+This profile is therefore suitable for service-to-service clients, and unsuitable as an end-user
+identity source unless a database user is provisioned per application user.
 
 ### 10.1 Flow Summary
 
@@ -307,7 +348,10 @@ The source prototype uses older `OAUTH` package examples. New ROAD documentation
 
 ## 11. Provider Profile: `ords_local_jwt_scaffold`
 
-This profile is based on the working JWT scaffold prototype in `oauthords/TestCase02`.
+This profile is the local JWT scaffold added to road-kit to provide a dev login. See the Provenance
+section above; the previously cited `oauthords/TestCase02` does not exist, and this profile is not
+derived from Quorate — it was written to fill the end-user gap left by the machine-to-machine
+companion implementation.
 
 ### 11.1 Intended Usage
 

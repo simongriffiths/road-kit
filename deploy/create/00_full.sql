@@ -24,7 +24,7 @@ prompt === full deploy ===
 @deploy/create/60_package_specs.sql
 @deploy/create/70_package_bodies.sql
 @deploy/create/75_type_bodies.sql
-@deploy/create/80_standalone.sql
+@deploy/create/80_standalone.generated.sql
 @deploy/create/90_rest.sql
 @deploy/create/95_data.sql
 @deploy/create/99_verify.sql

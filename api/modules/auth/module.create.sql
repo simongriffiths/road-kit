@@ -23,13 +23,10 @@ exception
 end;
 /
 
-begin
-  ords_security.delete_jwt_profile;
-exception
-  when others then
-    null;
-end;
-/
+-- The ORDS JWT profile is NOT managed here. It is registered by
+-- deploy/create/80_standalone.generated.sql, from the same JWT_SCAFFOLD_CONFIG row it seeds,
+-- so config and profile can never drift apart. The profile is schema-level configuration, not
+-- module state. See planning/spec-patch-04-auth-config-derivation.md section 5.3.
 
 begin
   ords.define_module(
@@ -170,32 +167,3 @@ begin
 end;
 /
 
-declare
-  l_jwk_url jwt_scaffold_config.jwk_url%type;
-  l_issuer  jwt_scaffold_config.issuer%type;
-  l_aud     jwt_scaffold_config.audience%type;
-  l_ttl     jwt_scaffold_config.ttl_minutes%type;
-begin
-  select jwk_url,
-         issuer,
-         audience,
-         ttl_minutes
-    into l_jwk_url,
-         l_issuer,
-         l_aud,
-         l_ttl
-    from jwt_scaffold_config
-   where config_id = 1;
-
-  ords_security.create_jwt_profile(
-    p_issuer       => l_issuer,
-    p_audience     => l_aud,
-    p_jwk_url      => l_jwk_url,
-    p_description  => 'ROAD development-only JWT scaffold profile',
-    p_allowed_skew => 5,
-    p_allowed_age  => l_ttl * 60
-  );
-
-  commit;
-end;
-/

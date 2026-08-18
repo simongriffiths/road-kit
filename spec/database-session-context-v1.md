@@ -4,6 +4,27 @@
 
 ---
 
+## Provenance
+
+*Added 2026-08-17.*
+
+**This spec is not implemented in road-kit or road-cal.** Neither repo contains any application
+`SYS_CONTEXT` namespace, `DBMS_SESSION.SET_CONTEXT` call, ORDS pre-hook, or `DBMS_RLS` policy.
+Identity is passed as a `p_current_user` parameter and reaches only the `/session` endpoint.
+
+The working implementation of this contract is **Quorate**, at `Quorate/db/02_schema_ddl.sql`:
+
+- `CREATE OR REPLACE CONTEXT QT_CTX USING QT_SESSION_PKG` — the namespace is **secured to one
+  package**, so application code cannot spoof identity.
+- `QT_PREHOOK` — resolves the validated JWT `sub` to a user row and sets the context.
+- `QT_VPD_COUNCIL` — a `DBMS_RLS` policy function that returns `'1=0'` when context is unset, so the
+  default is **no rows**. This is §10.3's requirement, implemented.
+
+See `spec/authentication-spec-v1.md` Provenance for the full repo lineage, and
+`planning/identity-and-session-context-design.md` for the adoption design.
+
+---
+
 ## 1. Purpose
 
 This document defines the intended ROAD contract for exposing authenticated request identity to PL/SQL and database policy logic after ORDS has accepted a request.
@@ -135,6 +156,26 @@ The following are architectural strategies available to ROAD. The exact v1 imple
 ### 9.1 ORDS-Provided Request Context
 
 Where ORDS exposes reliable request or authentication metadata to PL/SQL, ROAD may normalise that into the framework session context.
+
+**Constraint, confirmed on ADB (added 2026-08-17).** ORDS supplies the validated JWT `sub` as the
+`:current_user` implicit bind automatically. It does **not** automatically fire a schema-level
+pre-hook: per Quorate's finding (`Quorate/db/02_schema_ddl.sql` §9), ORDS 26.1 on ADB does not expose
+a PL/SQL API for pre-hook registration because `ORDS_METADATA` is locked.
+
+The pre-hook must therefore be **called explicitly at the top of every protected handler**:
+
+```plsql
+l_ok := QT_PREHOOK(:current_user);
+IF NOT l_ok THEN :status_code := 403; RETURN; END IF;
+```
+
+Two consequences ROAD must design for:
+
+1. Context establishment is **opt-in per handler**. A handler that omits the call runs with whatever
+   context the pooled connection was left holding. The mitigation is §10.3's fail-closed default —
+   a policy or predicate that yields nothing when context is unset — not reviewer discipline.
+2. §9.1 is therefore **partial**, and must be combined with §9.3 (request bootstrap layer). It is not
+   an alternative to it.
 
 ### 9.2 Application Context Package
 

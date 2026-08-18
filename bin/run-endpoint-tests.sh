@@ -61,10 +61,67 @@ if [[ -z "${ROAD_ORDS_HOST:-}" ]]; then
 fi
 
 HOST_BASE="${ROAD_ORDS_HOST%/}"
+
+# Read the jwk_url the database is ACTUALLY configured with, rather than reconstructing the
+# conventional one from ROAD_ORDS_HOST. Those two agreeing is the whole point of the check in
+# test/endpoint/auth-config.endpoint.sh - reconstructing it here would compare the value to
+# itself and pass against any misconfiguration.
+resolve_connection() {
+  awk -F= -v env_name="$1" '
+    /^[[:space:]]*($|#)/ { next }
+    {
+      key = $1
+      value = substr($0, index($0, "=") + 1)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", key)
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+      if (key == env_name) { print value; exit }
+    }
+  ' "${PROJECT_ROOT}/config/connections.conf"
+}
+
+DB_CONNECTION="$(resolve_connection "${ENV_NAME}")"
+
+if [[ -z "${DB_CONNECTION}" ]]; then
+  echo "[ERROR] No SQLcl connection mapped for environment '${ENV_NAME}' in config/connections.conf" >&2
+  exit 2
+fi
+
+CONFIG_OUTPUT="$(sql -name "${DB_CONNECTION}" <<'EOF'
+whenever oserror exit failure rollback
+whenever sqlerror exit sql.sqlcode rollback
+set heading off feedback off pagesize 0 verify off echo off termout on linesize 32767
+set serveroutput on size unlimited
+begin
+  for r in (select jwk_url, kid, issuer from jwt_scaffold_config where config_id = 1) loop
+    dbms_output.put_line('CONFIG_BEGIN');
+    dbms_output.put_line(r.jwk_url);
+    dbms_output.put_line(r.kid);
+    dbms_output.put_line(r.issuer);
+    dbms_output.put_line('CONFIG_END');
+  end loop;
+end;
+/
+exit success
+EOF
+)"
+
+CONFIG_VALUES="$(printf '%s\n' "${CONFIG_OUTPUT}" | sed -n '/CONFIG_BEGIN/,/CONFIG_END/p' | sed '1d;$d' | tr -d '\r')"
+
+export CONFIGURED_JWK_URL="$(printf '%s\n' "${CONFIG_VALUES}" | sed -n '1p')"
+export CONFIGURED_KID="$(printf '%s\n' "${CONFIG_VALUES}" | sed -n '2p')"
+export CONFIGURED_ISSUER="$(printf '%s\n' "${CONFIG_VALUES}" | sed -n '3p')"
+
+if [[ -z "${CONFIGURED_JWK_URL}" ]]; then
+  echo "[ERROR] Could not read jwk_url from JWT_SCAFFOLD_CONFIG via connection ${DB_CONNECTION}" >&2
+  exit 2
+fi
+
 export ORDS_BASE_URL="${HOST_BASE}/ords/${API_BASE_PATH}/api/v1"
+export AUTH_BASE_URL="${HOST_BASE}/ords/${API_BASE_PATH}"
 export UI_ROOT_URL="${HOST_BASE}/ords/${UI_BASE_PATH}/ui/${APP_NAME}"
 export APP_NAME
 export UI_BASE_PATH
+export ROAD_ENV_NAME="${ENV_NAME}"
 export TEST_TOKEN="$("${GET_TEST_TOKEN_SCRIPT}" --env "${ENV_NAME}")"
 export WRONG_SCOPE_TOKEN="$("${GET_TEST_TOKEN_SCRIPT}" --env "${ENV_NAME}" --scope "wrong.scope")"
 
@@ -79,6 +136,8 @@ echo "[INFO] HOST_BASE=${HOST_BASE}"
 echo "[INFO] ORDS_BASE_URL=${ORDS_BASE_URL}"
 echo "[INFO] UI_ROOT_URL=${UI_ROOT_URL}"
 echo "[INFO] LOG_FILE=${LOG_FILE}"
+echo "[INFO] CONFIGURED_JWK_URL=${CONFIGURED_JWK_URL}"
+echo "[INFO] CONFIGURED_ISSUER=${CONFIGURED_ISSUER}"
 echo "[INFO] TEST_TOKEN_READY=true"
 echo "[INFO] WRONG_SCOPE_TOKEN_READY=true"
 
