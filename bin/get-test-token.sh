@@ -80,7 +80,7 @@ case "${ENV_NAME}" in
 esac
 
 TEST_USERNAME="${REQUESTED_USERNAME:-${ROAD_TEST_USERNAME:-ADMIN}}"
-TEST_PASSWORD="${REQUESTED_PASSWORD:-${ROAD_TEST_PASSWORD:-***REMOVED-CREDENTIAL***}}"
+TEST_PASSWORD="${REQUESTED_PASSWORD:-${ROAD_TEST_PASSWORD:-}}"
 
 sql_literal() {
   printf "%s" "$1" | sed "s/'/''/g"
@@ -129,6 +129,12 @@ EOF
 
   printf '%s\n' "${TOKEN}"
   exit 0
+fi
+
+if [[ -z "${TEST_PASSWORD}" ]]; then
+  echo "[ERROR] No password supplied. Pass --password, or set ROAD_TEST_PASSWORD." >&2
+  echo "[ERROR] There is deliberately no default: a committed credential is a live credential." >&2
+  exit 2
 fi
 
 if [[ -z "${ROAD_ORDS_HOST:-}" ]]; then

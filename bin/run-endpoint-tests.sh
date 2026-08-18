@@ -60,6 +60,13 @@ if [[ -z "${ROAD_ORDS_HOST:-}" ]]; then
   exit 2
 fi
 
+# Preflighted here rather than discovered at the token mint below, because get-test-token.sh
+# deliberately carries no default password.
+if [[ -z "${ROAD_TEST_PASSWORD:-}" ]]; then
+  echo "[ERROR] ROAD_TEST_PASSWORD must be set" >&2
+  exit 2
+fi
+
 HOST_BASE="${ROAD_ORDS_HOST%/}"
 
 # Read the jwk_url the database is ACTUALLY configured with, rather than reconstructing the

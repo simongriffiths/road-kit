@@ -45,6 +45,13 @@ grant create type to &&schema_user;
 grant create trigger to &&schema_user;
 grant create synonym to &&schema_user;
 
+-- Required by spec patch 06: the road_ctx application context is created with
+--   create or replace context road_ctx using road_ctx_pkg;
+-- Oracle has no schema-scoped equivalent -- context creation requires CREATE ANY CONTEXT, which is
+-- broader than the grants above and can also alter or drop contexts owned by other schemas. Granted
+-- because road_ctx is framework baseline for every ROAD application, not app-specific.
+grant create any context to &&schema_user;
+
 grant execute on dbms_crypto to &&schema_user;
 grant execute on utl_encode to &&schema_user;
 grant execute on utl_i18n to &&schema_user;
@@ -62,6 +69,7 @@ prompt   CREATE PROCEDURE
 prompt   CREATE TYPE
 prompt   CREATE TRIGGER
 prompt   CREATE SYNONYM
+prompt   CREATE ANY CONTEXT
 prompt   EXECUTE ON DBMS_CRYPTO
 prompt   EXECUTE ON UTL_ENCODE
 prompt   EXECUTE ON UTL_I18N

@@ -72,7 +72,13 @@ fi
 
 export ROAD_APP_URL="${ROAD_ORDS_HOST%/}/ords/${UI_BASE_PATH}/ui/${APP_NAME}/"
 export ROAD_TEST_USERNAME="${ROAD_TEST_USERNAME:-ADMIN}"
-export ROAD_TEST_PASSWORD="${ROAD_TEST_PASSWORD:-***REMOVED-CREDENTIAL***}"
+
+if [[ -z "${ROAD_TEST_PASSWORD:-}" ]]; then
+  echo "[ERROR] ROAD_TEST_PASSWORD must be set" >&2
+  echo "[ERROR] There is deliberately no default: a committed credential is a live credential." >&2
+  exit 2
+fi
+export ROAD_TEST_PASSWORD
 export PLAYWRIGHT_BROWSERS_PATH="${PROJECT_ROOT}/.playwright-browsers"
 
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
