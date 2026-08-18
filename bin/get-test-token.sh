@@ -62,22 +62,34 @@ if [[ -z "${API_BASE_PATH:-}" ]]; then
   exit 2
 fi
 
-case "${ENV_NAME}" in
-  dev)
-    CONNECTION="app_dev"
-    ;;
-  test)
-    CONNECTION="app_test"
-    ;;
-  prod)
-    CONNECTION="app_prod"
-    ;;
-  *)
-    echo "[ERROR] Unknown environment: ${ENV_NAME}" >&2
-    usage
-    exit 2
-    ;;
-esac
+# Resolve the SQLcl connection the same way bin/run-sql.sh does, from config/connections.conf.
+# This was previously a hardcoded map to app_dev / app_test / app_prod, which are the example
+# names and do not exist -- so every --scope invocation failed. It failed invisibly, because
+# "export VAR=$(...)" does not abort under set -e: the caller got an empty token and carried on.
+SQL_RUNNER_CONFIG="${SQL_RUNNER_CONFIG:-${PROJECT_ROOT}/config/connections.conf}"
+
+if [[ ! -f "${SQL_RUNNER_CONFIG}" ]]; then
+  echo "[ERROR] SQL runner config not found: ${SQL_RUNNER_CONFIG}" >&2
+  exit 2
+fi
+
+CONNECTION="$(awk -F= -v env_name="${ENV_NAME}" '
+  /^[[:space:]]*($|#)/ { next }
+  {
+    key = $1
+    value = substr($0, index($0, "=") + 1)
+    gsub(/^[[:space:]]+|[[:space:]]+$/, "", key)
+    gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
+    if (key == env_name) { print value; exit }
+  }
+' "${SQL_RUNNER_CONFIG}")"
+
+if [[ -z "${CONNECTION}" ]]; then
+  echo "[ERROR] Unknown environment: ${ENV_NAME}" >&2
+  echo "[ERROR] Add '"'"'${ENV_NAME}=<sqlcl-saved-connection>'"'"' to ${SQL_RUNNER_CONFIG}" >&2
+  usage
+  exit 2
+fi
 
 TEST_USERNAME="${REQUESTED_USERNAME:-${ROAD_TEST_USERNAME:-ADMIN}}"
 TEST_PASSWORD="${REQUESTED_PASSWORD:-${ROAD_TEST_PASSWORD:-}}"

@@ -129,8 +129,25 @@ export UI_ROOT_URL="${HOST_BASE}/ords/${UI_BASE_PATH}/ui/${APP_NAME}"
 export APP_NAME
 export UI_BASE_PATH
 export ROAD_ENV_NAME="${ENV_NAME}"
-export TEST_TOKEN="$("${GET_TEST_TOKEN_SCRIPT}" --env "${ENV_NAME}")"
-export WRONG_SCOPE_TOKEN="$("${GET_TEST_TOKEN_SCRIPT}" --env "${ENV_NAME}" --scope "wrong.scope")"
+# Assign first, export second, and check both. "export VAR=$(cmd)" does NOT abort under set -e --
+# export always succeeds, so a failing command substitution silently yields an empty string. That
+# is not hypothetical: WRONG_SCOPE_TOKEN was empty on every run for weeks because the token script
+# could not resolve its connection, and every "wrong-scope returns 401" assertion was really
+# sending an empty bearer token. It passed, for entirely the wrong reason.
+TEST_TOKEN="$("${GET_TEST_TOKEN_SCRIPT}" --env "${ENV_NAME}")"
+WRONG_SCOPE_TOKEN="$("${GET_TEST_TOKEN_SCRIPT}" --env "${ENV_NAME}" --scope "wrong.scope")"
+
+if [[ -z "${TEST_TOKEN}" ]]; then
+  echo "[ERROR] Could not mint TEST_TOKEN - refusing to run a suite that would pass vacuously" >&2
+  exit 2
+fi
+if [[ -z "${WRONG_SCOPE_TOKEN}" ]]; then
+  echo "[ERROR] Could not mint WRONG_SCOPE_TOKEN - refusing to run a suite that would pass vacuously" >&2
+  exit 2
+fi
+
+export TEST_TOKEN
+export WRONG_SCOPE_TOKEN
 
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 LOG_DIR="${PROJECT_ROOT}/logs/${ENV_NAME}/runs"
