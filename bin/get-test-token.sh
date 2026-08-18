@@ -6,7 +6,12 @@ ROAD_CONFIG="${PROJECT_ROOT}/road.config"
 
 usage() {
   cat >&2 <<'EOF'
-Usage: bin/get-test-token.sh --env <dev|test|prod> [--username <name>] [--password <value>] [--scope <scope>]
+Usage: bin/get-test-token.sh --env <dev|test|prod> [--username <name>] [--password <value>]
+                            [--scope <scope>] [--issuer <iss>] [--audience <aud>] [--ttl <minutes>]
+
+--scope, --issuer, --audience and --ttl mint directly through SQLcl rather than logging in, and
+exist so the conformance suite can build the negative cases in authentication-spec-v1.md section 12.
+A negative --ttl produces an already-expired token.
 EOF
 }
 
@@ -14,6 +19,9 @@ ENV_NAME=""
 REQUESTED_SCOPE=""
 REQUESTED_USERNAME=""
 REQUESTED_PASSWORD=""
+REQUESTED_ISSUER=""
+REQUESTED_AUDIENCE=""
+REQUESTED_TTL=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -35,6 +43,21 @@ while [[ $# -gt 0 ]]; do
     --scope)
       [[ $# -ge 2 ]] || { usage; exit 2; }
       REQUESTED_SCOPE="$2"
+      shift 2
+      ;;
+    --issuer)
+      [[ $# -ge 2 ]] || { usage; exit 2; }
+      REQUESTED_ISSUER="$2"
+      shift 2
+      ;;
+    --audience)
+      [[ $# -ge 2 ]] || { usage; exit 2; }
+      REQUESTED_AUDIENCE="$2"
+      shift 2
+      ;;
+    --ttl)
+      [[ $# -ge 2 ]] || { usage; exit 2; }
+      REQUESTED_TTL="$2"
       shift 2
       ;;
     *)
@@ -98,11 +121,20 @@ sql_literal() {
   printf "%s" "$1" | sed "s/'/''/g"
 }
 
-if [[ -n "${REQUESTED_SCOPE}" ]]; then
+# Any claim override takes the direct-mint path: logging in cannot produce a token whose issuer,
+# audience or expiry differs from the configured one.
+if [[ -n "${REQUESTED_SCOPE}${REQUESTED_ISSUER}${REQUESTED_AUDIENCE}${REQUESTED_TTL}" ]]; then
   if ! command -v sql >/dev/null 2>&1; then
     echo "[ERROR] SQLcl binary not found on PATH: sql" >&2
     exit 127
   fi
+
+  # Null rather than an empty string, so each unset override falls back to JWT_SCAFFOLD_CONFIG.
+  sql_arg() { if [[ -z "$1" ]]; then printf 'null'; else printf "'%s'" "$(sql_literal "$1")"; fi; }
+  SCOPE_ARG="$(sql_arg "${REQUESTED_SCOPE}")"
+  ISSUER_ARG="$(sql_arg "${REQUESTED_ISSUER}")"
+  AUDIENCE_ARG="$(sql_arg "${REQUESTED_AUDIENCE}")"
+  if [[ -z "${REQUESTED_TTL}" ]]; then TTL_ARG="null"; else TTL_ARG="${REQUESTED_TTL}"; fi
 
   TOKEN_OUTPUT="$(sql -name "${CONNECTION}" <<EOF
 whenever oserror exit failure rollback
@@ -120,8 +152,11 @@ declare
   l_token clob;
 begin
   l_token := jwt_scaffold_auth_api.issue_token(
-    p_username => '$(sql_literal "${TEST_USERNAME}")',
-    p_scope    => '$(sql_literal "${REQUESTED_SCOPE}")'
+    p_username    => '$(sql_literal "${TEST_USERNAME}")',
+    p_scope       => ${SCOPE_ARG},
+    p_issuer      => ${ISSUER_ARG},
+    p_audience    => ${AUDIENCE_ARG},
+    p_ttl_minutes => ${TTL_ARG}
   );
   dbms_output.put_line('TOKEN_BEGIN');
   dbms_output.put_line(dbms_lob.substr(l_token, 32767, 1));
