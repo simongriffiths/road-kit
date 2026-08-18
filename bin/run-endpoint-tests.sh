@@ -146,8 +146,58 @@ if [[ -z "${WRONG_SCOPE_TOKEN}" ]]; then
   exit 2
 fi
 
+# Fixture for the section 12 "403" row: a principal that genuinely exists and is ACTIVE but holds
+# no administrative permission. It has to be a real principal -- an unknown subject would be denied
+# by begin_request and return 401, which would make the 403 assertion untestable and, worse, look
+# like it was passing if the expectation were ever loosened.
+#
+# Idempotent, and left in place afterwards: it is ordinary application data, not a mutation.
+#
+# Best-effort on purpose. A repo that has not yet taken the spec patch 06 backport has no
+# road_principals table, and this script is kept byte-identical across the ROAD repos. Failing here
+# would block a suite that is otherwise perfectly runnable. The hard failure belongs in
+# auth-conformance.endpoint.sh, which refuses to run without the token -- so a repo that HAS the
+# tables still cannot skip the 403 row by accident.
+set +e
+sql -name "${DB_CONNECTION}" >/dev/null 2>&1 <<'EOF'
+whenever sqlerror exit sql.sqlcode rollback
+declare
+  l_issuer varchar2(512 char);
+  l_id     number;
+  l_role   road_config.config_value%type;
+begin
+  execute immediate 'alter session disable parallel dml';
+  select issuer into l_issuer from user_ords_jwt_profile;
+  select config_value into l_role from road_config where config_key = 'default_principal_role';
+
+  insert into road_principals (issuer, subject, display_name, status)
+  select l_issuer, 'USER1', 'Endpoint conformance fixture', 'ACTIVE' from dual
+   where not exists (select 1 from road_principals where issuer = l_issuer and subject = 'USER1');
+
+  select principal_id into l_id
+    from road_principals where issuer = l_issuer and subject = 'USER1';
+
+  insert into road_principal_roles (principal_id, role_name)
+  select l_id, l_role from dual
+   where not exists (select 1 from road_principal_roles
+                      where principal_id = l_id and role_name = l_role);
+  commit;
+end;
+/
+exit success
+EOF
+
+CONFORMANCE_USER_TOKEN="$("${GET_TEST_TOKEN_SCRIPT}" --env "${ENV_NAME}" --username USER1 --scope "session.me.read events.rw series.rw road.admin.rw" 2>/dev/null || true)"
+set -e
+
+if [[ -z "${CONFORMANCE_USER_TOKEN}" ]]; then
+  echo "[WARN] CONFORMANCE_USER_TOKEN unavailable - the 403 conformance row will fail if enabled" >&2
+fi
+
 export TEST_TOKEN
 export WRONG_SCOPE_TOKEN
+export CONFORMANCE_USER_TOKEN
+export PROJECT_ROOT
 
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 LOG_DIR="${PROJECT_ROOT}/logs/${ENV_NAME}/runs"
@@ -164,5 +214,11 @@ echo "[INFO] CONFIGURED_JWK_URL=${CONFIGURED_JWK_URL}"
 echo "[INFO] CONFIGURED_ISSUER=${CONFIGURED_ISSUER}"
 echo "[INFO] TEST_TOKEN_READY=true"
 echo "[INFO] WRONG_SCOPE_TOKEN_READY=true"
+echo "[INFO] CONFORMANCE_USER_TOKEN_READY=$([[ -n "${CONFORMANCE_USER_TOKEN}" ]] && echo true || echo false)"
+
+# Static check before any HTTP call. A handler that does not establish session context runs on
+# whatever the pooled connection was last left holding, and no amount of endpoint testing with a
+# single authenticated user would reveal it. Cheap, so it runs first and fails fast.
+"${PROJECT_ROOT}/bin/check-handler-coverage.sh"
 
 bash "${PROJECT_ROOT}/test/endpoint/00_endpoint.sh" 2>&1 | tee "${LOG_FILE}"
