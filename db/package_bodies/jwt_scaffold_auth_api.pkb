@@ -1,7 +1,7 @@
 create or replace package body jwt_scaffold_auth_api as
   c_admin_username constant varchar2(30) := 'ADMIN';
-  c_admin_salt     constant raw(16)      := hextoraw('4A450D74B602252525E88394F3A6601A');
-  c_admin_hash     constant raw(32)      := hextoraw('9DF307B3574B27834FA97183093850498E659915395394FBE8D0B34201F43359');
+  c_admin_salt     constant raw(16)      := hextoraw('81DAE563DC239D38FEBF76FAD3885104');
+  c_admin_hash     constant raw(32)      := hextoraw('5C104866B778B69DBC36E06B3230FF5BCBBBC76E5E3FAE85CF1C503499960B69');
 
   c_user1_username constant varchar2(30) := 'USER1';
   c_user1_salt     constant raw(16)      := hextoraw('A244EF5B579898203EC68A3F1B40E3B6');
