@@ -10,10 +10,35 @@ set -euo pipefail
 # than at the next backport.
 #
 # Files NOT listed here diverge deliberately -- 95_data.sql, 99_verify.sql, road.config, the ORDS
-# modules and anything naming an application.
+# modules and anything naming an application. The endpoint test files are also deliberately
+# per-repo (build-plan-08 section 7 Q2): road-cal's admin fixtures name events.purge and
+# calendar_admin, road-kit's name todo.purge and todo_admin, so byte-identical was never available
+# and parameterising a test fixture to win this check would be the tail wagging the dog.
+#
+# WHAT THIS CHECK CANNOT SEE is the thing to remember about it. The list is maintained BY HAND, so
+# a framework-shaped file that was never added simply has no opinion attached to it. road_audit_api
+# is the worked example: specified as framework-generic in spec-patch-01-concurrency, described in
+# road-cal's own API contract as "the road-kit-generic" one, and absent from road-kit entirely
+# until 2026-08-19 -- because nobody had listed it here. Adding a file to the shared surface means
+# adding it to this array in the same commit.
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PEER="${ROAD_PEER_PATH:-${PROJECT_ROOT}/../road-cal}"
+
+# The peer is derived, not hardcoded, because this file is itself on the shared list below and so
+# must behave correctly when run from EITHER repo. Hardcoding ../road-cal made it byte-identical
+# and wrong in one of the two.
+case "$(basename "${PROJECT_ROOT}")" in
+  road-kit) PEER_DEFAULT="${PROJECT_ROOT}/../road-cal" ;;
+  road-cal) PEER_DEFAULT="${PROJECT_ROOT}/../road-kit" ;;
+  *)        PEER_DEFAULT="" ;;
+esac
+PEER="${ROAD_PEER_PATH:-${PEER_DEFAULT}}"
+
+if [[ -z "${PEER}" ]]; then
+  echo "[ERROR] Cannot infer the peer repository from $(basename "${PROJECT_ROOT}")" >&2
+  echo "[ERROR] Set ROAD_PEER_PATH to the other ROAD repository" >&2
+  exit 2
+fi
 
 if [[ ! -d "${PEER}" ]]; then
   echo "[ERROR] Peer repository not found: ${PEER}" >&2
@@ -41,8 +66,13 @@ SHARED_FILES=(
   db/package_specs/error_api_test.pks         db/package_bodies/error_api_test.pkb
   db/package_specs/jwt_scaffold_auth_api.pks  db/package_bodies/jwt_scaffold_auth_api.pkb
   deploy/create/65_contexts.sql               deploy/drop/65_contexts.sql
+  deploy/create/96_assertions.sql             deploy/drop/96_assertions.sql
+  db/tables/road_api_log.create.sql           db/tables/road_api_log.drop.sql
+  db/package_specs/road_audit_api.pks         db/package_bodies/road_audit_api.pkb
+  db/package_specs/road_audit_api_test.pks    db/package_bodies/road_audit_api_test.pkb
   bin/get-test-token.sh                       bin/run-endpoint-tests.sh
   bin/check-handler-coverage.sh               bin/rotate-scaffold-credential.sh
+  bin/check-road-kit-parity.sh
   admin/grant-schema-privileges.sql
   test/endpoint/auth-conformance.endpoint.sh
   planning/coding-standards-v1.md

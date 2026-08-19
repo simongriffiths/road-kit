@@ -1,0 +1,337 @@
+[INFO] START
+
+[INFO] RUN_ID=20260819_161544_phase7-full-verify_23849
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/phase7-full-verify.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/phase7-full-verify.sql
+[INFO] SCRIPT_SHA256=98ec87eb7bdb53384aa55fe97efb2c59ebb9992c3c69fcebbbc6ec1d78c3416a
+[INFO] GIT_COMMIT=a991b5e
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=debug
+[INFO] TIMESTAMP=20260819_161544
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260819_161544_phase7-full-verify_23849.log
+
+[INTENT]
+Purpose: build-plan-08 phase 7 -- run the extended 99_verify.sql and confirm the whole schema.
+Approach: Run 99_verify.sql, then read back assertions, permissions, roles and invalid objects.
+Reason: Close-out verification for the backport and the demo app.
+Expected objects: none created.
+Risk: None. Read-only apart from 99_verify's own assertions, which raise rather than write.
+Prior history checked: phases 0-6 this session.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 19 16:15:45 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+SQL> -- INTENT:
+SQL> -- Purpose: build-plan-08 phase 7 -- run the extended 99_verify.sql and confirm the whole schema.
+SQL> -- Approach: Run 99_verify.sql, then read back assertions, permissions, roles and invalid objects.
+SQL> -- Reason: Close-out verification for the backport and the demo app.
+SQL> -- Expected objects: none created.
+SQL> -- Risk: None. Read-only apart from 99_verify's own assertions, which raise rather than write.
+SQL> -- Prior history checked: phases 0-6 this session.
+SQL> -- END INTENT
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> set serveroutput on size unlimited
+SQL> 
+SQL> @deploy/create/99_verify.sql
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> 
+SQL> -- INTENT:
+SQL> -- Purpose: Confirm a completed deployment is healthy.
+SQL> -- Approach: Read-only probes - health package status, UI asset count, JWT config presence,
+SQL> --   plus a hard check that the auth config row exists.
+SQL> -- Reason: A deploy that compiled without error can still be wrong (empty config, no
+SQL> --   UI assets); this makes that visible in the run log.
+SQL> -- Expected objects: None created. Read-only.
+SQL> -- Risk: None. No DML, no DDL.
+SQL> -- Prior history checked: Not applicable - read-only verification.
+SQL> -- END INTENT
+SQL> 
+SQL> prompt === verify deployment ===
+=== verify deployment ===
+SQL> select health_api.get_status as status from dual;
+
+[1mSTATUS[m    
+_________ 
+ok        
+
+1 row selected. 
+
+Elapsed: 00:00:00.261
+SQL> select count(*) as ui_asset_count from ui_assets;
+
+   [1mUI_ASSET_COUNT[m 
+_________________ 
+                3 
+
+1 row selected. 
+
+Elapsed: 00:00:00.038
+SQL> select audience,
+  2         scope_name as auth_scope,
+  3         nvl(kid, '(none - run bin/ensure-auth-key.sh)') as signing_kid
+  4    from jwt_scaffold_config;
+
+[1mAUDIENCE[m    [1mAUTH_SCOPE[m                               [1mSIGNING_KID[m                     
+___________ ________________________________________ _______________________________ 
+road-dev    session.me.read road.admin.rw todo.rw    hello_world-dev-14649f497300    
+
+1 row selected. 
+
+Elapsed: 00:00:00.137
+SQL> 
+SQL> -- A missing @deploy/create/80_standalone.generated.sql is skipped by SQLcl without failing the
+SQL> -- run, which would leave auth silently unconfigured. Fail loudly instead.
+SQL> declare
+  2    l_count number;
+  3  begin
+  4    select count(*) into l_count from jwt_scaffold_config where config_id = 1;
+  5    if l_count = 0 then
+  6      raise_application_error(
+  7        -20000,
+  8        'JWT_SCAFFOLD_CONFIG is empty - run bin/render-auth-config.sh --env <env> then redeploy'
+  9      );
+ 10    end if;
+ 11  end;
+ 12  /
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.073
+SQL> 
+SQL> prompt === verify identity model (spec patch 06) ===
+=== verify identity model (spec patch 06) ===
+SQL> 
+SQL> declare
+  2    l_count    number;
+  3    l_expected constant number := 6;
+  4  
+  5    procedure assert(p_condition in boolean, p_message in varchar2) is
+  6    begin
+  7      if not nvl(p_condition, false) then
+  8        raise_application_error(-20000, p_message);
+  9      end if;
+ 10    end assert;
+ 11  begin
+ 12    -- 1. All six tables present. A half-applied deploy is the thing this catches.
+ 13    select count(*)
+ 14      into l_count
+ 15      from user_tables
+ 16     where table_name in ('ROAD_PRINCIPALS', 'ROAD_ROLES', 'ROAD_PERMISSIONS',
+ 17                          'ROAD_ROLE_PERMISSIONS', 'ROAD_PRINCIPAL_ROLES', 'ROAD_CONFIG');
+ 18    assert(l_count = l_expected,
+ 19           'Expected ' || l_expected || ' identity tables, found ' || l_count);
+ 20  
+ 21    -- 2. The three baseline roles, with the two road.* ones reserved.
+ 22    select count(*)
+ 23      into l_count
+ 24      from road_roles
+ 25     where role_name in ('road.system_admin', 'road.user_admin', 'user');
+ 26    assert(l_count = 3, 'Expected 3 baseline roles, found ' || l_count);
+ 27  
+ 28    select count(*)
+ 29      into l_count
+ 30      from road_roles
+ 31     where role_name in ('road.system_admin', 'road.user_admin')
+ 32       and is_reserved = 'Y';
+ 33    assert(l_count = 2, 'Both road.* baseline roles must be reserved, found ' || l_count);
+ 34  
+ 35    -- 3. road.system_admin actually composes its permissions.
+ 36    select count(*)
+ 37      into l_count
+ 38      from road_role_permissions
+ 39     where role_name = 'road.system_admin'
+ 40       and permission_name = 'road.role.define';
+ 41    assert(l_count = 1, 'road.system_admin must hold road.role.define');
+ 42  
+ 43    -- 4. road.user_admin must NOT be able to define roles -- the two-tier split is the point.
+ 44    select count(*)
+ 45      into l_count
+ 46      from road_role_permissions
+ 47     where role_name = 'road.user_admin'
+ 48       and permission_name in ('road.role.define', 'road.permission.define');
+ 49    assert(l_count = 0,
+ 50           'road.user_admin must not hold define permissions, found ' || l_count);
+ 51  
+ 52    -- 5. Exactly one principal can administer the system. Zero means the deploy produced an
+ 53    --    identity model nobody can administer, which is the failure mode section 10 question 1
+ 54    --    exists to prevent.
+ 55    select count(*)
+ 56      into l_count
+ 57      from road_principal_roles
+ 58     where role_name = 'road.system_admin';
+ 59    assert(l_count >= 1,
+ 60           'No principal holds road.system_admin - check road_config.bootstrap_admin_subject');
+ 61  
+ 62    -- 6. Exactly one ORDS JWT profile. This is the tripwire for the phase 0.1 spike constraint:
+ 63    --    road_ctx resolves the issuer from this view, which is only unambiguous while trust is
+ 64    --    schema-level with a single profile. A second profile means the implementation must move to
+ 65    --    reading the token header instead. See planning/spike-06-1-iss-reachability.md section 4.
+ 66    select count(*) into l_count from user_ords_jwt_profile;
+ 67    assert(l_count = 1,
+ 68           'Expected exactly 1 ORDS JWT profile, found ' || l_count
+ 69           || ' - road_ctx issuer resolution is ambiguous, see spike-06-1');
+ 70  
+ 71    dbms_output.put_line('[INFO] Identity model verified: 6 tables, 3 roles, 5 permissions, bootstrap admin present');
+ 72  end;
+ 73  /
+[INFO] Identity model verified: 6 tables, 3 roles, 5 permissions, bootstrap admin present
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.080
+SQL> 
+SQL> prompt === verify role composition (spec patch 07) ===
+=== verify role composition (spec patch 07) ===
+SQL> 
+SQL> declare
+  2    l_count number;
+  3  
+  4    procedure assert(p_condition in boolean, p_message in varchar2) is
+  5    begin
+  6      if not nvl(p_condition, false) then
+  7        raise_application_error(-20000, p_message);
+  8      end if;
+  9    end assert;
+ 10  begin
+ 11    -- 1. Every permission road-kit ships is RESERVED, because every one of them is the framework's
+ 12    --    own authority. An unreserved permission appearing here means an application's seed has
+ 13    --    leaked into the framework's, or a migration left a row fail-open.
+ 14    select count(*) into l_count
+ 15      from road_permissions
+ 16     where permission_name in ('road.role.define', 'road.permission.define', 'road.role.grant',
+ 17                               'road.role.revoke', 'road.role.compose')
+ 18       and is_reserved = 'Y';
+ 19    assert(l_count = 5, 'All 5 framework permissions must be reserved, found ' || l_count);
+ 20  
+ 21    -- 2. road.role.compose belongs to road.system_admin and to nobody else -- not road.user_admin,
+ 22    --    which administers PEOPLE, not what a role means (spec-patch-07 section 6).
+ 23    select count(*) into l_count
+ 24      from road_role_permissions
+ 25     where permission_name = 'road.role.compose' and role_name = 'road.system_admin';
+ 26    assert(l_count = 1, 'road.system_admin must hold road.role.compose');
+ 27  
+ 28    select count(*) into l_count
+ 29      from road_role_permissions
+ 30     where permission_name = 'road.role.compose' and role_name != 'road.system_admin';
+ 31    assert(l_count = 0,
+ 32           'road.role.compose must be held only by road.system_admin, found ' || l_count || ' other');
+ 33  
+ 34    -- 3. Both assertions exist and are ENABLED. A deploy that dropped them and did not recreate
+ 35    --    them leaves the composition guard as a package promise only, which is exactly what
+ 36    --    spec-patch-07 section 5 exists to avoid.
+ 37    select count(*) into l_count
+ 38      from user_assertions
+ 39     where assertion_name in ('ROAD_RESERVED_COMPOSITION', 'ROAD_ADMIN_REACHABLE')
+ 40       and status = 'ENABLED';
+ 41    assert(l_count = 2, 'Both composition assertions must exist and be ENABLED, found ' || l_count);
+ 42  
+ 43    -- 4. Every framework attachment is deploy-seeded. A non-null attached_by on a reserved
+ 44    --    permission should have been refused by road_reserved_composition outright, so finding one
+ 45    --    means the assertion is not doing its job.
+ 46    select count(*) into l_count
+ 47      from road_role_permissions rp, road_permissions p
+ 48     where p.permission_name = rp.permission_name
+ 49       and p.is_reserved = 'Y'
+ 50       and rp.attached_by is not null;
+ 51    assert(l_count = 0,
+ 52           'A reserved permission is session-attached - the composition guard is not enforcing');
+ 53  
+ 54    dbms_output.put_line('[INFO] Role composition verified: 5 reserved permissions, '
+ 55                         || 'road.role.compose correctly restricted, 2 assertions ENABLED');
+ 56  end;
+ 57  /
+[INFO] Role composition verified: 5 reserved permissions, road.role.compose correctly restricted, 2 assertions ENABLED
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.101
+Elapsed: 00:00:00.121
+SQL> 
+SQL> prompt === assertions ===
+=== assertions ===
+SQL> select assertion_name, status from user_assertions order by assertion_name;
+
+[1mASSERTION_NAME[m               [1mSTATUS[m     
+____________________________ __________ 
+ROAD_ADMIN_REACHABLE         ENABLED    
+ROAD_RESERVED_COMPOSITION    ENABLED    
+
+2 rows selected. 
+
+Elapsed: 00:00:00.040
+SQL> 
+SQL> prompt === permissions ===
+=== permissions ===
+SQL> select permission_name, is_reserved from road_permissions order by is_reserved desc, permission_name;
+
+[1mPERMISSION_NAME[m           [1mIS_RESERVED[m    
+_________________________ ______________ 
+road.permission.define    Y              
+road.role.compose         Y              
+road.role.define          Y              
+road.role.grant           Y              
+road.role.revoke          Y              
+todo.purge                Y              
+todo.create               N              
+todo.delete               N              
+todo.get                  N              
+todo.list                 N              
+todo.list_all             N              
+todo.update               N              
+
+12 rows selected. 
+
+Elapsed: 00:00:00.054
+SQL> 
+SQL> prompt === roles ===
+=== roles ===
+SQL> select role_name, is_reserved from road_roles order by role_name;
+
+[1mROLE_NAME[m            [1mIS_RESERVED[m    
+____________________ ______________ 
+road.system_admin    Y              
+road.user_admin      Y              
+todo_admin           N              
+user                 N              
+
+4 rows selected. 
+
+Elapsed: 00:00:00.035
+SQL> 
+SQL> prompt === invalid objects ===
+=== invalid objects ===
+SQL> select object_name, object_type, status from user_objects where status != 'VALID';
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.043
+Elapsed: 00:00:00.060
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.036
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

@@ -110,3 +110,63 @@ begin
   dbms_output.put_line('[INFO] Identity model verified: 6 tables, 3 roles, 5 permissions, bootstrap admin present');
 end;
 /
+
+prompt === verify role composition (spec patch 07) ===
+
+declare
+  l_count number;
+
+  procedure assert(p_condition in boolean, p_message in varchar2) is
+  begin
+    if not nvl(p_condition, false) then
+      raise_application_error(-20000, p_message);
+    end if;
+  end assert;
+begin
+  -- 1. Every permission road-kit ships is RESERVED, because every one of them is the framework's
+  --    own authority. An unreserved permission appearing here means an application's seed has
+  --    leaked into the framework's, or a migration left a row fail-open.
+  select count(*) into l_count
+    from road_permissions
+   where permission_name in ('road.role.define', 'road.permission.define', 'road.role.grant',
+                             'road.role.revoke', 'road.role.compose')
+     and is_reserved = 'Y';
+  assert(l_count = 5, 'All 5 framework permissions must be reserved, found ' || l_count);
+
+  -- 2. road.role.compose belongs to road.system_admin and to nobody else -- not road.user_admin,
+  --    which administers PEOPLE, not what a role means (spec-patch-07 section 6).
+  select count(*) into l_count
+    from road_role_permissions
+   where permission_name = 'road.role.compose' and role_name = 'road.system_admin';
+  assert(l_count = 1, 'road.system_admin must hold road.role.compose');
+
+  select count(*) into l_count
+    from road_role_permissions
+   where permission_name = 'road.role.compose' and role_name != 'road.system_admin';
+  assert(l_count = 0,
+         'road.role.compose must be held only by road.system_admin, found ' || l_count || ' other');
+
+  -- 3. Both assertions exist and are ENABLED. A deploy that dropped them and did not recreate
+  --    them leaves the composition guard as a package promise only, which is exactly what
+  --    spec-patch-07 section 5 exists to avoid.
+  select count(*) into l_count
+    from user_assertions
+   where assertion_name in ('ROAD_RESERVED_COMPOSITION', 'ROAD_ADMIN_REACHABLE')
+     and status = 'ENABLED';
+  assert(l_count = 2, 'Both composition assertions must exist and be ENABLED, found ' || l_count);
+
+  -- 4. Every framework attachment is deploy-seeded. A non-null attached_by on a reserved
+  --    permission should have been refused by road_reserved_composition outright, so finding one
+  --    means the assertion is not doing its job.
+  select count(*) into l_count
+    from road_role_permissions rp, road_permissions p
+   where p.permission_name = rp.permission_name
+     and p.is_reserved = 'Y'
+     and rp.attached_by is not null;
+  assert(l_count = 0,
+         'A reserved permission is session-attached - the composition guard is not enforcing');
+
+  dbms_output.put_line('[INFO] Role composition verified: 5 reserved permissions, '
+                       || 'road.role.compose correctly restricted, 2 assertions ENABLED');
+end;
+/
