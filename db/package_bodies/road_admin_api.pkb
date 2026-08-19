@@ -31,6 +31,27 @@ create or replace package body road_admin_api as
       return false;
   end is_reserved;
 
+  procedure assert_permission_exists(p_permission_name in varchar2) is
+    l_count number;
+  begin
+    select count(*) into l_count from road_permissions where permission_name = p_permission_name;
+    if l_count = 0 then
+      raise_application_error(c_err_not_found, 'Permission not found: ' || p_permission_name);
+    end if;
+  end assert_permission_exists;
+
+  function permission_is_reserved(p_permission_name in varchar2) return boolean is
+    l_reserved road_permissions.is_reserved%type;
+  begin
+    select is_reserved into l_reserved
+      from road_permissions
+     where permission_name = p_permission_name;
+    return l_reserved = 'Y';
+  exception
+    when no_data_found then
+      return false;
+  end permission_is_reserved;
+
   -- The two-tier split made explicit. road.role.grant lets a user_admin manage ordinary roles;
   -- touching a RESERVED role additionally needs road.role.define, which only road.system_admin
   -- holds. Nothing in the table structure prevents a user_admin granting road.system_admin --
@@ -206,6 +227,121 @@ create or replace package body road_admin_api as
     return l_result;
   end get_roles;
 
+  -- A search term is user input reaching a LIKE pattern, so its wildcards have to be neutralised or
+  -- a user typing '%' silently matches everything and a user typing '_' matches one of anything.
+  -- Escape the escape character first, or escaping the wildcards re-introduces it.
+  function like_term(p_term in varchar2) return varchar2 is
+  begin
+    return '%' || replace(replace(replace(lower(p_term), '\', '\\'), '%', '\%'), '_', '\_') || '%';
+  end like_term;
+
+  function get_principals(p_request in json default null) return json is
+    c_default_limit constant number := 25;
+    c_max_limit     constant number := 100;
+
+    l_offset  number;
+    l_limit   number;
+    l_q       varchar2(4000 char);
+    l_status  varchar2(20 char);
+    l_pattern varchar2(4000 char);
+
+    l_items   json;
+    l_fetched number;
+  begin
+    road_ctx_pkg.require_permission('road.role.grant');
+
+    l_offset := nvl(json_value(p_request, '$.offset' returning number), 0);
+    l_limit  := nvl(json_value(p_request, '$.limit'  returning number), c_default_limit);
+    l_q      := json_value(p_request, '$.q'      returning varchar2(4000));
+    l_status := json_value(p_request, '$.status' returning varchar2(20));
+
+    -- Clamped rather than rejected: an out-of-range page size is a client bug, not a caller error,
+    -- and an unclamped limit is a denial-of-service parameter.
+    l_offset := greatest(nvl(l_offset, 0), 0);
+    l_limit  := least(greatest(nvl(l_limit, c_default_limit), 1), c_max_limit);
+
+    -- An unrecognised status IS rejected, because silently ignoring it would return the unfiltered
+    -- list and the caller would believe it had filtered.
+    if l_status is not null
+       and l_status not in ('ACTIVE', 'SUSPENDED', 'RETIRED') then
+      raise_application_error(
+        c_err_validation,
+        'status must be one of ACTIVE, SUSPENDED, RETIRED: ' || l_status
+      );
+    end if;
+
+    if l_q is not null and length(trim(l_q)) > 0 then
+      l_pattern := like_term(trim(l_q));
+    end if;
+
+    -- One pass. row_number over the filtered set lets the page and the "is there another page"
+    -- answer come from the same predicate -- two statements would mean two copies of the WHERE
+    -- clause, which is exactly the pair that drifts. limit+1 rows are counted and the extra one is
+    -- dropped from the array by the CASE (json_arrayagg is ABSENT ON NULL by default), so hasMore
+    -- costs no second scan and no count(*) over the whole table.
+    select nvl(json_arrayagg(
+             case when rn <= l_limit then
+               json_object(
+                 'principal_id' value principal_id,
+                 'issuer'       value issuer,
+                 'subject'      value subject,
+                 'email'        value email,
+                 'display_name' value display_name,
+                 'status'       value status,
+                 'created_at'   value to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SSTZH:TZM'),
+                 'roles'        value nvl((
+                   -- {role_name, is_reserved} objects, not bare names (spec-patch-07 section 8.1):
+                   -- PrincipalsPanel.tsx used to style pills by testing role.startsWith('road.'),
+                   -- justified as cosmetic-only because this endpoint returned names only. Under
+                   -- rule 6 that justification is weaker than it reads -- the flag is the answer,
+                   -- the prefix is a convention it happens to follow today -- so the panel now
+                   -- reads the flag, like PrincipalRolesDialog already does.
+                   select json_arrayagg(
+                            json_object('role_name' value pr.role_name, 'is_reserved' value r.is_reserved)
+                            order by pr.role_name returning json
+                          )
+                     from road_principal_roles pr, road_roles r
+                    where pr.principal_id = paged.principal_id
+                      and r.role_name = pr.role_name
+                 ), json('[]'))
+                 returning json
+               )
+             end
+             order by rn returning json
+           ), json('[]')),
+           count(*)
+      into l_items, l_fetched
+      from (
+        select p.principal_id,
+               p.issuer,
+               p.subject,
+               p.email,
+               p.display_name,
+               p.status,
+               p.created_at,
+               row_number() over (
+                 order by lower(coalesce(p.display_name, p.subject)), p.principal_id
+               ) - l_offset as rn
+          from road_principals p
+         where (l_status is null or p.status = l_status)
+           and (l_pattern is null
+                or lower(p.display_name) like l_pattern escape '\'
+                or lower(p.email)        like l_pattern escape '\'
+                or lower(p.subject)      like l_pattern escape '\')
+      ) paged
+     where rn between 1 and l_limit + 1;
+
+    return json_object(
+             'items'   value l_items,
+             'hasMore' value case when l_fetched > l_limit then 'true' else 'false' end
+                             format json,
+             'limit'   value l_limit,
+             'offset'  value l_offset,
+             'count'   value least(l_fetched, l_limit)
+             returning json
+           );
+  end get_principals;
+
   function define_role(p_request in json) return json is
     l_role_name    varchar2(64 char);
     l_display_name varchar2(255 char);
@@ -255,10 +391,15 @@ create or replace package body road_admin_api as
 
     -- Explicit rows, written once, for the permissions that exist RIGHT NOW. Anything added after
     -- this runs is not acquired -- that is the point (rule 4), not a limitation.
-    insert into road_role_permissions (role_name, permission_name)
-    select p_role_name, p.permission_name
+    --
+    -- attached_by is written NULL explicitly (spec-patch-07 section 10 question 3) -- this is the
+    -- deploy-attached case road_reserved_composition depends on being able to tell apart from a
+    -- session attach via attach_permission below.
+    insert into road_role_permissions (role_name, permission_name, attached_by)
+    select p_role_name, p.permission_name, null
       from road_permissions p
      where p.permission_name not like 'road.%'
+       and p.is_reserved = 'N'
        and not exists (
              select 1
                from road_role_permissions x
@@ -266,6 +407,136 @@ create or replace package body road_admin_api as
                 and x.permission_name = p.permission_name
            );
   end grant_all_app_permissions;
+
+  function get_permissions(p_request in json default null) return json is
+    l_result json;
+  begin
+    road_ctx_pkg.require_permission('road.role.compose');
+
+    select json_object(
+             'permissions' value nvl((
+               select json_arrayagg(
+                        json_object(
+                          'permission_name' value p.permission_name,
+                          'description'     value p.description,
+                          'is_reserved'     value p.is_reserved,
+                          'roles'           value nvl((
+                            select json_arrayagg(rp.role_name order by rp.role_name returning json)
+                              from road_role_permissions rp
+                             where rp.permission_name = p.permission_name
+                          ), json('[]'))
+                        )
+                        order by p.permission_name returning json
+                      )
+                 from road_permissions p
+             ), json('[]'))
+             returning json
+           )
+      into l_result
+      from dual;
+
+    return l_result;
+  end get_permissions;
+
+  -- Shared refusal for attach/detach: a reserved permission or a reserved role, as a flat refusal
+  -- rather than the road.role.define escalation tier assert_may_manage uses for roles. Composing
+  -- the framework's own authority is composed at deploy time only, enforced in the database by
+  -- road_reserved_composition -- this check exists to give a clean 403 on the ordinary path rather
+  -- than surfacing the assertion's ORA-08601 (spec-patch-07 section 5.3, 5.5).
+  procedure assert_may_compose(p_role_name in varchar2, p_permission_name in varchar2) is
+  begin
+    if permission_is_reserved(p_permission_name) then
+      raise_application_error(
+        road_ctx_pkg.c_forbidden,
+        'Permission is reserved and cannot be composed at runtime: ' || p_permission_name
+      );
+    end if;
+    if is_reserved(p_role_name) then
+      raise_application_error(
+        road_ctx_pkg.c_forbidden,
+        'Role is reserved; its composition is framework-owned: ' || p_role_name
+      );
+    end if;
+  end assert_may_compose;
+
+  function attach_permission(p_request in json) return json is
+    l_role_name       varchar2(64 char);
+    l_permission_name varchar2(64 char);
+    l_attached_by     number;
+    l_existing        number;
+    l_attached        boolean := false;
+  begin
+    road_ctx_pkg.require_permission('road.role.compose');
+
+    l_role_name       := json_value(p_request, '$.role_name' returning varchar2(64));
+    l_permission_name := json_value(p_request, '$.permission_name' returning varchar2(64));
+
+    if l_role_name is null or l_permission_name is null then
+      raise_application_error(c_err_validation, 'role_name and permission_name are required');
+    end if;
+
+    assert_role_exists(l_role_name);
+    assert_permission_exists(l_permission_name);
+    assert_may_compose(l_role_name, l_permission_name);
+
+    -- Never from the request body -- see the package spec comment: a caller who could nominate
+    -- attached_by could forge the audit trail of who authorised an escalation.
+    l_attached_by := road_ctx_pkg.principal_id;
+
+    select count(*)
+      into l_existing
+      from road_role_permissions
+     where role_name = l_role_name
+       and permission_name = l_permission_name;
+
+    if l_existing = 0 then
+      insert into road_role_permissions (role_name, permission_name, attached_by)
+      values (l_role_name, l_permission_name, l_attached_by);
+      l_attached := true;
+    end if;
+
+    return json_object(
+             'role_name'       value l_role_name,
+             'permission_name' value l_permission_name,
+             'attached'        value l_attached
+             returning json
+           );
+  end attach_permission;
+
+  function detach_permission(p_request in json) return json is
+    l_role_name       varchar2(64 char);
+    l_permission_name varchar2(64 char);
+    l_detached        boolean := false;
+  begin
+    road_ctx_pkg.require_permission('road.role.compose');
+
+    l_role_name       := json_value(p_request, '$.role_name' returning varchar2(64));
+    l_permission_name := json_value(p_request, '$.permission_name' returning varchar2(64));
+
+    if l_role_name is null or l_permission_name is null then
+      raise_application_error(c_err_validation, 'role_name and permission_name are required');
+    end if;
+
+    assert_role_exists(l_role_name);
+    assert_permission_exists(l_permission_name);
+    assert_may_compose(l_role_name, l_permission_name);
+
+    -- No last-holder guard here for road.role.grant, unlike revoke_role's for road.system_admin --
+    -- road_admin_reachable enforces it in the database, and it must: this table has other writers
+    -- (grant_all_app_permissions) that a package-level check here would not cover.
+    delete from road_role_permissions
+     where role_name = l_role_name
+       and permission_name = l_permission_name;
+
+    l_detached := sql%rowcount > 0;
+
+    return json_object(
+             'role_name'       value l_role_name,
+             'permission_name' value l_permission_name,
+             'detached'        value l_detached
+             returning json
+           );
+  end detach_permission;
 
 end road_admin_api;
 /

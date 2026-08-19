@@ -1,0 +1,1723 @@
+[INFO] START
+
+[INFO] RUN_ID=20260819_153228_phase3-admin-api-apply_12038
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/phase3-admin-api-apply.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/phase3-admin-api-apply.sql
+[INFO] SCRIPT_SHA256=1058100eff9fe639cdcccee8003540a25542689d0e22ed35a61b27b4c4a16e5c
+[INFO] GIT_COMMIT=b9312eb
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=debug
+[INFO] TIMESTAMP=20260819_153228
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260819_153228_phase3-admin-api-apply_12038.log
+
+[INTENT]
+Purpose: Land build-plan-08 phase 3 on road_kit_dev -- road_admin_api gains get_principals and
+  the three composition functions, and grant_all_app_permissions is FIXED to skip reserved
+  permissions (spec-patch-08 section 7.1).
+Approach: Deploy the spec, body and test body, then run road_admin_api_test.run_all.
+Reason: build-plan-08 phase 3. The fix is carried here rather than separately because it lives
+  in a file this phase already replaces; its regression test needs an unreserved application
+  permission and so lands in phase 6, after the demo app exists.
+Expected objects:
+  ROAD_ADMIN_API (spec + body, replaced)
+  ROAD_ADMIN_API_TEST (body, replaced)
+Risk: Low. grant_all_app_permissions gains a filter condition, narrowing what it grants; nothing
+  in road-kit calls it outside tests, and road-cal graduated away from its only call site.
+Prior history checked: phases 1 and 2 this session (commit b9312eb). road-cal ran the same
+  package against road_cal_dev on 2026-08-19 with 22/22 green.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 19 15:32:29 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+SQL> -- INTENT:
+SQL> -- Purpose: Land build-plan-08 phase 3 on road_kit_dev -- road_admin_api gains get_principals and
+SQL> --   the three composition functions, and grant_all_app_permissions is FIXED to skip reserved
+SQL> --   permissions (spec-patch-08 section 7.1).
+SQL> -- Approach: Deploy the spec, body and test body, then run road_admin_api_test.run_all.
+SQL> -- Reason: build-plan-08 phase 3. The fix is carried here rather than separately because it lives
+SQL> --   in a file this phase already replaces; its regression test needs an unreserved application
+SQL> --   permission and so lands in phase 6, after the demo app exists.
+SQL> -- Expected objects:
+SQL> --   ROAD_ADMIN_API (spec + body, replaced)
+SQL> --   ROAD_ADMIN_API_TEST (body, replaced)
+SQL> -- Risk: Low. grant_all_app_permissions gains a filter condition, narrowing what it grants; nothing
+SQL> --   in road-kit calls it outside tests, and road-cal graduated away from its only call site.
+SQL> -- Prior history checked: phases 1 and 2 this session (commit b9312eb). road-cal ran the same
+SQL> --   package against road_cal_dev on 2026-08-19 with 22/22 green.
+SQL> -- END INTENT
+SQL> 
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> set serveroutput on size unlimited
+SQL> 
+SQL> prompt === road_admin_api spec ===
+=== road_admin_api spec ===
+SQL> @db/package_specs/road_admin_api.pks
+SQL> create or replace package road_admin_api as
+  2  
+  3    -- Role administration (spec-patch-06 section 5, build plan phase 4).
+  4    --
+  5    -- Signature convention matches event_api: native JSON in, native JSON out, no ref cursors or
+  6    -- PL/SQL collections across the package boundary. Never commits -- ORDS commits on success and
+  7    -- tests roll back to a savepoint.
+  8    --
+  9    -- Authorisation is enforced HERE, not only in the handler. The handler's job is to establish
+ 10    -- session context from :current_user; the permission requirement travels with the operation, so
+ 11    -- a second caller -- an MCP tool, a batch job, another package -- cannot reach a privileged
+ 12    -- operation by not being an ORDS handler.
+ 13  
+ 14    -- GET /admin/principals/:principal_id/roles   requires road.role.grant
+ 15    -- p_request: { "principal_id": <number> }
+ 16    -- Returns:   { "principal_id": n, "subject": "...", "roles": [ { "role_name", "granted_at",
+ 17    --              "granted_by" }, ... ] }
+ 18    function get_principal_roles(p_request in json) return json;
+ 19  
+ 20    -- POST /admin/principals/:principal_id/roles   requires road.role.grant
+ 21    -- p_request: { "principal_id": <number>, "role_name": "<name>" }
+ 22    -- Returns:   { "principal_id": n, "role_name": "...", "granted": true|false }
+ 23    --            granted=false when the principal already held it -- idempotent, not an error.
+ 24    --
+ 25    -- granted_by is taken from road_ctx_pkg.principal_id and is never read from the request body.
+ 26    -- Granting a RESERVED role additionally requires road.role.define, which is what stops a
+ 27    -- road.user_admin promoting anyone -- including themselves -- to road.system_admin.
+ 28    function grant_role(p_request in json) return json;
+ 29  
+ 30    -- DELETE /admin/principals/:principal_id/roles/:role_name   requires road.role.revoke
+ 31    -- p_request: { "principal_id": <number>, "role_name": "<name>" }
+ 32    -- Returns:   { "principal_id": n, "role_name": "...", "revoked": true|false }
+ 33    --
+ 34    -- Revoking a reserved role also requires road.role.define, for the same reason as granting: a
+ 35    -- road.user_admin who could revoke road.system_admin could lock the real administrators out.
+ 36    -- Revoking the LAST holder of road.system_admin is refused outright.
+ 37    function revoke_role(p_request in json) return json;
+ 38  
+ 39    -- GET /admin/roles   requires road.role.grant
+ 40    -- Returns: { "roles": [ { "role_name", "display_name", "description", "is_reserved",
+ 41    --            "permissions": [...] }, ... ] }
+ 42    function get_roles(p_request in json default null) return json;
+ 43  
+ 44    -- GET /admin/principals   requires road.role.grant
+ 45    -- p_request: { "offset": n, "limit": n, "q": "<term>", "status": "ACTIVE|SUSPENDED|RETIRED" }
+ 46    --            all optional; offset defaults to 0, limit to 25 and is clamped to 1..100.
+ 47    -- Returns:   { "items": [ { "principal_id", "issuer", "subject", "email", "display_name",
+ 48    --              "status", "created_at",
+ 49    --              "roles": [ { "role_name", "is_reserved" }, ... ] }, ... ],
+ 50    --              "hasMore": bool, "limit": n, "offset": n, "count": n }
+ 51    --
+ 52    -- roles carries is_reserved (spec-patch-07 section 8.1), not bare names -- a client that infers
+ 53    -- reserved-ness from the road. prefix disagrees with assert_may_manage the moment they diverge.
+ 54    --
+ 55    -- The OrdsCollection wrapper the React conventions already define, so no new client type.
+ 56    -- hasMore comes from fetching limit+1 rows and discarding the extra -- there is deliberately no
+ 57    -- total count, which would be a second full scan to render a number nothing needs.
+ 58    --
+ 59    -- Gated on road.role.grant rather than road.role.define: reading who exists is what a
+ 60    -- road.user_admin needs to do their job, and they can already read anyone's grants.
+ 61    --
+ 62    -- Returns email. Someone who can grant roles can already read any principal's grants, so the
+ 63    -- login address does not widen that audience -- and subject is opaque by design (patch 4.2)
+ 64    -- while display_name is nullable, so without it an administrator often cannot tell two
+ 65    -- principals apart. It is still PII: never put q or the result in a URL a browser will log.
+ 66    --
+ 67    -- Deliberately NOT returned: effective permissions (they belong to roles, and get_roles already
+ 68    -- carries the mapping -- flattening them here would duplicate the composition in two places)
+ 69    -- and credentials_changed_at (credential-store surface, not role administration).
+ 70    function get_principals(p_request in json default null) return json;
+ 71  
+ 72    -- POST /admin/roles   requires road.role.define
+ 73    -- p_request: { "role_name": "<name>", "display_name": "...", "description": "..." }
+ 74    -- Returns:   the created role object.
+ 75    --
+ 76    -- Refuses the road. prefix: that namespace is reserved for the framework's own administration
+ 77    -- surface, and an application inventing a road.* role would be claiming framework authority.
+ 78    function define_role(p_request in json) return json;
+ 79  
+ 80    -- Deploy-time convenience (patch section 5.1). Grants every non-road. permission to a role by
+ 81    -- writing EXPLICIT ROWS -- it is not a runtime rule, because as a runtime rule it would be a
+ 82    -- wildcard and every permission added later would be acquired silently, violating rule 4.
+ 83    --
+ 84    -- Deliberately NOT permission-gated: it is called from deploy scripts running as the schema
+ 85    -- owner, where no session context exists. Gating it on "allow when no context is established"
+ 86    -- would be a fail-open, and gating it on a permission would make the deploy path need a
+ 87    -- principal. Do not call it from a handler.
+ 88    --
+ 89    -- Skips RESERVED permissions, and skips road.* ones. Both conditions, deliberately -- they are
+ 90    -- not the same question and neither implies the other. is_reserved answers "may a session attach
+ 91    -- this at all"; the road. prefix answers "is this the framework's own authority". A framework
+ 92    -- permission that is legitimately unreserved should still not be swept into an application role
+ 93    -- by a blanket grant, and an APPLICATION permission that is reserved (events.purge, todo.purge)
+ 94    -- does not start with road. at all -- which is precisely the case spec-patch-07 section 3.1 says
+ 95    -- a prefix rule gets wrong. This filter read the prefix ALONE until 2026-08-19; road-cal noticed
+ 96    -- the symptom when events.purge arrived and worked around it by hand-listing its user grants
+ 97    -- (95_data.sql), leaving the cause shipping. Do not "simplify" the two conditions back into one.
+ 98    --
+ 99    -- Even correct, it is only a convenience for the simple case. Any application with an admin-only
+100    -- permission, or with an unreserved permission not every role should hold, spells its grants out
+101    -- in 95_data.sql instead -- as road-cal does, and as the demo app in spec patch 08 does.
+102    --
+103    -- attached_by is written NULL explicitly (spec-patch-07 section 10 question 3), not by omission
+104    -- -- this is the deploy-attached case road_reserved_composition's guard depends on being able to
+105    -- tell apart from a session attach. See attach_permission below.
+106    procedure grant_all_app_permissions(p_role_name in varchar2);
+107  
+108    -- Role composition (spec-patch-07 section 7). Attaching an existing permission to an existing
+109    -- role is genuinely runtime data -- road_ctx_pkg.begin_request reloads effective permissions per
+110    -- request, so the change takes effect on the caller's next request with no new machinery.
+111    -- Creating a permission is NOT: that is a release-time act (section 2), and this package
+112    -- deliberately has no function for it.
+113  
+114    -- GET /admin/permissions/   requires road.role.compose
+115    -- Returns: { "permissions": [ { permission_name, description, is_reserved, roles: [...] }, ... ] }
+116    --
+117    -- Not a convenience: there is currently no other way to list road_permissions at all, so
+118    -- nothing can offer a catalogue to compose from.
+119    function get_permissions(p_request in json default null) return json;
+120  
+121    -- POST /admin/roles/:role_name/permissions/   requires road.role.compose
+122    -- p_request: { "role_name": "<name>", "permission_name": "<name>" }
+123    -- Returns:   { "role_name", "permission_name", "attached": true|false }
+124    --            attached=false when already held -- idempotent, not an error, matching grant_role.
+125    --
+126    -- Refuses, as a flat refusal rather than a permission tier (unlike assert_may_manage's
+127    -- road.role.define escalation for roles -- section 7 draws this distinction deliberately):
+128    --   - a permission with is_reserved = 'Y' -- the framework's own authority is composed at
+129    --     deploy time only, enforced in the database by road_reserved_composition
+130    --   - a role with is_reserved = 'Y' -- a reserved role's composition is framework-owned
+131    --
+132    -- attached_by comes from road_ctx_pkg.principal_id and is never read from the body, for the same
+133    -- reason granted_by is not on grant_role: a caller who could nominate it could forge the record
+134    -- of who authorised an escalation.
+135    function attach_permission(p_request in json) return json;
+136  
+137    -- DELETE /admin/roles/:role_name/permissions/:permission_name/   requires road.role.compose
+138    -- p_request: { "role_name": "<name>", "permission_name": "<name>" }
+139    -- Returns:   { "role_name", "permission_name", "detached": true|false }
+140    --
+141    -- Same two refusals as attach_permission. Detaching road.role.grant from the last role that
+142    -- holds it is refused by the database (road_admin_reachable), not by this function -- that
+143    -- assertion covers every writer, including ones that don't go through this package.
+144    function detach_permission(p_request in json) return json;
+145  
+146  end road_admin_api;
+147  /
+
+Package ROAD_ADMIN_API compiled
+
+Elapsed: 00:00:00.087
+Elapsed: 00:00:00.104
+SQL> 
+SQL> prompt === road_admin_api body ===
+=== road_admin_api body ===
+SQL> @db/package_bodies/road_admin_api.pkb
+SQL> create or replace package body road_admin_api as
+  2  
+  3    c_err_validation constant number := -20001;
+  4    c_err_not_found  constant number := -20004;
+  5  
+  6    procedure assert_role_exists(p_role_name in varchar2) is
+  7      l_count number;
+  8    begin
+  9      select count(*) into l_count from road_roles where role_name = p_role_name;
+ 10      if l_count = 0 then
+ 11        raise_application_error(c_err_not_found, 'Role not found: ' || p_role_name);
+ 12      end if;
+ 13    end assert_role_exists;
+ 14  
+ 15    procedure assert_principal_exists(p_principal_id in number) is
+ 16      l_count number;
+ 17    begin
+ 18      select count(*) into l_count from road_principals where principal_id = p_principal_id;
+ 19      if l_count = 0 then
+ 20        raise_application_error(c_err_not_found, 'Principal not found: ' || p_principal_id);
+ 21      end if;
+ 22    end assert_principal_exists;
+ 23  
+ 24    function is_reserved(p_role_name in varchar2) return boolean is
+ 25      l_reserved road_roles.is_reserved%type;
+ 26    begin
+ 27      select is_reserved into l_reserved from road_roles where role_name = p_role_name;
+ 28      return l_reserved = 'Y';
+ 29    exception
+ 30      when no_data_found then
+ 31        return false;
+ 32    end is_reserved;
+ 33  
+ 34    procedure assert_permission_exists(p_permission_name in varchar2) is
+ 35      l_count number;
+ 36    begin
+ 37      select count(*) into l_count from road_permissions where permission_name = p_permission_name;
+ 38      if l_count = 0 then
+ 39        raise_application_error(c_err_not_found, 'Permission not found: ' || p_permission_name);
+ 40      end if;
+ 41    end assert_permission_exists;
+ 42  
+ 43    function permission_is_reserved(p_permission_name in varchar2) return boolean is
+ 44      l_reserved road_permissions.is_reserved%type;
+ 45    begin
+ 46      select is_reserved into l_reserved
+ 47        from road_permissions
+ 48       where permission_name = p_permission_name;
+ 49      return l_reserved = 'Y';
+ 50    exception
+ 51      when no_data_found then
+ 52        return false;
+ 53    end permission_is_reserved;
+ 54  
+ 55    -- The two-tier split made explicit. road.role.grant lets a user_admin manage ordinary roles;
+ 56    -- touching a RESERVED role additionally needs road.role.define, which only road.system_admin
+ 57    -- holds. Nothing in the table structure prevents a user_admin granting road.system_admin --
+ 58    -- foreign keys do not know what the rows mean -- so it has to be a check, and a tested one.
+ 59    procedure assert_may_manage(p_role_name in varchar2) is
+ 60    begin
+ 61      if is_reserved(p_role_name) then
+ 62        road_ctx_pkg.require_permission('road.role.define');
+ 63      end if;
+ 64    end assert_may_manage;
+ 65  
+ 66    function get_principal_roles(p_request in json) return json is
+ 67      l_principal_id number;
+ 68      l_result       json;
+ 69    begin
+ 70      road_ctx_pkg.require_permission('road.role.grant');
+ 71  
+ 72      l_principal_id := json_value(p_request, '$.principal_id' returning number);
+ 73      if l_principal_id is null then
+ 74        raise_application_error(c_err_validation, 'principal_id is required');
+ 75      end if;
+ 76      assert_principal_exists(l_principal_id);
+ 77  
+ 78      select json_object(
+ 79               'principal_id' value p.principal_id,
+ 80               'subject'      value p.subject,
+ 81               'status'       value p.status,
+ 82               'roles'        value nvl((
+ 83                 select json_arrayagg(
+ 84                          json_object(
+ 85                            'role_name'  value pr.role_name,
+ 86                            'granted_at' value to_char(pr.granted_at, 'YYYY-MM-DD"T"HH24:MI:SSTZH:TZM'),
+ 87                            'granted_by' value pr.granted_by
+ 88                          )
+ 89                          order by pr.role_name returning json
+ 90                        )
+ 91                   from road_principal_roles pr
+ 92                  where pr.principal_id = p.principal_id
+ 93               ), json('[]'))
+ 94               returning json
+ 95             )
+ 96        into l_result
+ 97        from road_principals p
+ 98       where p.principal_id = l_principal_id;
+ 99  
+100      return l_result;
+101    end get_principal_roles;
+102  
+103    function grant_role(p_request in json) return json is
+104      l_principal_id number;
+105      l_role_name    varchar2(64 char);
+106      l_granted_by   number;
+107      l_existing     number;
+108      l_granted      boolean := false;
+109    begin
+110      road_ctx_pkg.require_permission('road.role.grant');
+111  
+112      l_principal_id := json_value(p_request, '$.principal_id' returning number);
+113      l_role_name    := json_value(p_request, '$.role_name' returning varchar2(64));
+114  
+115      if l_principal_id is null or l_role_name is null then
+116        raise_application_error(c_err_validation, 'principal_id and role_name are required');
+117      end if;
+118  
+119      assert_principal_exists(l_principal_id);
+120      assert_role_exists(l_role_name);
+121      assert_may_manage(l_role_name);
+122  
+123      -- Never from the request body. A caller who could nominate granted_by could forge the audit
+124      -- trail of who authorised a privilege escalation, which is the one field that would expose it.
+125      l_granted_by := road_ctx_pkg.principal_id;
+126  
+127      select count(*)
+128        into l_existing
+129        from road_principal_roles
+130       where principal_id = l_principal_id
+131         and role_name = l_role_name;
+132  
+133      if l_existing = 0 then
+134        insert into road_principal_roles (principal_id, role_name, granted_by)
+135        values (l_principal_id, l_role_name, l_granted_by);
+136        l_granted := true;
+137      end if;
+138  
+139      return json_object(
+140               'principal_id' value l_principal_id,
+141               'role_name'    value l_role_name,
+142               'granted'      value l_granted,
+143               'granted_by'   value l_granted_by
+144               returning json
+145             );
+146    end grant_role;
+147  
+148    function revoke_role(p_request in json) return json is
+149      l_principal_id number;
+150      l_role_name    varchar2(64 char);
+151      l_holders      number;
+152      l_revoked      boolean := false;
+153    begin
+154      road_ctx_pkg.require_permission('road.role.revoke');
+155  
+156      l_principal_id := json_value(p_request, '$.principal_id' returning number);
+157      l_role_name    := json_value(p_request, '$.role_name' returning varchar2(64));
+158  
+159      if l_principal_id is null or l_role_name is null then
+160        raise_application_error(c_err_validation, 'principal_id and role_name are required');
+161      end if;
+162  
+163      assert_principal_exists(l_principal_id);
+164      assert_role_exists(l_role_name);
+165      assert_may_manage(l_role_name);
+166  
+167      -- Refuse to remove the last system administrator. "The auth system works and nobody can
+168      -- administer it" is the failure mode patch section 10 question 1 exists to prevent, and it is
+169      -- reachable by an ordinary revoke as easily as by a bad deploy.
+170      if l_role_name = 'road.system_admin' then
+171        select count(*)
+172          into l_holders
+173          from road_principal_roles
+174         where role_name = 'road.system_admin';
+175  
+176        if l_holders <= 1 then
+177          raise_application_error(
+178            c_err_validation,
+179            'Refusing to revoke the last road.system_admin - grant it to another principal first'
+180          );
+181        end if;
+182      end if;
+183  
+184      delete from road_principal_roles
+185       where principal_id = l_principal_id
+186         and role_name = l_role_name;
+187  
+188      l_revoked := sql%rowcount > 0;
+189  
+190      return json_object(
+191               'principal_id' value l_principal_id,
+192               'role_name'    value l_role_name,
+193               'revoked'      value l_revoked
+194               returning json
+195             );
+196    end revoke_role;
+197  
+198    function get_roles(p_request in json default null) return json is
+199      l_result json;
+200    begin
+201      road_ctx_pkg.require_permission('road.role.grant');
+202  
+203      select json_object(
+204               'roles' value nvl((
+205                 select json_arrayagg(
+206                          json_object(
+207                            'role_name'    value r.role_name,
+208                            'display_name' value r.display_name,
+209                            'description'  value r.description,
+210                            'is_reserved'  value r.is_reserved,
+211                            'permissions'  value nvl((
+212                              select json_arrayagg(rp.permission_name
+213                                                   order by rp.permission_name returning json)
+214                                from road_role_permissions rp
+215                               where rp.role_name = r.role_name
+216                            ), json('[]'))
+217                          )
+218                          order by r.role_name returning json
+219                        )
+220                   from road_roles r
+221               ), json('[]'))
+222               returning json
+223             )
+224        into l_result
+225        from dual;
+226  
+227      return l_result;
+228    end get_roles;
+229  
+230    -- A search term is user input reaching a LIKE pattern, so its wildcards have to be neutralised or
+231    -- a user typing '%' silently matches everything and a user typing '_' matches one of anything.
+232    -- Escape the escape character first, or escaping the wildcards re-introduces it.
+233    function like_term(p_term in varchar2) return varchar2 is
+234    begin
+235      return '%' || replace(replace(replace(lower(p_term), '\', '\\'), '%', '\%'), '_', '\_') || '%';
+236    end like_term;
+237  
+238    function get_principals(p_request in json default null) return json is
+239      c_default_limit constant number := 25;
+240      c_max_limit     constant number := 100;
+241  
+242      l_offset  number;
+243      l_limit   number;
+244      l_q       varchar2(4000 char);
+245      l_status  varchar2(20 char);
+246      l_pattern varchar2(4000 char);
+247  
+248      l_items   json;
+249      l_fetched number;
+250    begin
+251      road_ctx_pkg.require_permission('road.role.grant');
+252  
+253      l_offset := nvl(json_value(p_request, '$.offset' returning number), 0);
+254      l_limit  := nvl(json_value(p_request, '$.limit'  returning number), c_default_limit);
+255      l_q      := json_value(p_request, '$.q'      returning varchar2(4000));
+256      l_status := json_value(p_request, '$.status' returning varchar2(20));
+257  
+258      -- Clamped rather than rejected: an out-of-range page size is a client bug, not a caller error,
+259      -- and an unclamped limit is a denial-of-service parameter.
+260      l_offset := greatest(nvl(l_offset, 0), 0);
+261      l_limit  := least(greatest(nvl(l_limit, c_default_limit), 1), c_max_limit);
+262  
+263      -- An unrecognised status IS rejected, because silently ignoring it would return the unfiltered
+264      -- list and the caller would believe it had filtered.
+265      if l_status is not null
+266         and l_status not in ('ACTIVE', 'SUSPENDED', 'RETIRED') then
+267        raise_application_error(
+268          c_err_validation,
+269          'status must be one of ACTIVE, SUSPENDED, RETIRED: ' || l_status
+270        );
+271      end if;
+272  
+273      if l_q is not null and length(trim(l_q)) > 0 then
+274        l_pattern := like_term(trim(l_q));
+275      end if;
+276  
+277      -- One pass. row_number over the filtered set lets the page and the "is there another page"
+278      -- answer come from the same predicate -- two statements would mean two copies of the WHERE
+279      -- clause, which is exactly the pair that drifts. limit+1 rows are counted and the extra one is
+280      -- dropped from the array by the CASE (json_arrayagg is ABSENT ON NULL by default), so hasMore
+281      -- costs no second scan and no count(*) over the whole table.
+282      select nvl(json_arrayagg(
+283               case when rn <= l_limit then
+284                 json_object(
+285                   'principal_id' value principal_id,
+286                   'issuer'       value issuer,
+287                   'subject'      value subject,
+288                   'email'        value email,
+289                   'display_name' value display_name,
+290                   'status'       value status,
+291                   'created_at'   value to_char(created_at, 'YYYY-MM-DD"T"HH24:MI:SSTZH:TZM'),
+292                   'roles'        value nvl((
+293                     -- {role_name, is_reserved} objects, not bare names (spec-patch-07 section 8.1):
+294                     -- PrincipalsPanel.tsx used to style pills by testing role.startsWith('road.'),
+295                     -- justified as cosmetic-only because this endpoint returned names only. Under
+296                     -- rule 6 that justification is weaker than it reads -- the flag is the answer,
+297                     -- the prefix is a convention it happens to follow today -- so the panel now
+298                     -- reads the flag, like PrincipalRolesDialog already does.
+299                     select json_arrayagg(
+300                              json_object('role_name' value pr.role_name, 'is_reserved' value r.is_reserved)
+301                              order by pr.role_name returning json
+302                            )
+303                       from road_principal_roles pr, road_roles r
+304                      where pr.principal_id = paged.principal_id
+305                        and r.role_name = pr.role_name
+306                   ), json('[]'))
+307                   returning json
+308                 )
+309               end
+310               order by rn returning json
+311             ), json('[]')),
+312             count(*)
+313        into l_items, l_fetched
+314        from (
+315          select p.principal_id,
+316                 p.issuer,
+317                 p.subject,
+318                 p.email,
+319                 p.display_name,
+320                 p.status,
+321                 p.created_at,
+322                 row_number() over (
+323                   order by lower(coalesce(p.display_name, p.subject)), p.principal_id
+324                 ) - l_offset as rn
+325            from road_principals p
+326           where (l_status is null or p.status = l_status)
+327             and (l_pattern is null
+328                  or lower(p.display_name) like l_pattern escape '\'
+329                  or lower(p.email)        like l_pattern escape '\'
+330                  or lower(p.subject)      like l_pattern escape '\')
+331        ) paged
+332       where rn between 1 and l_limit + 1;
+333  
+334      return json_object(
+335               'items'   value l_items,
+336               'hasMore' value case when l_fetched > l_limit then 'true' else 'false' end
+337                               format json,
+338               'limit'   value l_limit,
+339               'offset'  value l_offset,
+340               'count'   value least(l_fetched, l_limit)
+341               returning json
+342             );
+343    end get_principals;
+344  
+345    function define_role(p_request in json) return json is
+346      l_role_name    varchar2(64 char);
+347      l_display_name varchar2(255 char);
+348      l_description  varchar2(4000 char);
+349      l_existing     number;
+350    begin
+351      road_ctx_pkg.require_permission('road.role.define');
+352  
+353      l_role_name    := json_value(p_request, '$.role_name' returning varchar2(64));
+354      l_display_name := json_value(p_request, '$.display_name' returning varchar2(255));
+355      l_description  := json_value(p_request, '$.description' returning varchar2(4000));
+356  
+357      if l_role_name is null then
+358        raise_application_error(c_err_validation, 'role_name is required');
+359      end if;
+360  
+361      -- road. is the framework's reserved namespace (rule 5). An application defining a road.* role
+362      -- would be claiming framework authority for an application concern, and the reserved flag would
+363      -- then mean two different things.
+364      if lower(l_role_name) like 'road.%' then
+365        raise_application_error(
+366          c_err_validation,
+367          'The road. namespace is reserved for the framework: ' || l_role_name
+368        );
+369      end if;
+370  
+371      select count(*) into l_existing from road_roles where role_name = l_role_name;
+372      if l_existing > 0 then
+373        raise_application_error(c_err_validation, 'Role already exists: ' || l_role_name);
+374      end if;
+375  
+376      insert into road_roles (role_name, display_name, description, is_reserved)
+377      values (l_role_name, l_display_name, l_description, 'N');
+378  
+379      return json_object(
+380               'role_name'    value l_role_name,
+381               'display_name' value l_display_name,
+382               'description'  value l_description,
+383               'is_reserved'  value 'N'
+384               returning json
+385             );
+386    end define_role;
+387  
+388    procedure grant_all_app_permissions(p_role_name in varchar2) is
+389    begin
+390      assert_role_exists(p_role_name);
+391  
+392      -- Explicit rows, written once, for the permissions that exist RIGHT NOW. Anything added after
+393      -- this runs is not acquired -- that is the point (rule 4), not a limitation.
+394      --
+395      -- attached_by is written NULL explicitly (spec-patch-07 section 10 question 3) -- this is the
+396      -- deploy-attached case road_reserved_composition depends on being able to tell apart from a
+397      -- session attach via attach_permission below.
+398      insert into road_role_permissions (role_name, permission_name, attached_by)
+399      select p_role_name, p.permission_name, null
+400        from road_permissions p
+401       where p.permission_name not like 'road.%'
+402         and p.is_reserved = 'N'
+403         and not exists (
+404               select 1
+405                 from road_role_permissions x
+406                where x.role_name = p_role_name
+407                  and x.permission_name = p.permission_name
+408             );
+409    end grant_all_app_permissions;
+410  
+411    function get_permissions(p_request in json default null) return json is
+412      l_result json;
+413    begin
+414      road_ctx_pkg.require_permission('road.role.compose');
+415  
+416      select json_object(
+417               'permissions' value nvl((
+418                 select json_arrayagg(
+419                          json_object(
+420                            'permission_name' value p.permission_name,
+421                            'description'     value p.description,
+422                            'is_reserved'     value p.is_reserved,
+423                            'roles'           value nvl((
+424                              select json_arrayagg(rp.role_name order by rp.role_name returning json)
+425                                from road_role_permissions rp
+426                               where rp.permission_name = p.permission_name
+427                            ), json('[]'))
+428                          )
+429                          order by p.permission_name returning json
+430                        )
+431                   from road_permissions p
+432               ), json('[]'))
+433               returning json
+434             )
+435        into l_result
+436        from dual;
+437  
+438      return l_result;
+439    end get_permissions;
+440  
+441    -- Shared refusal for attach/detach: a reserved permission or a reserved role, as a flat refusal
+442    -- rather than the road.role.define escalation tier assert_may_manage uses for roles. Composing
+443    -- the framework's own authority is composed at deploy time only, enforced in the database by
+444    -- road_reserved_composition -- this check exists to give a clean 403 on the ordinary path rather
+445    -- than surfacing the assertion's ORA-08601 (spec-patch-07 section 5.3, 5.5).
+446    procedure assert_may_compose(p_role_name in varchar2, p_permission_name in varchar2) is
+447    begin
+448      if permission_is_reserved(p_permission_name) then
+449        raise_application_error(
+450          road_ctx_pkg.c_forbidden,
+451          'Permission is reserved and cannot be composed at runtime: ' || p_permission_name
+452        );
+453      end if;
+454      if is_reserved(p_role_name) then
+455        raise_application_error(
+456          road_ctx_pkg.c_forbidden,
+457          'Role is reserved; its composition is framework-owned: ' || p_role_name
+458        );
+459      end if;
+460    end assert_may_compose;
+461  
+462    function attach_permission(p_request in json) return json is
+463      l_role_name       varchar2(64 char);
+464      l_permission_name varchar2(64 char);
+465      l_attached_by     number;
+466      l_existing        number;
+467      l_attached        boolean := false;
+468    begin
+469      road_ctx_pkg.require_permission('road.role.compose');
+470  
+471      l_role_name       := json_value(p_request, '$.role_name' returning varchar2(64));
+472      l_permission_name := json_value(p_request, '$.permission_name' returning varchar2(64));
+473  
+474      if l_role_name is null or l_permission_name is null then
+475        raise_application_error(c_err_validation, 'role_name and permission_name are required');
+476      end if;
+477  
+478      assert_role_exists(l_role_name);
+479      assert_permission_exists(l_permission_name);
+480      assert_may_compose(l_role_name, l_permission_name);
+481  
+482      -- Never from the request body -- see the package spec comment: a caller who could nominate
+483      -- attached_by could forge the audit trail of who authorised an escalation.
+484      l_attached_by := road_ctx_pkg.principal_id;
+485  
+486      select count(*)
+487        into l_existing
+488        from road_role_permissions
+489       where role_name = l_role_name
+490         and permission_name = l_permission_name;
+491  
+492      if l_existing = 0 then
+493        insert into road_role_permissions (role_name, permission_name, attached_by)
+494        values (l_role_name, l_permission_name, l_attached_by);
+495        l_attached := true;
+496      end if;
+497  
+498      return json_object(
+499               'role_name'       value l_role_name,
+500               'permission_name' value l_permission_name,
+501               'attached'        value l_attached
+502               returning json
+503             );
+504    end attach_permission;
+505  
+506    function detach_permission(p_request in json) return json is
+507      l_role_name       varchar2(64 char);
+508      l_permission_name varchar2(64 char);
+509      l_detached        boolean := false;
+510    begin
+511      road_ctx_pkg.require_permission('road.role.compose');
+512  
+513      l_role_name       := json_value(p_request, '$.role_name' returning varchar2(64));
+514      l_permission_name := json_value(p_request, '$.permission_name' returning varchar2(64));
+515  
+516      if l_role_name is null or l_permission_name is null then
+517        raise_application_error(c_err_validation, 'role_name and permission_name are required');
+518      end if;
+519  
+520      assert_role_exists(l_role_name);
+521      assert_permission_exists(l_permission_name);
+522      assert_may_compose(l_role_name, l_permission_name);
+523  
+524      -- No last-holder guard here for road.role.grant, unlike revoke_role's for road.system_admin --
+525      -- road_admin_reachable enforces it in the database, and it must: this table has other writers
+526      -- (grant_all_app_permissions) that a package-level check here would not cover.
+527      delete from road_role_permissions
+528       where role_name = l_role_name
+529         and permission_name = l_permission_name;
+530  
+531      l_detached := sql%rowcount > 0;
+532  
+533      return json_object(
+534               'role_name'       value l_role_name,
+535               'permission_name' value l_permission_name,
+536               'detached'        value l_detached
+537               returning json
+538             );
+539    end detach_permission;
+540  
+541  end road_admin_api;
+542  /
+
+Package Body ROAD_ADMIN_API compiled
+
+Elapsed: 00:00:00.108
+Elapsed: 00:00:00.123
+SQL> 
+SQL> prompt === road_admin_api_test body ===
+=== road_admin_api_test body ===
+SQL> @db/package_bodies/road_admin_api_test.pkb
+SQL> create or replace package body road_admin_api_test as
+  2  
+  3    -- The two tests that carry this phase are test_user_admin_cannot_grant_reserved and
+  4    -- test_granted_by_ignores_request_body. Everything else is ordinary coverage.
+  5  
+  6    c_issuer constant varchar2(64) := 'urn:road:test:road_admin';
+  7  
+  8    l_pass number := 0;
+  9    l_fail number := 0;
+ 10  
+ 11    procedure fail(p_message in varchar2) is
+ 12    begin
+ 13      raise_application_error(-20000, p_message);
+ 14    end fail;
+ 15  
+ 16    procedure assert_eq(p_label in varchar2, p_expected in varchar2, p_actual in varchar2) is
+ 17    begin
+ 18      if nvl(p_actual, '<null>') != nvl(p_expected, '<null>') then
+ 19        fail(p_label || ': expected [' || p_expected || '] got [' || p_actual || ']');
+ 20      end if;
+ 21    end assert_eq;
+ 22  
+ 23    function principal_of(p_subject in varchar2) return number is
+ 24      l_id number;
+ 25    begin
+ 26      select principal_id into l_id
+ 27        from road_principals where issuer = c_issuer and subject = p_subject;
+ 28      return l_id;
+ 29    end principal_of;
+ 30  
+ 31    procedure setup is
+ 32      l_sys    number;
+ 33      l_usr    number;
+ 34      l_tgt    number;
+ 35      l_target number;
+ 36    begin
+ 37      execute immediate 'alter session disable parallel dml';
+ 38  
+ 39      insert into road_principals (issuer, subject, display_name, status)
+ 40      select c_issuer, 'SYSADM', 'road_admin test fixture', 'ACTIVE' from dual
+ 41       where not exists (select 1 from road_principals where issuer = c_issuer and subject = 'SYSADM');
+ 42      insert into road_principals (issuer, subject, display_name, status)
+ 43      select c_issuer, 'USRADM', 'road_admin test fixture', 'ACTIVE' from dual
+ 44       where not exists (select 1 from road_principals where issuer = c_issuer and subject = 'USRADM');
+ 45      insert into road_principals (issuer, subject, display_name, status)
+ 46      select c_issuer, 'TARGET', 'road_admin test fixture', 'ACTIVE' from dual
+ 47       where not exists (select 1 from road_principals where issuer = c_issuer and subject = 'TARGET');
+ 48  
+ 49      -- Distinctive name and address, so the get_principals search tests can assert an exact count
+ 50      -- against a database that also holds the real seeded principals.
+ 51      insert into road_principals (issuer, subject, display_name, email, status)
+ 52      select c_issuer, 'SEARCHME', 'Searchable Fixture', 'find.me@example.test', 'ACTIVE' from dual
+ 53       where not exists (select 1 from road_principals
+ 54                          where issuer = c_issuer and subject = 'SEARCHME');
+ 55  
+ 56      -- One role per grant test. Sharing a single role made two tests pass or fail depending on
+ 57      -- which ran first: whoever granted it first owned granted_by, and every later grant was a
+ 58      -- correct no-op that read as a failure.
+ 59      insert into road_roles (role_name, display_name, is_reserved)
+ 60      select 'test.ordinary', 'road_admin test fixture', 'N' from dual
+ 61       where not exists (select 1 from road_roles where role_name = 'test.ordinary');
+ 62      insert into road_roles (role_name, display_name, is_reserved)
+ 63      select 'test.grantedby', 'road_admin test fixture', 'N' from dual
+ 64       where not exists (select 1 from road_roles where role_name = 'test.grantedby');
+ 65      insert into road_roles (role_name, display_name, is_reserved)
+ 66      select 'test.idem', 'road_admin test fixture', 'N' from dual
+ 67       where not exists (select 1 from road_roles where role_name = 'test.idem');
+ 68  
+ 69      -- Two APPLICATION permission fixtures, one reserved and one not. Neither starts with road.,
+ 70      -- which is the whole point: spec-patch-07 section 3.1's rule is that reserved-ness is read
+ 71      -- from the column and never inferred from the name, and only an application permission can
+ 72      -- exercise it.
+ 73      --
+ 74      -- Seeded by this suite rather than borrowed from the adopting application's own data, so the
+ 75      -- file stays byte-identical across repos. It did borrow, until 2026-08-19: it named
+ 76      -- events.purge and session.read, which are road-cal's, and the two composition tests below
+ 77      -- therefore failed with ORA-20004 the first time this suite ran in road-kit. A framework test
+ 78      -- suite must not depend on any particular adopter existing.
+ 79      insert into road_permissions (permission_name, description, is_reserved)
+ 80      select 'test.appperm.reserved', 'road_admin test fixture, reserved', 'Y' from dual
+ 81       where not exists (select 1 from road_permissions
+ 82                          where permission_name = 'test.appperm.reserved');
+ 83      insert into road_permissions (permission_name, description, is_reserved)
+ 84      select 'test.appperm.plain', 'road_admin test fixture, unreserved', 'N' from dual
+ 85       where not exists (select 1 from road_permissions
+ 86                          where permission_name = 'test.appperm.plain');
+ 87      insert into road_roles (role_name, display_name, is_reserved)
+ 88      select 'test.searchable', 'road_admin test fixture', 'N' from dual
+ 89       where not exists (select 1 from road_roles where role_name = 'test.searchable');
+ 90      -- Dedicated to test_composition_takes_effect_on_next_request -- NOT test.ordinary, which
+ 91      -- test_grant_all_app_permissions_is_explicit blanket-attaches every application permission to
+ 92      -- (deploy-attached), and which test_user_admin_cannot_grant_reserved's own grant_role call
+ 93      -- assumes TARGET does not already hold.
+ 94      insert into road_roles (role_name, display_name, is_reserved)
+ 95      select 'test.composetarget', 'road_admin test fixture', 'N' from dual
+ 96       where not exists (select 1 from road_roles where role_name = 'test.composetarget');
+ 97  
+ 98      l_sys := principal_of('SYSADM');
+ 99      l_usr := principal_of('USRADM');
+100      l_tgt := principal_of('SEARCHME');
+101  
+102      insert into road_principal_roles (principal_id, role_name)
+103      select l_tgt, 'test.searchable' from dual
+104       where not exists (select 1 from road_principal_roles
+105                          where principal_id = l_tgt and role_name = 'test.searchable');
+106  
+107      insert into road_principal_roles (principal_id, role_name)
+108      select l_sys, 'road.system_admin' from dual
+109       where not exists (select 1 from road_principal_roles
+110                          where principal_id = l_sys and role_name = 'road.system_admin');
+111      insert into road_principal_roles (principal_id, role_name)
+112      select l_usr, 'road.user_admin' from dual
+113       where not exists (select 1 from road_principal_roles
+114                          where principal_id = l_usr and role_name = 'road.user_admin');
+115  
+116      -- TARGET holds test.composetarget directly (not via another test's side effect), so
+117      -- test_composition_takes_effect_on_next_request stays correct regardless of run order.
+118      l_target := principal_of('TARGET');
+119      insert into road_principal_roles (principal_id, role_name)
+120      select l_target, 'test.composetarget' from dual
+121       where not exists (select 1 from road_principal_roles
+122                          where principal_id = l_target and role_name = 'test.composetarget');
+123      commit;
+124    end setup;
+125  
+126    procedure teardown is
+127    begin
+128      -- road_role_permissions BEFORE road_principals: spec-patch-07 added ATTACHED_BY, a nullable FK
+129      -- to road_principals, and the composition tests below leave rows attached_by one of this
+130      -- fixture's own principals (SYSADM). Deleting road_principals first would raise ORA-02292
+131      -- (child record found) against those rows.
+132      delete from road_role_permissions
+133       where role_name in ('test.ordinary', 'test.definedrole', 'test.grantedby', 'test.idem',
+134                           'test.searchable', 'test.composetarget');
+135      delete from road_principal_roles
+136       where principal_id in (select principal_id from road_principals where issuer = c_issuer);
+137      delete from road_principals where issuer = c_issuer;
+138      delete from road_roles
+139       where role_name in ('test.ordinary', 'test.definedrole', 'test.grantedby', 'test.idem',
+140                           'test.searchable', 'test.composetarget');
+141      delete from road_permissions where permission_name like 'test.appperm%';
+142      commit;
+143      road_ctx_pkg.end_request;
+144    end teardown;
+145  
+146    -- THE test for this phase. Nothing in the table structure prevents it, so if this check is ever
+147    -- removed the model silently collapses to one tier: any user_admin could promote themselves.
+148    procedure test_user_admin_cannot_grant_reserved is
+149      l_res    json;
+150      l_raised boolean := false;
+151    begin
+152      if not road_ctx_pkg.begin_request('USRADM', c_issuer) then
+153        fail('USRADM should establish');
+154      end if;
+155  
+156      -- It CAN grant an ordinary role -- proving the denial below is about the role, not a blanket
+157      -- lack of permission.
+158      l_res := road_admin_api.grant_role(
+159                 json('{"principal_id":' || principal_of('TARGET') || ',"role_name":"test.ordinary"}'));
+160      assert_eq('ordinary grant succeeded', 'true', json_value(l_res, '$.granted'));
+161  
+162      begin
+163        l_res := road_admin_api.grant_role(
+164                   json('{"principal_id":' || principal_of('TARGET')
+165                        || ',"role_name":"road.system_admin"}'));
+166      exception
+167        when others then
+168          l_raised := true;
+169          if sqlcode != road_ctx_pkg.c_forbidden then
+170            fail('expected forbidden, got ' || sqlcode || ': ' || sqlerrm);
+171          end if;
+172      end;
+173  
+174      if not l_raised then
+175        fail('a road.user_admin must NOT be able to grant road.system_admin');
+176      end if;
+177  
+178      -- And it must not have happened anyway.
+179      declare
+180        l_count  number;
+181        l_target number := principal_of('TARGET');  -- body-private, so not usable inside SQL
+182      begin
+183        select count(*) into l_count
+184          from road_principal_roles
+185         where principal_id = l_target and role_name = 'road.system_admin';
+186        assert_eq('no reserved grant written', '0', to_char(l_count));
+187      end;
+188    end test_user_admin_cannot_grant_reserved;
+189  
+190    procedure test_system_admin_can_grant_reserved is
+191      l_res json;
+192    begin
+193      if not road_ctx_pkg.begin_request('SYSADM', c_issuer) then
+194        fail('SYSADM should establish');
+195      end if;
+196      l_res := road_admin_api.grant_role(
+197                 json('{"principal_id":' || principal_of('TARGET') || ',"role_name":"road.user_admin"}'));
+198      assert_eq('system_admin granted reserved role', 'true', json_value(l_res, '$.granted'));
+199    end test_system_admin_can_grant_reserved;
+200  
+201    -- granted_by must come from the session, not the caller. A caller who could nominate it could
+202    -- forge the record of who authorised an escalation.
+203    procedure test_granted_by_ignores_request_body is
+204      l_res    json;
+205      l_actual number;
+206      l_target number;
+207    begin
+208      if not road_ctx_pkg.begin_request('SYSADM', c_issuer) then
+209        fail('SYSADM should establish');
+210      end if;
+211  
+212      l_res := road_admin_api.grant_role(json(
+213        '{"principal_id":' || principal_of('TARGET')
+214        || ',"role_name":"test.grantedby","granted_by":999999}'));
+215  
+216      l_target := principal_of('TARGET');
+217      select granted_by into l_actual
+218        from road_principal_roles
+219       where principal_id = l_target and role_name = 'test.grantedby';
+220  
+221      if l_actual = 999999 then
+222        fail('granted_by was taken from the request body');
+223      end if;
+224      assert_eq('granted_by is the session principal', to_char(principal_of('SYSADM')), to_char(l_actual));
+225    end test_granted_by_ignores_request_body;
+226  
+227    procedure test_grant_is_idempotent is
+228      l_res json;
+229    begin
+230      if not road_ctx_pkg.begin_request('SYSADM', c_issuer) then fail('establish'); end if;
+231      l_res := road_admin_api.grant_role(
+232                 json('{"principal_id":' || principal_of('TARGET') || ',"role_name":"test.idem"}'));
+233      assert_eq('first grant', 'true', json_value(l_res, '$.granted'));
+234      l_res := road_admin_api.grant_role(
+235                 json('{"principal_id":' || principal_of('TARGET') || ',"role_name":"test.idem"}'));
+236      assert_eq('second grant is a no-op, not an error', 'false', json_value(l_res, '$.granted'));
+237    end test_grant_is_idempotent;
+238  
+239    procedure test_cannot_revoke_last_system_admin is
+240      l_raised boolean := false;
+241      l_res    json;
+242    begin
+243      if not road_ctx_pkg.begin_request('SYSADM', c_issuer) then fail('establish'); end if;
+244  
+245      -- The fixture SYSADM plus the seeded bootstrap admin means more than one holder exists, so
+246      -- revoke the fixture's own to get down to the last one, then prove the last is refused.
+247      l_res := road_admin_api.revoke_role(
+248                 json('{"principal_id":' || principal_of('SYSADM')
+249                      || ',"role_name":"road.system_admin"}'));
+250      assert_eq('fixture admin revoked', 'true', json_value(l_res, '$.revoked'));
+251  
+252      -- Re-establish as the seeded bootstrap admin, now the only holder, and try to remove itself.
+253      road_ctx_pkg.end_request;
+254      declare
+255        l_subject road_config.config_value%type;
+256        l_boot    number;
+257      begin
+258        select config_value into l_subject
+259          from road_config where config_key = 'bootstrap_admin_subject';
+260        if not road_ctx_pkg.begin_request(l_subject) then fail('bootstrap admin should establish'); end if;
+261        select principal_id into l_boot
+262          from road_principals
+263         where subject = l_subject and issuer = road_ctx_pkg.issuer;
+264  
+265        begin
+266          l_res := road_admin_api.revoke_role(
+267                     json('{"principal_id":' || l_boot || ',"role_name":"road.system_admin"}'));
+268        exception
+269          when others then
+270            l_raised := true;
+271            if sqlcode != -20001 then
+272              fail('expected validation error, got ' || sqlcode || ': ' || sqlerrm);
+273            end if;
+274        end;
+275      end;
+276  
+277      if not l_raised then
+278        fail('revoking the last road.system_admin must be refused');
+279      end if;
+280    end test_cannot_revoke_last_system_admin;
+281  
+282    procedure test_define_role_rejects_road_namespace is
+283      l_raised boolean := false;
+284      l_res    json;
+285    begin
+286      if not road_ctx_pkg.begin_request('SYSADM', c_issuer) then fail('establish'); end if;
+287  
+288      l_res := road_admin_api.define_role(
+289                 json('{"role_name":"test.definedrole","display_name":"Defined"}'));
+290      assert_eq('ordinary role defined', 'test.definedrole', json_value(l_res, '$.role_name'));
+291  
+292      begin
+293        l_res := road_admin_api.define_role(json('{"role_name":"road.sneaky"}'));
+294      exception
+295        when others then
+296          l_raised := true;
+297      end;
+298      if not l_raised then
+299        fail('the road. namespace must be refused');
+300      end if;
+301    end test_define_role_rejects_road_namespace;
+302  
+303    -- A user_admin holds road.role.grant but NOT road.role.define, so defining must 403.
+304    procedure test_user_admin_cannot_define_roles is
+305      l_raised boolean := false;
+306      l_res    json;
+307    begin
+308      if not road_ctx_pkg.begin_request('USRADM', c_issuer) then fail('establish'); end if;
+309      begin
+310        l_res := road_admin_api.define_role(json('{"role_name":"test.notallowed"}'));
+311      exception
+312        when others then
+313          l_raised := true;
+314          if sqlcode != road_ctx_pkg.c_forbidden then
+315            fail('expected forbidden, got ' || sqlcode);
+316          end if;
+317      end;
+318      if not l_raised then fail('user_admin must not define roles'); end if;
+319    end test_user_admin_cannot_define_roles;
+320  
+321    -- With no session at all, every operation must deny. This is the "handler forgot begin_request"
+322    -- case reaching the package directly.
+323    procedure test_unauthenticated_denied is
+324      l_raised boolean := false;
+325      l_res    json;
+326    begin
+327      road_ctx_pkg.end_request;
+328      begin
+329        l_res := road_admin_api.get_roles;
+330      exception
+331        when others then
+332          l_raised := true;
+333      end;
+334      if not l_raised then fail('get_roles must deny with no session'); end if;
+335    end test_unauthenticated_denied;
+336  
+337    procedure test_grant_all_app_permissions_is_explicit is
+338      l_before number;
+339      l_after  number;
+340    begin
+341      insert into road_permissions (permission_name, description)
+342      values ('test.appperm.one', 'road_admin test fixture');
+343      insert into road_permissions (permission_name, description)
+344      values ('test.appperm.two', 'road_admin test fixture');
+345  
+346      road_admin_api.grant_all_app_permissions('test.ordinary');
+347  
+348      -- three, not two: test.appperm.one and .two above, plus test.appperm.plain from setup.
+349      -- test.appperm.reserved is the one that must NOT appear -- see below.
+350      select count(*) into l_before
+351        from road_role_permissions
+352       where role_name = 'test.ordinary' and permission_name like 'test.appperm%';
+353      assert_eq('unreserved app permissions granted', '3', to_char(l_before));
+354  
+355      -- No road.* permission may be picked up by the blanket grant.
+356      select count(*) into l_after
+357        from road_role_permissions
+358       where role_name = 'test.ordinary' and permission_name like 'road.%';
+359      assert_eq('no framework permissions granted', '0', to_char(l_after));
+360  
+361      -- THE regression test for spec-patch-08 section 7.1. Until 2026-08-19 this procedure filtered
+362      -- on the road. prefix ALONE, so a RESERVED application permission -- events.purge in road-cal,
+363      -- todo.purge in the demo app, test.appperm.reserved here -- was handed to whatever role was
+364      -- named. That is the exact inference spec-patch-07 section 3.1 exists to forbid, in the package
+365      -- spec-patch-07 amended. road-cal hit the symptom, hand-listed its user grants in 95_data.sql
+366      -- to route around it, and left the cause shipping. This assertion is what stops it returning.
+367      select count(*) into l_after
+368        from road_role_permissions
+369       where role_name = 'test.ordinary' and permission_name = 'test.appperm.reserved';
+370      assert_eq('RESERVED app permission NOT granted', '0', to_char(l_after));
+371  
+372      -- A permission added AFTERWARDS must not be acquired -- that is rule 4, and the reason this is
+373      -- a deploy-time write rather than a runtime wildcard.
+374      insert into road_permissions (permission_name, description)
+375      values ('test.appperm.three', 'added after the blanket grant');
+376      select count(*) into l_after
+377        from road_role_permissions
+378       where role_name = 'test.ordinary' and permission_name = 'test.appperm.three';
+379      assert_eq('later permission NOT silently acquired', '0', to_char(l_after));
+380    end test_grant_all_app_permissions_is_explicit;
+381  
+382    ---------------------------------------------------------------------------
+383    -- Role composition (spec-patch-07 section 7.1)
+384    ---------------------------------------------------------------------------
+385  
+386    -- THE escalation test for this patch. If this check is removed the two-tier model collapses
+387    -- silently: any road.role.compose holder could attach the framework's own reserved permissions
+388    -- to any role.
+389    procedure test_attach_reserved_permission_refused is
+390      l_raised boolean := false;
+391      l_res    json;
+392      l_count  number;
+393    begin
+394      if not road_ctx_pkg.begin_request('SYSADM', c_issuer) then fail('establish'); end if;
+395  
+396      begin
+397        -- test.idem, not test.ordinary: test_grant_all_app_permissions_is_explicit blanket-attaches
+398        -- every unreserved non-road.* permission to test.ordinary (deploy-attached), so a row-count
+399        -- check against it would be muddied by rows this test did not write.
+400        -- test.appperm.reserved is reserved and does not start with road. -- proving the guard reads
+401        -- the flag, not the name (spec-patch-07 section 3.1).
+402        l_res := road_admin_api.attach_permission(
+403                   json('{"role_name":"test.idem","permission_name":"test.appperm.reserved"}'));
+404      exception
+405        when others then
+406          l_raised := true;
+407          if sqlcode != road_ctx_pkg.c_forbidden then
+408            fail('expected forbidden, got ' || sqlcode || ': ' || sqlerrm);
+409          end if;
+410      end;
+411      if not l_raised then fail('attaching a reserved permission must be refused'); end if;
+412  
+413      select count(*) into l_count
+414        from road_role_permissions
+415       where role_name = 'test.idem' and permission_name = 'test.appperm.reserved';
+416      assert_eq('no row written', '0', to_char(l_count));
+417    end test_attach_reserved_permission_refused;
+418  
+419    -- A reserved ROLE's composition is framework-owned, even for an ordinary permission.
+420    procedure test_attach_to_reserved_role_refused is
+421      l_raised boolean := false;
+422      l_res    json;
+423      l_count  number;
+424    begin
+425      if not road_ctx_pkg.begin_request('SYSADM', c_issuer) then fail('establish'); end if;
+426  
+427      begin
+428        l_res := road_admin_api.attach_permission(
+429                   json('{"role_name":"road.user_admin","permission_name":"test.appperm.plain"}'));
+430      exception
+431        when others then
+432          l_raised := true;
+433          if sqlcode != road_ctx_pkg.c_forbidden then
+434            fail('expected forbidden, got ' || sqlcode || ': ' || sqlerrm);
+435          end if;
+436      end;
+437      if not l_raised then fail('attaching to a reserved role must be refused'); end if;
+438  
+439      select count(*) into l_count
+440        from road_role_permissions
+441       where role_name = 'road.user_admin' and permission_name = 'test.appperm.plain';
+442      assert_eq('no row written', '0', to_char(l_count));
+443    end test_attach_to_reserved_role_refused;
+444  
+445    -- THE test that proves spec-patch-07 section 1's claim end to end: composition is a data change,
+446    -- not a release. Nothing tested this before now, because until this phase nothing COULD.
+447    procedure test_composition_takes_effect_on_next_request is
+448      l_res json;
+449    begin
+450      insert into road_permissions (permission_name, description)
+451      values ('test.appperm.compose', 'road_admin test fixture');
+452  
+453      if not road_ctx_pkg.begin_request('SYSADM', c_issuer) then fail('establish'); end if;
+454      l_res := road_admin_api.attach_permission(
+455                 json('{"role_name":"test.composetarget","permission_name":"test.appperm.compose"}'));
+456      assert_eq('attached', 'true', json_value(l_res, '$.attached'));
+457  
+458      -- TARGET holds test.composetarget (setup). Re-establishing loads effective permissions fresh
+459      -- from road_role_permissions -- no deploy, no new machinery.
+460      road_ctx_pkg.end_request;
+461      if not road_ctx_pkg.begin_request('TARGET', c_issuer) then fail('TARGET should establish'); end if;
+462      if not road_ctx_pkg.has_permission('test.appperm.compose') then
+463        fail('composition did not take effect on the next request');
+464      end if;
+465    end test_composition_takes_effect_on_next_request;
+466  
+467    -- attached_by must come from the session, not the caller -- same forgery reason granted_by is
+468    -- not read from the body on grant_role.
+469    procedure test_attached_by_ignores_request_body is
+470      l_res    json;
+471      l_actual number;
+472    begin
+473      insert into road_permissions (permission_name, description)
+474      values ('test.appperm.attachedby', 'road_admin test fixture');
+475  
+476      if not road_ctx_pkg.begin_request('SYSADM', c_issuer) then fail('establish'); end if;
+477      l_res := road_admin_api.attach_permission(json(
+478        '{"role_name":"test.ordinary","permission_name":"test.appperm.attachedby",'
+479        || '"attached_by":999999}'));
+480      assert_eq('attached', 'true', json_value(l_res, '$.attached'));
+481  
+482      select attached_by into l_actual
+483        from road_role_permissions
+484       where role_name = 'test.ordinary' and permission_name = 'test.appperm.attachedby';
+485  
+486      if l_actual = 999999 then
+487        fail('attached_by was taken from the request body');
+488      end if;
+489      assert_eq('attached_by is the session principal',
+490                to_char(principal_of('SYSADM')), to_char(l_actual));
+491    end test_attached_by_ignores_request_body;
+492  
+493    procedure test_attach_detach_idempotent is
+494      l_res json;
+495    begin
+496      insert into road_permissions (permission_name, description)
+497      values ('test.appperm.idem', 'road_admin test fixture');
+498  
+499      if not road_ctx_pkg.begin_request('SYSADM', c_issuer) then fail('establish'); end if;
+500  
+501      l_res := road_admin_api.attach_permission(
+502                 json('{"role_name":"test.ordinary","permission_name":"test.appperm.idem"}'));
+503      assert_eq('first attach', 'true', json_value(l_res, '$.attached'));
+504      l_res := road_admin_api.attach_permission(
+505                 json('{"role_name":"test.ordinary","permission_name":"test.appperm.idem"}'));
+506      assert_eq('second attach is a no-op, not an error', 'false', json_value(l_res, '$.attached'));
+507  
+508      l_res := road_admin_api.detach_permission(
+509                 json('{"role_name":"test.ordinary","permission_name":"test.appperm.idem"}'));
+510      assert_eq('first detach', 'true', json_value(l_res, '$.detached'));
+511      l_res := road_admin_api.detach_permission(
+512                 json('{"role_name":"test.ordinary","permission_name":"test.appperm.idem"}'));
+513      assert_eq('second detach is a no-op, not an error', 'false', json_value(l_res, '$.detached'));
+514    end test_attach_detach_idempotent;
+515  
+516    -- A road.user_admin holds neither road.role.compose. Denial must hold for both mutators.
+517    procedure test_compose_denied_without_permission is
+518      l_raised boolean := false;
+519      l_res    json;
+520    begin
+521      if not road_ctx_pkg.begin_request('USRADM', c_issuer) then fail('establish'); end if;
+522  
+523      begin
+524        l_res := road_admin_api.attach_permission(
+525                   json('{"role_name":"test.ordinary","permission_name":"session.read"}'));
+526      exception
+527        when others then
+528          l_raised := true;
+529          if sqlcode != road_ctx_pkg.c_forbidden then
+530            fail('expected forbidden, got ' || sqlcode);
+531          end if;
+532      end;
+533      if not l_raised then fail('attach_permission must deny without road.role.compose'); end if;
+534  
+535      l_raised := false;
+536      begin
+537        l_res := road_admin_api.detach_permission(
+538                   json('{"role_name":"test.ordinary","permission_name":"session.read"}'));
+539      exception
+540        when others then
+541          l_raised := true;
+542          if sqlcode != road_ctx_pkg.c_forbidden then
+543            fail('expected forbidden, got ' || sqlcode);
+544          end if;
+545      end;
+546      if not l_raised then fail('detach_permission must deny without road.role.compose'); end if;
+547    end test_compose_denied_without_permission;
+548  
+549    ---------------------------------------------------------------------------
+550    -- The composition guard assertions (spec-patch-07 section 5.2), proven directly against the
+551    -- real tables, bypassing road_admin_api entirely -- the point of an assertion over a package
+552    -- check is that it holds when the package does not run. Every insert here targets a
+553    -- (role, permission) pair not already in road_role_permissions, and every branch rolls back, so
+554    -- these leave no state behind for teardown to clean up.
+555    ---------------------------------------------------------------------------
+556  
+557    procedure test_assertion_permits_ordinary_session_attach is
+558      l_sys number := principal_of('SYSADM');
+559    begin
+560      insert into road_permissions (permission_name, description)
+561      values ('test.appperm.assertok', 'road_admin test fixture');
+562      insert into road_role_permissions (role_name, permission_name, attached_by)
+563      values ('test.idem', 'test.appperm.assertok', l_sys);
+564      rollback;
+565    exception
+566      when others then
+567        rollback;
+568        fail('ordinary permission, session-attached, must be permitted: ' || sqlerrm);
+569    end test_assertion_permits_ordinary_session_attach;
+570  
+571    procedure test_assertion_refuses_reserved_session_attach is
+572      l_sys    number := principal_of('SYSADM');
+573      l_raised boolean := false;
+574    begin
+575      begin
+576        insert into road_role_permissions (role_name, permission_name, attached_by)
+577        values ('test.grantedby', 'road.role.compose', l_sys);
+578        rollback;
+579      exception
+580        when others then
+581          rollback;
+582          l_raised := true;
+583          if sqlcode != -8601 then
+584            fail('expected ORA-08601, got ' || sqlcode || ': ' || sqlerrm);
+585          end if;
+586      end;
+587      if not l_raised then
+588        fail('reserved permission, session-attached, must be refused by road_reserved_composition');
+589      end if;
+590    end test_assertion_refuses_reserved_session_attach;
+591  
+592    -- The row that earns the assertion over a BEFORE INSERT trigger: the PARENT table
+593    -- (road_permissions) is what changes, not the child row being inserted.
+594    procedure test_assertion_refuses_flip_under_session_attach is
+595      l_sys    number := principal_of('SYSADM');
+596      l_raised boolean := false;
+597    begin
+598      begin
+599        insert into road_permissions (permission_name, description)
+600        values ('test.appperm.flip', 'road_admin test fixture');
+601        insert into road_role_permissions (role_name, permission_name, attached_by)
+602        values ('test.idem', 'test.appperm.flip', l_sys);
+603  
+604        update road_permissions set is_reserved = 'Y' where permission_name = 'test.appperm.flip';
+605        rollback;
+606      exception
+607        when others then
+608          rollback;
+609          l_raised := true;
+610          if sqlcode != -8601 then
+611            fail('expected ORA-08601, got ' || sqlcode || ': ' || sqlerrm);
+612          end if;
+613      end;
+614      if not l_raised then
+615        fail('flipping is_reserved under a session-attached row must be refused (the back door)');
+616      end if;
+617    end test_assertion_refuses_flip_under_session_attach;
+618  
+619    -- Proves the guard does not break the seed path: 95_data.sql and grant_all_app_permissions must
+620    -- still be able to attach a reserved permission with attached_by null.
+621    procedure test_assertion_permits_reserved_deploy_attach is
+622    begin
+623      insert into road_role_permissions (role_name, permission_name, attached_by)
+624      values ('test.grantedby', 'road.role.compose', null);
+625      rollback;
+626    exception
+627      when others then
+628        rollback;
+629        fail('reserved permission, deploy-attached (attached_by null), must be permitted: '
+630             || sqlerrm);
+631    end test_assertion_permits_reserved_deploy_attach;
+632  
+633    ---------------------------------------------------------------------------
+634    -- get_principals (ui-authorisation-design-v1.md section 5.2)
+635    ---------------------------------------------------------------------------
+636  
+637    -- The gate is road.role.grant, so a principal who holds neither admin role must be denied even
+638    -- though they are perfectly well authenticated. Without this the endpoint would be a directory of
+639    -- everyone's email address readable by every signed-in user.
+640    procedure test_get_principals_requires_permission is
+641      l_res    json;
+642      l_raised boolean := false;
+643    begin
+644      -- SEARCHME, not TARGET: TARGET has been granted road.user_admin by an earlier test in this
+645      -- run, so it would pass the gate and the assertion would prove nothing. SEARCHME holds one
+646      -- ordinary role with no permissions attached.
+647      if not road_ctx_pkg.begin_request('SEARCHME', c_issuer) then
+648        fail('SEARCHME should establish');
+649      end if;
+650  
+651      begin
+652        l_res := road_admin_api.get_principals(json('{}'));
+653      exception
+654        when others then
+655          l_raised := true;
+656          if sqlcode != road_ctx_pkg.c_forbidden then
+657            fail('expected c_forbidden, got ' || sqlcode);
+658          end if;
+659      end;
+660      if not l_raised then fail('get_principals must deny a principal without road.role.grant'); end if;
+661  
+662      -- And with no session at all, for the "handler forgot begin_request" path.
+663      road_ctx_pkg.end_request;
+664      l_raised := false;
+665      begin
+666        l_res := road_admin_api.get_principals(json('{}'));
+667      exception
+668        when others then
+669          l_raised := true;
+670      end;
+671      if not l_raised then fail('get_principals must deny with no session'); end if;
+672    end test_get_principals_requires_permission;
+673  
+674    procedure test_get_principals_search is
+675      l_res json;
+676    begin
+677      if not road_ctx_pkg.begin_request('USRADM', c_issuer) then
+678        fail('USRADM should establish');
+679      end if;
+680  
+681      -- Case-insensitive, and matching on display_name.
+682      l_res := road_admin_api.get_principals(json('{"q":"sEaRcHaBlE"}'));
+683      assert_eq('display_name match count', '1', json_value(l_res, '$.count'));
+684      assert_eq('display_name match subject', 'SEARCHME', json_value(l_res, '$.items[0].subject'));
+685  
+686      -- Matching on email, which is the column the screen exists to make usable.
+687      l_res := road_admin_api.get_principals(json('{"q":"find.me@example.test"}'));
+688      assert_eq('email match count', '1', json_value(l_res, '$.count'));
+689      assert_eq('email is returned', 'find.me@example.test', json_value(l_res, '$.items[0].email'));
+690  
+691      -- Matching on subject, for the case where a principal has neither name nor address yet.
+692      l_res := road_admin_api.get_principals(json('{"q":"SEARCHME"}'));
+693      assert_eq('subject match count', '1', json_value(l_res, '$.count'));
+694  
+695      -- The row carries its roles, so the table renders without a request per principal. Objects,
+696      -- not bare names (spec-patch-07 section 8.1) -- role_name and is_reserved both travel.
+697      assert_eq('roles travel with the row', 'test.searchable',
+698                json_value(l_res, '$.items[0].roles[0].role_name'));
+699      assert_eq('reserved-ness travels with the row', 'N',
+700                json_value(l_res, '$.items[0].roles[0].is_reserved'));
+701  
+702      -- A LIKE wildcard typed into the search box must be a literal. Unescaped, this matches every
+703      -- principal and the user believes they have searched.
+704      l_res := road_admin_api.get_principals(json('{"q":"%"}'));
+705      assert_eq('percent is a literal, not a wildcard', '0', json_value(l_res, '$.count'));
+706  
+707      -- A valid status filter narrows rather than empties.
+708      l_res := road_admin_api.get_principals(json('{"q":"searchable","status":"ACTIVE"}'));
+709      assert_eq('active filter keeps the row', '1', json_value(l_res, '$.count'));
+710  
+711      l_res := road_admin_api.get_principals(json('{"q":"searchable","status":"RETIRED"}'));
+712      assert_eq('retired filter excludes it', '0', json_value(l_res, '$.count'));
+713  
+714      -- An unrecognised status is refused rather than ignored: silently returning the unfiltered
+715      -- list would let the caller believe it had filtered.
+716      declare
+717        l_raised boolean := false;
+718      begin
+719        begin
+720          l_res := road_admin_api.get_principals(json('{"status":"BANNED"}'));
+721        exception
+722          when others then
+723            l_raised := true;
+724        end;
+725        if not l_raised then fail('an unrecognised status must be refused, not ignored'); end if;
+726      end;
+727    end test_get_principals_search;
+728  
+729    procedure test_get_principals_paging is
+730      l_res   json;
+731      l_first varchar2(255 char);
+732    begin
+733      if not road_ctx_pkg.begin_request('SYSADM', c_issuer) then
+734        fail('SYSADM should establish');
+735      end if;
+736  
+737      -- At least four principals exist by now (three fixtures plus the searchable one), so a page of
+738      -- one must report more to come.
+739      l_res := road_admin_api.get_principals(json('{"limit":1,"offset":0}'));
+740      assert_eq('one row on the page', '1', json_value(l_res, '$.count'));
+741      assert_eq('hasMore is true',   'true', json_value(l_res, '$.hasMore'));
+742      l_first := json_value(l_res, '$.items[0].subject');
+743  
+744      -- The second page must not repeat the first. Stable ordering is what a prev/next pager rests
+745      -- on; without it paging silently duplicates and skips rows.
+746      l_res := road_admin_api.get_principals(json('{"limit":1,"offset":1}'));
+747      if json_value(l_res, '$.items[0].subject') = l_first then
+748        fail('offset did not advance the page');
+749      end if;
+750  
+751      -- Clamped, not rejected: an out-of-range page size is a client bug, and an unclamped limit is
+752      -- a denial-of-service parameter.
+753      l_res := road_admin_api.get_principals(json('{"limit":9999}'));
+754      assert_eq('limit clamped to the maximum', '100', json_value(l_res, '$.limit'));
+755  
+756      l_res := road_admin_api.get_principals(json('{"limit":0}'));
+757      assert_eq('limit clamped to the minimum', '1', json_value(l_res, '$.limit'));
+758  
+759      l_res := road_admin_api.get_principals(json('{"offset":-5}'));
+760      assert_eq('negative offset clamped', '0', json_value(l_res, '$.offset'));
+761  
+762      -- Past the end is an empty page, not an error.
+763      l_res := road_admin_api.get_principals(json('{"offset":100000}'));
+764      assert_eq('past the end returns nothing', '0', json_value(l_res, '$.count'));
+765      assert_eq('past the end has no more',  'false', json_value(l_res, '$.hasMore'));
+766    end test_get_principals_paging;
+767  
+768    procedure run(p_name in varchar2, p_which in varchar2) is
+769    begin
+770      case p_which
+771        when 'user_admin_reserved'   then test_user_admin_cannot_grant_reserved;
+772        when 'sysadmin_reserved'     then test_system_admin_can_grant_reserved;
+773        when 'granted_by'            then test_granted_by_ignores_request_body;
+774        when 'idempotent'            then test_grant_is_idempotent;
+775        when 'last_admin'            then test_cannot_revoke_last_system_admin;
+776        when 'define_namespace'      then test_define_role_rejects_road_namespace;
+777        when 'user_admin_define'     then test_user_admin_cannot_define_roles;
+778        when 'unauthenticated'       then test_unauthenticated_denied;
+779        when 'grant_all'             then test_grant_all_app_permissions_is_explicit;
+780        when 'principals_permission' then test_get_principals_requires_permission;
+781        when 'principals_search'     then test_get_principals_search;
+782        when 'principals_paging'     then test_get_principals_paging;
+783        when 'attach_reserved_perm'  then test_attach_reserved_permission_refused;
+784        when 'attach_reserved_role'  then test_attach_to_reserved_role_refused;
+785        when 'compose_effect'        then test_composition_takes_effect_on_next_request;
+786        when 'attached_by'           then test_attached_by_ignores_request_body;
+787        when 'compose_idempotent'    then test_attach_detach_idempotent;
+788        when 'compose_denied'        then test_compose_denied_without_permission;
+789        when 'assert_permit_ord'     then test_assertion_permits_ordinary_session_attach;
+790        when 'assert_refuse_res'     then test_assertion_refuses_reserved_session_attach;
+791        when 'assert_refuse_flip'    then test_assertion_refuses_flip_under_session_attach;
+792        when 'assert_permit_deploy'  then test_assertion_permits_reserved_deploy_attach;
+793      end case;
+794      dbms_output.put_line('PASS ' || p_name);
+795      l_pass := l_pass + 1;
+796    exception
+797      when others then
+798        dbms_output.put_line('FAIL ' || p_name || ': ' || sqlerrm);
+799        l_fail := l_fail + 1;
+800    end run;
+801  
+802    procedure run_all is
+803    begin
+804      l_pass := 0;
+805      l_fail := 0;
+806      setup;
+807  
+808      run('test_user_admin_cannot_grant_reserved', 'user_admin_reserved');
+809      run('test_system_admin_can_grant_reserved', 'sysadmin_reserved');
+810      run('test_granted_by_ignores_request_body', 'granted_by');
+811      run('test_grant_is_idempotent', 'idempotent');
+812      run('test_define_role_rejects_road_namespace', 'define_namespace');
+813      run('test_user_admin_cannot_define_roles', 'user_admin_define');
+814      run('test_unauthenticated_denied', 'unauthenticated');
+815      run('test_grant_all_app_permissions_is_explicit', 'grant_all');
+816      run('test_get_principals_requires_permission', 'principals_permission');
+817      run('test_get_principals_search', 'principals_search');
+818      run('test_get_principals_paging', 'principals_paging');
+819  
+820      run('test_attach_reserved_permission_refused', 'attach_reserved_perm');
+821      run('test_attach_to_reserved_role_refused', 'attach_reserved_role');
+822      run('test_composition_takes_effect_on_next_request', 'compose_effect');
+823      run('test_attached_by_ignores_request_body', 'attached_by');
+824      run('test_attach_detach_idempotent', 'compose_idempotent');
+825      run('test_compose_denied_without_permission', 'compose_denied');
+826      run('test_assertion_permits_ordinary_session_attach', 'assert_permit_ord');
+827      run('test_assertion_refuses_reserved_session_attach', 'assert_refuse_res');
+828      run('test_assertion_refuses_flip_under_session_attach', 'assert_refuse_flip');
+829      run('test_assertion_permits_reserved_deploy_attach', 'assert_permit_deploy');
+830  
+831      -- Last: it deliberately revokes admin grants, so it must not run before the others.
+832      run('test_cannot_revoke_last_system_admin', 'last_admin');
+833  
+834      teardown;
+835      dbms_output.put_line('road_admin_api_test: ' || l_pass || ' passed, ' || l_fail || ' failed');
+836      if l_fail > 0 then
+837        raise_application_error(-20000, l_fail || ' road_admin_api test(s) failed');
+838      end if;
+839    exception
+840      when others then
+841        teardown;
+842        raise;
+843    end run_all;
+844  
+845  end road_admin_api_test;
+846  /
+
+Package Body ROAD_ADMIN_API_TEST compiled
+
+Elapsed: 00:00:00.227
+Elapsed: 00:00:00.245
+SQL> 
+SQL> prompt === compile state ===
+=== compile state ===
+SQL> select object_name, object_type, status
+  2    from user_objects
+  3   where object_name in ('ROAD_ADMIN_API', 'ROAD_ADMIN_API_TEST')
+  4   order by object_name, object_type;
+
+[1mOBJECT_NAME[m            [1mOBJECT_TYPE[m     [1mSTATUS[m    
+______________________ _______________ _________ 
+ROAD_ADMIN_API         PACKAGE         VALID     
+ROAD_ADMIN_API         PACKAGE BODY    VALID     
+ROAD_ADMIN_API_TEST    PACKAGE         VALID     
+ROAD_ADMIN_API_TEST    PACKAGE BODY    VALID     
+
+4 rows selected. 
+
+Elapsed: 00:00:00.268
+SQL> 
+SQL> prompt === run road_admin_api_test ===
+=== run road_admin_api_test ===
+SQL> begin
+  2    road_admin_api_test.run_all;
+  3  end;
+  4  /
+PASS test_user_admin_cannot_grant_reserved
+PASS test_system_admin_can_grant_reserved
+PASS test_granted_by_ignores_request_body
+PASS test_grant_is_idempotent
+PASS test_define_role_rejects_road_namespace
+PASS test_user_admin_cannot_define_roles
+PASS test_unauthenticated_denied
+PASS test_grant_all_app_permissions_is_explicit
+PASS test_get_principals_requires_permission
+PASS test_get_principals_search
+PASS test_get_principals_paging
+PASS test_attach_reserved_permission_refused
+PASS test_attach_to_reserved_role_refused
+PASS test_composition_takes_effect_on_next_request
+PASS test_attached_by_ignores_request_body
+PASS test_attach_detach_idempotent
+PASS test_compose_denied_without_permission
+PASS test_assertion_permits_ordinary_session_attach
+PASS test_assertion_refuses_reserved_session_attach
+PASS test_assertion_refuses_flip_under_session_attach
+PASS test_assertion_permits_reserved_deploy_attach
+PASS test_cannot_revoke_last_system_admin
+road_admin_api_test: 22 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.754
+SQL> 
+SQL> prompt === the fix: grant_all_app_permissions must skip a reserved permission ===
+=== the fix: grant_all_app_permissions must skip a reserved permission ===
+SQL> 
+SQL> -- road-kit has no unreserved application permission to grant, so this probe asserts the negative
+SQL> -- directly: a blanket grant to road.user_admin must not pick up any of the five reserved
+SQL> -- framework permissions. Before the fix the road. prefix filter alone would also have excluded
+SQL> -- them -- the case that separates the two rules needs an application permission, which is why
+SQL> -- the real regression test waits for the demo app (spec-patch-08 section 8).
+SQL> declare
+  2    l_before number;
+  3    l_after  number;
+  4  begin
+  5    select count(*) into l_before from road_role_permissions where role_name = 'road.user_admin';
+  6    road_admin_api.grant_all_app_permissions('road.user_admin');
+  7    select count(*) into l_after from road_role_permissions where role_name = 'road.user_admin';
+  8    rollback;
+  9  
+ 10    if l_after = l_before then
+ 11      dbms_output.put_line('[PASS] blanket grant added nothing - every road-kit permission is reserved');
+ 12    else
+ 13      raise_application_error(-20999,
+ 14        'grant_all_app_permissions added ' || (l_after - l_before) || ' reserved permission(s)');
+ 15    end if;
+ 16  end;
+ 17  /
+[PASS] blanket grant added nothing - every road-kit permission is reserved
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.068
+Elapsed: 00:00:00.084
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.036
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END
