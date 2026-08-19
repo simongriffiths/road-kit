@@ -1,0 +1,810 @@
+[INFO] START
+
+[INFO] RUN_ID=20260819_152815_phase1-composition-apply_11088
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/phase1-composition-apply.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/phase1-composition-apply.sql
+[INFO] SCRIPT_SHA256=c5190506cf17b8c11fc720b7e286ead85f556c0f6701d7ccd7ae10a9c13c7955
+[INFO] GIT_COMMIT=16430fa
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=debug
+[INFO] TIMESTAMP=20260819_152815
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260819_152815_phase1-composition-apply_11088.log
+
+[INTENT]
+Purpose: Land build-plan-08 phase 1 on road_kit_dev -- ROAD_PERMISSIONS.IS_RESERVED,
+  ROAD_ROLE_PERMISSIONS.ATTACHED_AT/ATTACHED_BY, the new road.role.compose permission, and
+  marking the five framework permissions reserved.
+Approach: ALTER first (tolerate "already exists" so the script is re-runnable), then
+  95_data.sql (seeds road.role.compose, grants it to road.system_admin, and runs the explicit
+  UPDATE that marks pre-existing rows reserved -- the ALTER's DEFAULT 'N' would otherwise leave
+  them fail-open until this runs), then 99_verify.sql.
+Reason: build-plan-08 phase 1, backporting spec patch 07 to road-kit. road_kit_dev was fully
+  deployed on 2026-08-18 and holds live rows, so this is an incremental ALTER against a
+  deployed schema, not a fresh CREATE. Byte-identical in approach to road-cal's own
+  scratch/phase1-composition-apply.sql, which ran SUCCESS on 2026-08-19.
+Expected objects:
+  ROAD_PERMISSIONS (altered: IS_RESERVED, ROAD_PERMISSIONS_RESERVED_CK)
+  ROAD_ROLE_PERMISSIONS (altered: ATTACHED_AT, ATTACHED_BY, its FK to ROAD_PRINCIPALS)
+  ROAD_PERMISSIONS: road.role.compose (new row, reserved)
+  ROAD_ROLE_PERMISSIONS: road.system_admin -> road.role.compose
+Risk: Low. Additive columns with defaults; no existing column, constraint or row is removed. The
+  UPDATE only flips IS_RESERVED 'N' -> 'Y' on five named rows, which is reversible.
+  Deliberately does NOT create the assertions -- that is phase 2, and phase 1 must not be
+  committed without it (build-plan-08 section 2).
+Prior history checked: road-cal logs/dev/runs/20260819_130422_phase1-composition-apply_963.log
+  is the identical operation against road_cal_dev, SUCCESS. No prior road-kit ALTER of either
+  table exists.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 19 15:28:16 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+SQL> -- INTENT:
+SQL> -- Purpose: Land build-plan-08 phase 1 on road_kit_dev -- ROAD_PERMISSIONS.IS_RESERVED,
+SQL> --   ROAD_ROLE_PERMISSIONS.ATTACHED_AT/ATTACHED_BY, the new road.role.compose permission, and
+SQL> --   marking the five framework permissions reserved.
+SQL> -- Approach: ALTER first (tolerate "already exists" so the script is re-runnable), then
+SQL> --   95_data.sql (seeds road.role.compose, grants it to road.system_admin, and runs the explicit
+SQL> --   UPDATE that marks pre-existing rows reserved -- the ALTER's DEFAULT 'N' would otherwise leave
+SQL> --   them fail-open until this runs), then 99_verify.sql.
+SQL> -- Reason: build-plan-08 phase 1, backporting spec patch 07 to road-kit. road_kit_dev was fully
+SQL> --   deployed on 2026-08-18 and holds live rows, so this is an incremental ALTER against a
+SQL> --   deployed schema, not a fresh CREATE. Byte-identical in approach to road-cal's own
+SQL> --   scratch/phase1-composition-apply.sql, which ran SUCCESS on 2026-08-19.
+SQL> -- Expected objects:
+SQL> --   ROAD_PERMISSIONS (altered: IS_RESERVED, ROAD_PERMISSIONS_RESERVED_CK)
+SQL> --   ROAD_ROLE_PERMISSIONS (altered: ATTACHED_AT, ATTACHED_BY, its FK to ROAD_PRINCIPALS)
+SQL> --   ROAD_PERMISSIONS: road.role.compose (new row, reserved)
+SQL> --   ROAD_ROLE_PERMISSIONS: road.system_admin -> road.role.compose
+SQL> -- Risk: Low. Additive columns with defaults; no existing column, constraint or row is removed. The
+SQL> --   UPDATE only flips IS_RESERVED 'N' -> 'Y' on five named rows, which is reversible.
+SQL> --   Deliberately does NOT create the assertions -- that is phase 2, and phase 1 must not be
+SQL> --   committed without it (build-plan-08 section 2).
+SQL> -- Prior history checked: road-cal logs/dev/runs/20260819_130422_phase1-composition-apply_963.log
+SQL> --   is the identical operation against road_cal_dev, SUCCESS. No prior road-kit ALTER of either
+SQL> --   table exists.
+SQL> -- END INTENT
+SQL> 
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> set serveroutput on size unlimited
+SQL> 
+SQL> prompt === add ROAD_PERMISSIONS.IS_RESERVED ===
+=== add ROAD_PERMISSIONS.IS_RESERVED ===
+SQL> 
+SQL> declare
+  2    e_column_exists exception;
+  3    pragma exception_init(e_column_exists, -1430);
+  4  begin
+  5    execute immediate
+  6      'alter table road_permissions add (is_reserved varchar2(1 char) default ''N'' not null)';
+  7    dbms_output.put_line('IS_RESERVED added.');
+  8  exception
+  9    when e_column_exists then
+ 10      dbms_output.put_line('IS_RESERVED already present, leaving it alone.');
+ 11  end;
+ 12  /
+IS_RESERVED added.
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.303
+SQL> 
+SQL> declare
+  2    e_constraint_exists exception;
+  3    pragma exception_init(e_constraint_exists, -2264);
+  4  begin
+  5    execute immediate
+  6      'alter table road_permissions add constraint road_permissions_reserved_ck '
+  7      || 'check (is_reserved in (''Y'', ''N''))';
+  8    dbms_output.put_line('ROAD_PERMISSIONS_RESERVED_CK added.');
+  9  exception
+ 10    when e_constraint_exists then
+ 11      dbms_output.put_line('ROAD_PERMISSIONS_RESERVED_CK already present, leaving it alone.');
+ 12  end;
+ 13  /
+ROAD_PERMISSIONS_RESERVED_CK added.
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.057
+SQL> 
+SQL> prompt === add ROAD_ROLE_PERMISSIONS.ATTACHED_AT / ATTACHED_BY ===
+=== add ROAD_ROLE_PERMISSIONS.ATTACHED_AT / ATTACHED_BY ===
+SQL> 
+SQL> declare
+  2    e_column_exists exception;
+  3    pragma exception_init(e_column_exists, -1430);
+  4  begin
+  5    execute immediate
+  6      'alter table road_role_permissions add ('
+  7      || 'attached_at timestamp with time zone default systimestamp not null, '
+  8      || 'attached_by number references road_principals)';
+  9    dbms_output.put_line('ATTACHED_AT / ATTACHED_BY added.');
+ 10  exception
+ 11    when e_column_exists then
+ 12      dbms_output.put_line('ATTACHED_AT / ATTACHED_BY already present, leaving them alone.');
+ 13  end;
+ 14  /
+ATTACHED_AT / ATTACHED_BY added.
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.070
+SQL> 
+SQL> prompt === seed: road.role.compose, reserved-flag migration ===
+=== seed: road.role.compose, reserved-flag migration ===
+SQL> @deploy/create/95_data.sql
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> 
+SQL> prompt === deploy seed data ===
+=== deploy seed data ===
+SQL> 
+SQL> -- Autonomous Database enables parallel DML by default. Every insert below both reads and writes the
+SQL> -- table it targets (the NOT EXISTS guard), and once any serial DML has happened in the transaction a
+SQL> -- subsequent parallel one raises ORA-12839. Parallelism is worthless for a dozen seed rows, so turn
+SQL> -- it off explicitly rather than relying on the optimizer staying serial -- which is what silently
+SQL> -- held for the single-row inserts and broke on the first multi-row one.
+SQL> alter session disable parallel dml;
+
+Session altered.
+
+Elapsed: 00:00:00.037
+SQL> 
+SQL> prompt --- road_config ---
+--- road_config --
+SQL> -- Every insert here is guarded by a NOT EXISTS rather than a MERGE, because this script runs on
+SQL> -- every deploy and must not silently undo an operator's changes (build plan 1.2). A row that
+SQL> -- already exists is left exactly as the operator left it, including a renamed default role.
+SQL> 
+SQL> insert into road_config (config_key, config_value, description)
+  2  select 'default_principal_role',
+  3         'user',
+  4         'Role granted to a principal created by invitation or auto-provisioning. Names an '
+  5         || 'unreserved role, so an application may point this at a role of its own.'
+  6    from dual
+  7   where not exists (select 1 from road_config where config_key = 'default_principal_role');
+
+0 rows inserted.
+
+Elapsed: 00:00:00.070
+SQL> 
+SQL> insert into road_config (config_key, config_value, description)
+  2  select 'bootstrap_admin_subject',
+  3         'ADMIN',
+  4         'Subject of the principal that receives road.system_admin on a fresh deployment. The '
+  5         || 'matching issuer is not configured here -- it is read from the schema JWT profile, so it '
+  6         || 'is correct per environment automatically. See spec-patch-06 section 10 question 1.'
+  7    from dual
+  8   where not exists (select 1 from road_config where config_key = 'bootstrap_admin_subject');
+
+0 rows inserted.
+
+Elapsed: 00:00:00.057
+SQL> 
+SQL> -- Defaults to N in road-kit, unlike road-cal which sets Y. Rule 3 is fail closed, and a framework
+SQL> -- must not decide on a deployer's behalf that their issuer may create accounts in their
+SQL> -- application. An adopter that wants first-authentication provisioning turns it on deliberately --
+SQL> -- which is a one-row change, and a decision someone made rather than inherited.
+SQL> insert into road_config (config_key, config_value, description)
+  2  select 'auto_provision_principals',
+  3         'N',
+  4         'Y creates a principal on first authentication, granting default_principal_role. N denies '
+  5         || 'an unknown subject, which is rule 3''s fail-closed default. This is a posture decision '
+  6         || 'per deployment -- whether the issuer is trusted to decide who exists -- not a mechanism.'
+  7    from dual
+  8   where not exists (select 1 from road_config where config_key = 'auto_provision_principals');
+
+0 rows inserted.
+
+Elapsed: 00:00:00.040
+SQL> 
+SQL> prompt --- road_roles ---
+--- road_roles --
+SQL> insert into road_roles (role_name, display_name, description, is_reserved)
+  2  select 'road.system_admin',
+  3         'System Administrator',
+  4         'Defines roles and permissions, and grants anything. Holds no application permissions by '
+  5         || 'default -- rule 2 forbids hierarchy, so this role is not implicitly privileged in an '
+  6         || 'application.',
+  7         'Y'
+  8    from dual
+  9   where not exists (select 1 from road_roles where role_name = 'road.system_admin');
+
+0 rows inserted.
+
+Elapsed: 00:00:00.058
+SQL> 
+SQL> insert into road_roles (role_name, display_name, description, is_reserved)
+  2  select 'road.user_admin',
+  3         'User Administrator',
+  4         'Grants and revokes roles. Cannot invent them, and cannot grant road.system_admin -- that '
+  5         || 'separation is the entire point of the two-tier split.',
+  6         'Y'
+  7    from dual
+  8   where not exists (select 1 from road_roles where role_name = 'road.user_admin');
+
+0 rows inserted.
+
+Elapsed: 00:00:00.057
+SQL> 
+SQL> insert into road_roles (role_name, display_name, description, is_reserved)
+  2  select 'user',
+  3         'User',
+  4         'Default role for a new principal. Deliberately unreserved: it gates nothing the framework '
+  5         || 'enforces, so an application may rename, redefine or delete it.',
+  6         'N'
+  7    from dual
+  8   where not exists (select 1 from road_roles where role_name = 'user');
+
+0 rows inserted.
+
+Elapsed: 00:00:00.056
+SQL> 
+SQL> prompt --- road_permissions ---
+--- road_permissions --
+SQL> -- is_reserved is baked into these inserts for a fresh deploy. An already-deployed schema's
+SQL> -- existing rows are NOT touched by insert (the NOT EXISTS guard skips them), which is why the
+SQL> -- "mark reserved" UPDATE below exists as a separate, explicit migration step
+SQL> -- (spec-patch-07 section 4.1) -- ALTER TABLE ... ADD defaults every row to 'N', including these.
+SQL> --
+SQL> -- Every permission road-kit ships is reserved, because every one of them is the framework's own
+SQL> -- authority. An adopting application's permissions are the unreserved ones, and road-kit has none
+SQL> -- of its own -- see planning/spec-patch-08-road-kit-demo-app.md (in road-cal) for the demo app
+SQL> -- that gives the framework something unreserved to test against.
+SQL> insert into road_permissions (permission_name, description, is_reserved)
+  2  select 'road.role.define', 'Create and modify role definitions.', 'Y'
+  3    from dual
+  4   where not exists (select 1 from road_permissions where permission_name = 'road.role.define');
+
+0 rows inserted.
+
+Elapsed: 00:00:00.054
+SQL> 
+SQL> insert into road_permissions (permission_name, description, is_reserved)
+  2  select 'road.permission.define',
+  3         'Create and modify permission definitions. Deploy-time only -- checked by nothing at '
+  4         || 'runtime (spec-patch-07 section 6). Creating a permission is a release-time act; only '
+  5         || 'composing an existing one onto a role is runtime data.',
+  6         'Y'
+  7    from dual
+  8   where not exists (select 1 from road_permissions where permission_name = 'road.permission.define');
+
+0 rows inserted.
+
+Elapsed: 00:00:00.052
+SQL> 
+SQL> insert into road_permissions (permission_name, description, is_reserved)
+  2  select 'road.role.grant', 'Grant a role to a principal.', 'Y'
+  3    from dual
+  4   where not exists (select 1 from road_permissions where permission_name = 'road.role.grant');
+
+0 rows inserted.
+
+Elapsed: 00:00:00.052
+SQL> 
+SQL> insert into road_permissions (permission_name, description, is_reserved)
+  2  select 'road.role.revoke', 'Revoke a role from a principal.', 'Y'
+  3    from dual
+  4   where not exists (select 1 from road_permissions where permission_name = 'road.role.revoke');
+
+0 rows inserted.
+
+Elapsed: 00:00:00.050
+SQL> 
+SQL> insert into road_permissions (permission_name, description, is_reserved)
+  2  select 'road.role.compose',
+  3         'Attach or detach an existing permission on an existing role. Not road.user_admin -- that '
+  4         || 'role administers people, not what a role means (spec-patch-07 section 6).',
+  5         'Y'
+  6    from dual
+  7   where not exists (select 1 from road_permissions where permission_name = 'road.role.compose');
+
+1 row inserted.
+
+Elapsed: 00:00:00.050
+SQL> 
+SQL> prompt --- mark existing permissions reserved (patch 07 migration) ---
+--- mark existing permissions reserved (patch 07 migration) --
+SQL> -- Fixes up a schema that already had these rows before is_reserved existed -- the insert guards
+SQL> -- above only fire on a genuinely fresh row. Idempotent and safe to run on a fresh deploy too
+SQL> -- (matches what the inserts above already wrote). Must run before deploy/create/96_assertions.sql
+SQL> -- creates the composition guard, and before any handler that can call attach_permission is
+SQL> -- deployed -- otherwise these rows sit composable during the gap (spec-patch-07 section 4.1).
+SQL> update road_permissions
+  2     set is_reserved = 'Y'
+  3   where permission_name in (
+  4           'road.role.define', 'road.permission.define', 'road.role.grant', 'road.role.revoke',
+  5           'road.role.compose'
+  6         )
+  7     and is_reserved = 'N';
+
+4 rows updated.
+
+Elapsed: 00:00:00.131
+SQL> 
+SQL> prompt --- road_role_permissions ---
+--- road_role_permissions --
+SQL> -- Explicit rows, never a wildcard: a permission added later must not be silently acquired by an
+SQL> -- existing role (rule 4). Written one row per statement rather than as a set-based insert -- it
+SQL> -- reads as exactly what it is, a fixed list of deliberate grants, and each line is greppable.
+SQL> insert into road_role_permissions (role_name, permission_name)
+  2  select 'road.system_admin', 'road.role.define' from dual
+  3   where not exists (select 1 from road_role_permissions
+  4                      where role_name = 'road.system_admin' and permission_name = 'road.role.define');
+
+0 rows inserted.
+
+Elapsed: 00:00:00.056
+SQL> 
+SQL> insert into road_role_permissions (role_name, permission_name)
+  2  select 'road.system_admin', 'road.permission.define' from dual
+  3   where not exists (select 1 from road_role_permissions
+  4                      where role_name = 'road.system_admin' and permission_name = 'road.permission.define');
+
+0 rows inserted.
+
+Elapsed: 00:00:00.046
+SQL> 
+SQL> insert into road_role_permissions (role_name, permission_name)
+  2  select 'road.system_admin', 'road.role.grant' from dual
+  3   where not exists (select 1 from road_role_permissions
+  4                      where role_name = 'road.system_admin' and permission_name = 'road.role.grant');
+
+0 rows inserted.
+
+Elapsed: 00:00:00.040
+SQL> 
+SQL> insert into road_role_permissions (role_name, permission_name)
+  2  select 'road.system_admin', 'road.role.revoke' from dual
+  3   where not exists (select 1 from road_role_permissions
+  4                      where role_name = 'road.system_admin' and permission_name = 'road.role.revoke');
+
+0 rows inserted.
+
+Elapsed: 00:00:00.039
+SQL> 
+SQL> -- road.role.compose is road.system_admin's alone, deliberately NOT road.user_admin's: that role
+SQL> -- administers people, not what a role means (spec-patch-07 section 6). attached_by is left to
+SQL> -- default NULL -- "seeded at deploy time" -- which is what road_reserved_composition reads to
+SQL> -- permit a reserved permission here while refusing the same attach from a session.
+SQL> insert into road_role_permissions (role_name, permission_name)
+  2  select 'road.system_admin', 'road.role.compose' from dual
+  3   where not exists (select 1 from road_role_permissions
+  4                      where role_name = 'road.system_admin' and permission_name = 'road.role.compose');
+
+1 row inserted.
+
+Elapsed: 00:00:00.042
+SQL> 
+SQL> -- road.user_admin grants and revokes, but deliberately cannot define. Nothing in the table
+SQL> -- structure enforces that separation, so it lives here and is asserted in 99_verify.
+SQL> insert into road_role_permissions (role_name, permission_name)
+  2  select 'road.user_admin', 'road.role.grant' from dual
+  3   where not exists (select 1 from road_role_permissions
+  4                      where role_name = 'road.user_admin' and permission_name = 'road.role.grant');
+
+0 rows inserted.
+
+Elapsed: 00:00:00.044
+SQL> 
+SQL> insert into road_role_permissions (role_name, permission_name)
+  2  select 'road.user_admin', 'road.role.revoke' from dual
+  3   where not exists (select 1 from road_role_permissions
+  4                      where role_name = 'road.user_admin' and permission_name = 'road.role.revoke');
+
+0 rows inserted.
+
+Elapsed: 00:00:00.048
+SQL> 
+SQL> prompt --- bootstrap administrator ---
+--- bootstrap administrator --
+SQL> -- Phase 0.2 decision: road.system_admin is seeded from deploy configuration, not handed to whoever
+SQL> -- authenticates first. Break-glass on first login is a race, and on an internet-facing dev host
+SQL> -- whoever wins it owns the system.
+SQL> --
+SQL> -- The issuer is read from the schema's own JWT profile rather than configured separately. ORDS
+SQL> -- validates a token's iss against that profile before admitting the request, so the profile issuer
+SQL> -- is by construction the issuer any real caller will present -- which is what makes the seeded
+SQL> -- principal actually matchable at login. See planning/spike-06-1-iss-reachability.md.
+SQL> declare
+  2    l_issuer       varchar2(512 char);
+  3    l_subject      road_config.config_value%type;
+  4    l_principal_id road_principals.principal_id%type;
+  5    l_admin_count  number;
+  6    l_profiles     number;
+  7    l_default_role road_config.config_value%type;
+  8  begin
+  9    select count(*) into l_profiles from user_ords_jwt_profile;
+ 10  
+ 11    if l_profiles != 1 then
+ 12      -- Fail loudly rather than seeding a principal against a guessed issuer. 99_verify asserts this
+ 13      -- too; the deploy should not reach a state where identity exists but nobody can administer it.
+ 14      dbms_output.put_line(
+ 15        '[WARN] Expected exactly one ORDS JWT profile, found ' || l_profiles
+ 16        || ' - bootstrap administrator NOT seeded'
+ 17      );
+ 18      return;
+ 19    end if;
+ 20  
+ 21    select issuer into l_issuer from user_ords_jwt_profile;
+ 22  
+ 23    select config_value
+ 24      into l_subject
+ 25      from road_config
+ 26     where config_key = 'bootstrap_admin_subject';
+ 27  
+ 28    if l_subject is null then
+ 29      dbms_output.put_line('[WARN] road_config.bootstrap_admin_subject is empty - bootstrap administrator NOT seeded');
+ 30      return;
+ 31    end if;
+ 32  
+ 33    -- Ensure the principal exists. Matched on (issuer, subject), which is the real key.
+ 34    begin
+ 35      select principal_id
+ 36        into l_principal_id
+ 37        from road_principals
+ 38       where issuer = l_issuer
+ 39         and subject = l_subject;
+ 40    exception
+ 41      when no_data_found then
+ 42        insert into road_principals (issuer, subject, display_name)
+ 43        values (l_issuer, l_subject, 'Bootstrap Administrator')
+ 44        returning principal_id into l_principal_id;
+ 45  
+ 46        dbms_output.put_line('[INFO] Created bootstrap principal ' || l_principal_id
+ 47                             || ' for ' || l_issuer || ' / ' || l_subject);
+ 48    end;
+ 49  
+ 50    -- Grant road.system_admin only when nobody holds it at all. This makes a re-deploy a rescue for a
+ 51    -- deployment with zero administrators, without ever fighting an operator who deliberately revoked
+ 52    -- this particular principal while others remain. It is not break-glass: the identity is fixed by
+ 53    -- configuration in advance, so there is no race and no first-come-first-served.
+ 54    select count(*)
+ 55      into l_admin_count
+ 56      from road_principal_roles
+ 57     where role_name = 'road.system_admin';
+ 58  
+ 59    if l_admin_count = 0 then
+ 60      insert into road_principal_roles (principal_id, role_name)
+ 61      values (l_principal_id, 'road.system_admin');
+ 62  
+ 63      dbms_output.put_line('[INFO] Granted road.system_admin to principal ' || l_principal_id);
+ 64    else
+ 65      dbms_output.put_line('[INFO] ' || l_admin_count
+ 66                           || ' principal(s) already hold road.system_admin - no grant made');
+ 67    end if;
+ 68  
+ 69    -- The administrator also needs the ordinary application role. road.system_admin grants the four
+ 70    -- road.* permissions and NOTHING else -- rule 2 forbids hierarchy, so it does not inherit
+ 71    -- application permissions and never should. Without this the bootstrap admin can administer roles
+ 72    -- and cannot read its own session, which is exactly what happened the first time phase 6 ran.
+ 73    --
+ 74    -- Being an administrator is additional to being a user, not instead of it.
+ 75    select config_value into l_default_role
+ 76      from road_config where config_key = 'default_principal_role';
+ 77  
+ 78    if l_default_role is not null then
+ 79      insert into road_principal_roles (principal_id, role_name)
+ 80      select l_principal_id, l_default_role from dual
+ 81       where not exists (select 1 from road_principal_roles
+ 82                          where principal_id = l_principal_id and role_name = l_default_role)
+ 83         and exists (select 1 from road_roles where role_name = l_default_role);
+ 84    end if;
+ 85  end;
+ 86  /
+[INFO] 1 principal(s) already hold road.system_admin - no grant made
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.162
+SQL> 
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.044
+SQL> 
+SQL> prompt --- application permission grants ---
+--- application permission grants --
+SQL> -- road-kit ships NO application permissions, so there is nothing to grant here. An adopting
+SQL> -- application inserts its own operation names into road_permissions and decides which roles hold
+SQL> -- them.
+SQL> --
+SQL> -- road_admin_api.grant_all_app_permissions('user') is available as a deploy-time convenience for a
+SQL> -- new application, writing explicit rows. It is correct only until the application has its first
+SQL> -- admin-only permission, at which point the blanket grant would hand that power to every user and
+SQL> -- grants must become explicit. road-cal demonstrates exactly that graduation -- see its own
+SQL> -- 95_data.sql, where the call was removed when events.purge arrived.
+SQL> 
+SQL> prompt --- seeded state ---
+--- seeded state --
+SQL> select role_name, is_reserved from road_roles order by role_name;
+
+[1mROLE_NAME[m            [1mIS_RESERVED[m    
+____________________ ______________ 
+road.system_admin    Y              
+road.user_admin      Y              
+user                 N              
+
+3 rows selected. 
+
+Elapsed: 00:00:00.067
+SQL> select role_name, permission_name from road_role_permissions order by role_name, permission_name;
+
+[1mROLE_NAME[m            [1mPERMISSION_NAME[m           
+____________________ _________________________ 
+road.system_admin    road.permission.define    
+road.system_admin    road.role.compose         
+road.system_admin    road.role.define          
+road.system_admin    road.role.grant           
+road.system_admin    road.role.revoke          
+road.user_admin      road.role.grant           
+road.user_admin      road.role.revoke          
+
+7 rows selected. 
+
+Elapsed: 00:00:00.037
+SQL> select config_key, config_value from road_config order by config_key;
+
+[1mCONFIG_KEY[m                   [1mCONFIG_VALUE[m    
+____________________________ _______________ 
+auto_provision_principals    N               
+bootstrap_admin_subject      ADMIN           
+default_principal_role       user            
+
+3 rows selected. 
+
+Elapsed: 00:00:00.041
+Elapsed: 00:00:00.057
+SQL> 
+SQL> prompt === verify ===
+=== verify ===
+SQL> @deploy/create/99_verify.sql
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> 
+SQL> -- INTENT:
+SQL> -- Purpose: Confirm a completed deployment is healthy.
+SQL> -- Approach: Read-only probes - health package status, UI asset count, JWT config presence,
+SQL> --   plus a hard check that the auth config row exists.
+SQL> -- Reason: A deploy that compiled without error can still be wrong (empty config, no
+SQL> --   UI assets); this makes that visible in the run log.
+SQL> -- Expected objects: None created. Read-only.
+SQL> -- Risk: None. No DML, no DDL.
+SQL> -- Prior history checked: Not applicable - read-only verification.
+SQL> -- END INTENT
+SQL> 
+SQL> prompt === verify deployment ===
+=== verify deployment ===
+SQL> select health_api.get_status as status from dual;
+
+[1mSTATUS[m    
+_________ 
+ok        
+
+1 row selected. 
+
+Elapsed: 00:00:00.037
+SQL> select count(*) as ui_asset_count from ui_assets;
+
+   [1mUI_ASSET_COUNT[m 
+_________________ 
+                3 
+
+1 row selected. 
+
+Elapsed: 00:00:00.042
+SQL> select audience,
+  2         scope_name as auth_scope,
+  3         nvl(kid, '(none - run bin/ensure-auth-key.sh)') as signing_kid
+  4    from jwt_scaffold_config;
+
+[1mAUDIENCE[m    [1mAUTH_SCOPE[m                       [1mSIGNING_KID[m                     
+___________ ________________________________ _______________________________ 
+road-dev    session.me.read road.admin.rw    hello_world-dev-14649f497300    
+
+1 row selected. 
+
+Elapsed: 00:00:00.047
+SQL> 
+SQL> -- A missing @deploy/create/80_standalone.generated.sql is skipped by SQLcl without failing the
+SQL> -- run, which would leave auth silently unconfigured. Fail loudly instead.
+SQL> declare
+  2    l_count number;
+  3  begin
+  4    select count(*) into l_count from jwt_scaffold_config where config_id = 1;
+  5    if l_count = 0 then
+  6      raise_application_error(
+  7        -20000,
+  8        'JWT_SCAFFOLD_CONFIG is empty - run bin/render-auth-config.sh --env <env> then redeploy'
+  9      );
+ 10    end if;
+ 11  end;
+ 12  /
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.046
+SQL> 
+SQL> prompt === verify identity model (spec patch 06) ===
+=== verify identity model (spec patch 06) ===
+SQL> 
+SQL> declare
+  2    l_count    number;
+  3    l_expected constant number := 6;
+  4  
+  5    procedure assert(p_condition in boolean, p_message in varchar2) is
+  6    begin
+  7      if not nvl(p_condition, false) then
+  8        raise_application_error(-20000, p_message);
+  9      end if;
+ 10    end assert;
+ 11  begin
+ 12    -- 1. All six tables present. A half-applied deploy is the thing this catches.
+ 13    select count(*)
+ 14      into l_count
+ 15      from user_tables
+ 16     where table_name in ('ROAD_PRINCIPALS', 'ROAD_ROLES', 'ROAD_PERMISSIONS',
+ 17                          'ROAD_ROLE_PERMISSIONS', 'ROAD_PRINCIPAL_ROLES', 'ROAD_CONFIG');
+ 18    assert(l_count = l_expected,
+ 19           'Expected ' || l_expected || ' identity tables, found ' || l_count);
+ 20  
+ 21    -- 2. The three baseline roles, with the two road.* ones reserved.
+ 22    select count(*)
+ 23      into l_count
+ 24      from road_roles
+ 25     where role_name in ('road.system_admin', 'road.user_admin', 'user');
+ 26    assert(l_count = 3, 'Expected 3 baseline roles, found ' || l_count);
+ 27  
+ 28    select count(*)
+ 29      into l_count
+ 30      from road_roles
+ 31     where role_name in ('road.system_admin', 'road.user_admin')
+ 32       and is_reserved = 'Y';
+ 33    assert(l_count = 2, 'Both road.* baseline roles must be reserved, found ' || l_count);
+ 34  
+ 35    -- 3. road.system_admin actually composes its permissions.
+ 36    select count(*)
+ 37      into l_count
+ 38      from road_role_permissions
+ 39     where role_name = 'road.system_admin'
+ 40       and permission_name = 'road.role.define';
+ 41    assert(l_count = 1, 'road.system_admin must hold road.role.define');
+ 42  
+ 43    -- 4. road.user_admin must NOT be able to define roles -- the two-tier split is the point.
+ 44    select count(*)
+ 45      into l_count
+ 46      from road_role_permissions
+ 47     where role_name = 'road.user_admin'
+ 48       and permission_name in ('road.role.define', 'road.permission.define');
+ 49    assert(l_count = 0,
+ 50           'road.user_admin must not hold define permissions, found ' || l_count);
+ 51  
+ 52    -- 5. Exactly one principal can administer the system. Zero means the deploy produced an
+ 53    --    identity model nobody can administer, which is the failure mode section 10 question 1
+ 54    --    exists to prevent.
+ 55    select count(*)
+ 56      into l_count
+ 57      from road_principal_roles
+ 58     where role_name = 'road.system_admin';
+ 59    assert(l_count >= 1,
+ 60           'No principal holds road.system_admin - check road_config.bootstrap_admin_subject');
+ 61  
+ 62    -- 6. Exactly one ORDS JWT profile. This is the tripwire for the phase 0.1 spike constraint:
+ 63    --    road_ctx resolves the issuer from this view, which is only unambiguous while trust is
+ 64    --    schema-level with a single profile. A second profile means the implementation must move to
+ 65    --    reading the token header instead. See planning/spike-06-1-iss-reachability.md section 4.
+ 66    select count(*) into l_count from user_ords_jwt_profile;
+ 67    assert(l_count = 1,
+ 68           'Expected exactly 1 ORDS JWT profile, found ' || l_count
+ 69           || ' - road_ctx issuer resolution is ambiguous, see spike-06-1');
+ 70  
+ 71    dbms_output.put_line('[INFO] Identity model verified: 6 tables, 3 roles, 5 permissions, bootstrap admin present');
+ 72  end;
+ 73  /
+[INFO] Identity model verified: 6 tables, 3 roles, 5 permissions, bootstrap admin present
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.096
+Elapsed: 00:00:00.112
+SQL> 
+SQL> prompt === targeted checks ===
+=== targeted checks ===
+SQL> 
+SQL> select column_name, data_type, data_default, nullable
+  2    from user_tab_columns
+  3   where table_name = 'ROAD_PERMISSIONS'
+  4     and column_name = 'IS_RESERVED';
+
+[1mCOLUMN_NAME[m    [1mDATA_TYPE[m    [1mDATA_DEFAULT[m    [1mNULLABLE[m    
+______________ ____________ _______________ ___________ 
+IS_RESERVED    VARCHAR2     'N'             N           
+
+1 row selected. 
+
+Elapsed: 00:00:00.071
+SQL> 
+SQL> select column_name, data_type, data_default, nullable
+  2    from user_tab_columns
+  3   where table_name = 'ROAD_ROLE_PERMISSIONS'
+  4     and column_name in ('ATTACHED_AT', 'ATTACHED_BY')
+  5   order by column_name;
+
+[1mCOLUMN_NAME[m    [1mDATA_TYPE[m                      [1mDATA_DEFAULT[m     [1mNULLABLE[m    
+______________ ______________________________ ________________ ___________ 
+ATTACHED_AT    TIMESTAMP(6) WITH TIME ZONE    systimestamp     N           
+ATTACHED_BY    NUMBER                                          Y           
+
+2 rows selected. 
+
+Elapsed: 00:00:00.263
+SQL> 
+SQL> prompt === every permission road-kit ships is reserved ===
+=== every permission road-kit ships is reserved ===
+SQL> select permission_name, is_reserved
+  2    from road_permissions
+  3   order by is_reserved desc, permission_name;
+
+[1mPERMISSION_NAME[m           [1mIS_RESERVED[m    
+_________________________ ______________ 
+road.permission.define    Y              
+road.role.compose         Y              
+road.role.define          Y              
+road.role.grant           Y              
+road.role.revoke          Y              
+
+5 rows selected. 
+
+Elapsed: 00:00:00.059
+SQL> 
+SQL> prompt === every attachment is deploy-seeded (attached_by must be null throughout) ===
+=== every attachment is deploy-seeded (attached_by must be null throughout) ===
+SQL> select role_name, permission_name, attached_by
+  2    from road_role_permissions
+  3   order by role_name, permission_name;
+
+[1mROLE_NAME[m            [1mPERMISSION_NAME[m              [1mATTACHED_BY[m 
+____________________ _________________________ ______________ 
+road.system_admin    road.permission.define                   
+road.system_admin    road.role.compose                        
+road.system_admin    road.role.define                         
+road.system_admin    road.role.grant                          
+road.system_admin    road.role.revoke                         
+road.user_admin      road.role.grant                          
+road.user_admin      road.role.revoke                         
+
+7 rows selected. 
+
+Elapsed: 00:00:00.039
+Elapsed: 00:00:00.056
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.036
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

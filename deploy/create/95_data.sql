@@ -78,25 +78,61 @@ select 'user',
 
 prompt --- road_permissions ---
 
-insert into road_permissions (permission_name, description)
-select 'road.role.define', 'Create and modify role definitions.'
+-- is_reserved is baked into these inserts for a fresh deploy. An already-deployed schema's
+-- existing rows are NOT touched by insert (the NOT EXISTS guard skips them), which is why the
+-- "mark reserved" UPDATE below exists as a separate, explicit migration step
+-- (spec-patch-07 section 4.1) -- ALTER TABLE ... ADD defaults every row to 'N', including these.
+--
+-- Every permission road-kit ships is reserved, because every one of them is the framework's own
+-- authority. An adopting application's permissions are the unreserved ones, and road-kit has none
+-- of its own -- see planning/spec-patch-08-road-kit-demo-app.md (in road-cal) for the demo app
+-- that gives the framework something unreserved to test against.
+insert into road_permissions (permission_name, description, is_reserved)
+select 'road.role.define', 'Create and modify role definitions.', 'Y'
   from dual
  where not exists (select 1 from road_permissions where permission_name = 'road.role.define');
 
-insert into road_permissions (permission_name, description)
-select 'road.permission.define', 'Create and modify permission definitions.'
+insert into road_permissions (permission_name, description, is_reserved)
+select 'road.permission.define',
+       'Create and modify permission definitions. Deploy-time only -- checked by nothing at '
+       || 'runtime (spec-patch-07 section 6). Creating a permission is a release-time act; only '
+       || 'composing an existing one onto a role is runtime data.',
+       'Y'
   from dual
  where not exists (select 1 from road_permissions where permission_name = 'road.permission.define');
 
-insert into road_permissions (permission_name, description)
-select 'road.role.grant', 'Grant a role to a principal.'
+insert into road_permissions (permission_name, description, is_reserved)
+select 'road.role.grant', 'Grant a role to a principal.', 'Y'
   from dual
  where not exists (select 1 from road_permissions where permission_name = 'road.role.grant');
 
-insert into road_permissions (permission_name, description)
-select 'road.role.revoke', 'Revoke a role from a principal.'
+insert into road_permissions (permission_name, description, is_reserved)
+select 'road.role.revoke', 'Revoke a role from a principal.', 'Y'
   from dual
  where not exists (select 1 from road_permissions where permission_name = 'road.role.revoke');
+
+insert into road_permissions (permission_name, description, is_reserved)
+select 'road.role.compose',
+       'Attach or detach an existing permission on an existing role. Not road.user_admin -- that '
+       || 'role administers people, not what a role means (spec-patch-07 section 6).',
+       'Y'
+  from dual
+ where not exists (select 1 from road_permissions where permission_name = 'road.role.compose');
+
+prompt --- mark existing permissions reserved (patch 07 migration) ---
+
+-- Fixes up a schema that already had these rows before is_reserved existed -- the insert guards
+-- above only fire on a genuinely fresh row. Idempotent and safe to run on a fresh deploy too
+-- (matches what the inserts above already wrote). Must run before deploy/create/96_assertions.sql
+-- creates the composition guard, and before any handler that can call attach_permission is
+-- deployed -- otherwise these rows sit composable during the gap (spec-patch-07 section 4.1).
+update road_permissions
+   set is_reserved = 'Y'
+ where permission_name in (
+         'road.role.define', 'road.permission.define', 'road.role.grant', 'road.role.revoke',
+         'road.role.compose'
+       )
+   and is_reserved = 'N';
 
 prompt --- road_role_permissions ---
 
@@ -122,6 +158,15 @@ insert into road_role_permissions (role_name, permission_name)
 select 'road.system_admin', 'road.role.revoke' from dual
  where not exists (select 1 from road_role_permissions
                     where role_name = 'road.system_admin' and permission_name = 'road.role.revoke');
+
+-- road.role.compose is road.system_admin's alone, deliberately NOT road.user_admin's: that role
+-- administers people, not what a role means (spec-patch-07 section 6). attached_by is left to
+-- default NULL -- "seeded at deploy time" -- which is what road_reserved_composition reads to
+-- permit a reserved permission here while refusing the same attach from a session.
+insert into road_role_permissions (role_name, permission_name)
+select 'road.system_admin', 'road.role.compose' from dual
+ where not exists (select 1 from road_role_permissions
+                    where role_name = 'road.system_admin' and permission_name = 'road.role.compose');
 
 -- road.user_admin grants and revokes, but deliberately cannot define. Nothing in the table
 -- structure enforces that separation, so it lives here and is asserted in 99_verify.

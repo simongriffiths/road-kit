@@ -19,6 +19,9 @@ whenever sqlerror exit sql.sqlcode rollback
 -- END INTENT
 
 prompt === full teardown ===
+-- Assertions first: they depend on road_role_permissions and road_permissions, and an
+-- assertion left behind blocks the rebuild (spec-patch-07 section 5.4).
+@deploy/drop/96_assertions.sql
 @deploy/drop/90_rest.sql
 @deploy/drop/80_standalone.sql
 @deploy/drop/75_type_bodies.sql

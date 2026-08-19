@@ -53,6 +53,17 @@ create or replace package body error_api as
         -- The code is mnemonic: -20403 -> 403.
         l_error := 'FORBIDDEN';
         p_status_code := 403;
+      when -8601 then
+        -- road_reserved_composition or road_admin_reachable (spec-patch-07 section 5.5), outside
+        -- the -20000..-20999 range this function's caller normally tests before dispatching here --
+        -- the handlers that can reach this table widen their own routing check to include -8601.
+        -- Defence in depth, not the primary path: road_admin_api checks is_reserved itself and
+        -- raises -20403 first, so reaching an actual assertion violation means that package check
+        -- was bypassed (a second caller, a hand-typed INSERT) or has a bug. 403, not 422 or 500:
+        -- the caller is authenticated and the operation is refused -- that it is refused to
+        -- everyone rather than to them specifically does not change the shape of the answer.
+        l_error := 'FORBIDDEN';
+        p_status_code := 403;
       else
         -- A code inside the reserved range but outside the fixed mapping is a coding mistake,
         -- not a known business error — escalate rather than emit a response with a null

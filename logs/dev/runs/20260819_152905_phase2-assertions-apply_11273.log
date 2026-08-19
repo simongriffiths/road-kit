@@ -1,0 +1,367 @@
+[INFO] START
+
+[INFO] RUN_ID=20260819_152905_phase2-assertions-apply_11273
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/phase2-assertions-apply.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/phase2-assertions-apply.sql
+[INFO] SCRIPT_SHA256=6d2cf7cf032b43a1fd76562ed91881f8b4293a275ec15ee97e8ae26c8090ee07
+[INFO] GIT_COMMIT=16430fa
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=debug
+[INFO] TIMESTAMP=20260819_152905
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260819_152905_phase2-assertions-apply_11273.log
+
+[INTENT]
+Purpose: Land build-plan-08 phase 2 on road_kit_dev -- the road_reserved_composition and
+  road_admin_reachable assertions, plus error_api's ORA-8601 -> 403 mapping.
+Approach: Deploy error_api's body first (so the mapping exists before anything can violate an
+  assertion), then run deploy/create/96_assertions.sql, then read back USER_ASSERTIONS and
+  prove enforcement with a deliberate violation that is rolled back.
+Reason: build-plan-08 phase 2. Phase 1 added attached_by but nothing yet enforces the rule it
+  encodes; section 2 of the plan says phase 1 must not be committed without phase 2, because a
+  schema with the audit column and no assertion has false safety.
+Expected objects:
+  ROAD_RESERVED_COMPOSITION (assertion, new)
+  ROAD_ADMIN_REACHABLE (assertion, new)
+  ERROR_API (package body, replaced)
+Risk: Low-to-medium. Creating an assertion validates it against existing data, so a bad phase-1
+  seed would surface here as a create failure rather than silently -- that is the intended
+  design (spec-patch-07 section 5.3). The enforcement probe below deliberately violates the
+  assertion and ROLLS BACK; it writes nothing durable.
+Prior history checked: road-cal logs/dev/runs/ 20260819 phase2-assertions-apply is the identical
+  operation against road_cal_dev, SUCCESS. CREATE ASSERTION was granted to ROAD_KIT_DEV in
+  phase 0 this session.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 19 15:29:06 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+SQL> -- INTENT:
+SQL> -- Purpose: Land build-plan-08 phase 2 on road_kit_dev -- the road_reserved_composition and
+SQL> --   road_admin_reachable assertions, plus error_api's ORA-8601 -> 403 mapping.
+SQL> -- Approach: Deploy error_api's body first (so the mapping exists before anything can violate an
+SQL> --   assertion), then run deploy/create/96_assertions.sql, then read back USER_ASSERTIONS and
+SQL> --   prove enforcement with a deliberate violation that is rolled back.
+SQL> -- Reason: build-plan-08 phase 2. Phase 1 added attached_by but nothing yet enforces the rule it
+SQL> --   encodes; section 2 of the plan says phase 1 must not be committed without phase 2, because a
+SQL> --   schema with the audit column and no assertion has false safety.
+SQL> -- Expected objects:
+SQL> --   ROAD_RESERVED_COMPOSITION (assertion, new)
+SQL> --   ROAD_ADMIN_REACHABLE (assertion, new)
+SQL> --   ERROR_API (package body, replaced)
+SQL> -- Risk: Low-to-medium. Creating an assertion validates it against existing data, so a bad phase-1
+SQL> --   seed would surface here as a create failure rather than silently -- that is the intended
+SQL> --   design (spec-patch-07 section 5.3). The enforcement probe below deliberately violates the
+SQL> --   assertion and ROLLS BACK; it writes nothing durable.
+SQL> -- Prior history checked: road-cal logs/dev/runs/ 20260819 phase2-assertions-apply is the identical
+SQL> --   operation against road_cal_dev, SUCCESS. CREATE ASSERTION was granted to ROAD_KIT_DEV in
+SQL> --   phase 0 this session.
+SQL> -- END INTENT
+SQL> 
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> set serveroutput on size unlimited
+SQL> 
+SQL> prompt === error_api body (ORA-8601 -> 403) ===
+=== error_api body (ORA-8601 -> 403) ===
+SQL> @db/package_bodies/error_api.pkb
+SQL> create or replace package body error_api as
+  2  
+  3    -- Never raises: a logging failure must not cause a secondary failure
+  4    -- (spec/error-handling-contract-v1.md §5.2). Autonomous so the log entry survives even when
+  5    -- the caller's transaction rolls back around this error.
+  6    procedure write_error_log(
+  7      p_sqlcode   in number,
+  8      p_sqlerrm   in varchar2,
+  9      p_backtrace in varchar2,
+ 10      p_context   in varchar2
+ 11    ) is
+ 12      pragma autonomous_transaction;
+ 13    begin
+ 14      insert into error_log (sqlcode, sqlerrm, backtrace, context)
+ 15      values (p_sqlcode, p_sqlerrm, p_backtrace, p_context);
+ 16      commit;
+ 17    exception
+ 18      when others then
+ 19        null;
+ 20    end write_error_log;
+ 21  
+ 22    procedure handle_known(
+ 23      p_sqlcode     in number,
+ 24      p_sqlerrm     in varchar2,
+ 25      p_status_code out number,
+ 26      p_response    out clob
+ 27    ) is
+ 28      l_error   varchar2(60);
+ 29      l_message varchar2(4000);
+ 30    begin
+ 31      -- Fixed mapping per calendar-app-design-outline.md §"Error signalling from EVENT_API to
+ 32      -- ORDS". Not a generic range-based scheme (e.g. 20000-20099 => 400): each code is a
+ 33      -- deliberately chosen business meaning, so it is listed explicitly rather than derived.
+ 34      case p_sqlcode
+ 35        when -20001 then
+ 36          l_error := 'VALIDATION_ERROR';
+ 37          p_status_code := 400;
+ 38        when -20003 then
+ 39          l_error := 'AGENDA_LOCKED';
+ 40          p_status_code := 422;
+ 41        when -20004 then
+ 42          l_error := 'NOT_FOUND';
+ 43          p_status_code := 404;
+ 44        when -20009 then
+ 45          l_error := 'CONFLICT';
+ 46          p_status_code := 409;
+ 47        when -20403 then
+ 48          -- road_ctx_pkg.c_forbidden. An AUTHENTICATED principal that lacks a required permission or
+ 49          -- role. Distinct from 401 by design: ORDS returns 401 for no token, a bad token or a
+ 50          -- missing scope, before any PL/SQL runs. Reaching here means the caller is who they say
+ 51          -- they are and still may not do this (spec-patch-06 section 6.4). Without the distinction
+ 52          -- a permission failure would surface as a 500 or as a 401 that misreports the cause.
+ 53          -- The code is mnemonic: -20403 -> 403.
+ 54          l_error := 'FORBIDDEN';
+ 55          p_status_code := 403;
+ 56        when -8601 then
+ 57          -- road_reserved_composition or road_admin_reachable (spec-patch-07 section 5.5), outside
+ 58          -- the -20000..-20999 range this function's caller normally tests before dispatching here --
+ 59          -- the handlers that can reach this table widen their own routing check to include -8601.
+ 60          -- Defence in depth, not the primary path: road_admin_api checks is_reserved itself and
+ 61          -- raises -20403 first, so reaching an actual assertion violation means that package check
+ 62          -- was bypassed (a second caller, a hand-typed INSERT) or has a bug. 403, not 422 or 500:
+ 63          -- the caller is authenticated and the operation is refused -- that it is refused to
+ 64          -- everyone rather than to them specifically does not change the shape of the answer.
+ 65          l_error := 'FORBIDDEN';
+ 66          p_status_code := 403;
+ 67        else
+ 68          -- A code inside the reserved range but outside the fixed mapping is a coding mistake,
+ 69          -- not a known business error — escalate rather than emit a response with a null
+ 70          -- error/status. Never silently return a malformed body (contract §2 principle 1).
+ 71          handle_unknown(
+ 72            p_sqlerrm     => p_sqlerrm,
+ 73            p_backtrace   => dbms_utility.format_error_backtrace,
+ 74            p_context     => 'error_api.handle_known: unmapped known-range sqlcode ' || p_sqlcode,
+ 75            p_status_code => p_status_code,
+ 76            p_response    => p_response
+ 77          );
+ 78          return;
+ 79      end case;
+ 80  
+ 81      -- raise_application_error(-20001, 'msg') surfaces as sqlerrm = 'ORA-20001: msg'; strip the
+ 82      -- code prefix so message carries only the user-safe text passed to raise_application_error.
+ 83      l_message := regexp_replace(p_sqlerrm, '^ORA-[0-9]+:\s*', '');
+ 84  
+ 85      select json_object(
+ 86               'error'    value l_error,
+ 87               'message'  value l_message,
+ 88               'ora_code' value 'ORA-' || to_char(-p_sqlcode, 'FM00000')
+ 89               returning clob
+ 90             )
+ 91        into p_response
+ 92        from dual;
+ 93    end handle_known;
+ 94  
+ 95    procedure handle_unknown(
+ 96      p_sqlerrm     in varchar2,
+ 97      p_backtrace   in varchar2,
+ 98      p_context     in varchar2 default null,
+ 99      p_status_code out number,
+100      p_response    out clob
+101    ) is
+102    begin
+103      write_error_log(
+104        p_sqlcode   => sqlcode,
+105        p_sqlerrm   => p_sqlerrm,
+106        p_backtrace => p_backtrace,
+107        p_context   => p_context
+108      );
+109  
+110      p_status_code := 500;
+111  
+112      -- Generic message only — never echo sqlerrm/backtrace to the client (contract §3.2).
+113      select json_object(
+114               'error'   value 'INTERNAL_ERROR',
+115               'message' value 'An unexpected error occurred'
+116               returning clob
+117             )
+118        into p_response
+119        from dual;
+120    end handle_unknown;
+121  
+122  end error_api;
+123  /
+
+Package Body ERROR_API compiled
+
+Elapsed: 00:00:00.124
+Elapsed: 00:00:00.143
+SQL> 
+SQL> prompt === create the assertions ===
+=== create the assertions ===
+SQL> @deploy/create/96_assertions.sql
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> 
+SQL> prompt === composition guard assertions (spec patch 07) ===
+=== composition guard assertions (spec patch 07) ===
+SQL> 
+SQL> -- Runs AFTER 95_data.sql, deliberately: both assertions below need the seed already in place.
+SQL> -- road_admin_reachable is `exists`, which is false against an empty table, so it cannot be
+SQL> -- created before the seed grants road.role.grant to road.system_admin. Creating both here also
+SQL> -- makes them validate the seed -- a 95_data.sql that produced a violation fails the deploy at
+SQL> -- this step (spec-patch-07 section 5.3).
+SQL> --
+SQL> -- Needs CREATE ASSERTION, granted schema-scoped (not CREATE ANY ASSERTION) by
+SQL> -- admin/grant-schema-privileges.sql. See planning/spike-07-1-assertion-support.md.
+SQL> 
+SQL> -- The invariant is PROVENANCE, not state: road.system_admin legitimately holds road.role.grant,
+SQL> -- and calendar_admin legitimately holds events.purge -- both are reserved permissions attached to
+SQL> -- roles. What is forbidden is a reserved permission attached BY A SESSION. attached_by is null for
+SQL> -- a deploy (no session context to read a principal from) and always non-null for
+SQL> -- road_admin_api.attach_permission, which takes it from road_ctx_pkg.principal_id -- so the audit
+SQL> -- column carries the rule (spec-patch-07 section 5.1).
+SQL> --
+SQL> -- COMMA JOIN, NOT ANSI: `JOIN ... ON` is rejected with ORA-08735 inside an ORA-08689 wrapper on
+SQL> -- 26ai (spike-07-1 section 3.3). This is not a style choice -- an ANSI rewrite looks like tidying
+SQL> -- and fails at deploy time, not review time. Do not "simplify" this to a JOIN.
+SQL> --
+SQL> -- This is an ASSERTION rather than a BEFORE INSERT trigger on road_role_permissions because the
+SQL> -- escalation this guards against is the PARENT table (road_permissions) being updated -- flipping
+SQL> -- an existing row's is_reserved to 'Y' out from under an already session-attached grant. A trigger
+SQL> -- on the child table would never fire for that case (spike-07-1 section 3.4, row 3).
+SQL> create assertion road_reserved_composition check (
+  2    not exists (
+  3      select 1
+  4        from road_role_permissions rp, road_permissions p
+  5       where p.permission_name = rp.permission_name
+  6         and p.is_reserved = 'Y'
+  7         and rp.attached_by is not null
+  8    )
+  9  );
+
+Assertion ROAD_RESERVED_COMPOSITION created.
+
+Elapsed: 00:00:00.173
+SQL> 
+SQL> -- Reachability, the other direction. This assertion does NOT cover DELETE -- a `not exists`
+SQL> -- predicate cannot be violated by removing a row, so road_reserved_composition does not stop
+SQL> -- detaching road.role.grant from road.system_admin, and that would be a lock-out (the role keeps
+SQL> -- its holders, so revoke_role's last-administrator guard never fires). Named on the PERMISSION,
+SQL> -- not the role, because the invariant is "somebody can still grant roles", not "this particular
+SQL> -- role still exists" (spec-patch-07 section 5.3). Together with revoke_role's refusal to remove
+SQL> -- the last road.system_admin holder, administration stays reachable from both directions.
+SQL> create assertion road_admin_reachable check (
+  2    exists (select 1 from road_role_permissions where permission_name = 'road.role.grant')
+  3  );
+
+Assertion ROAD_ADMIN_REACHABLE created.
+
+Elapsed: 00:00:00.056
+Elapsed: 00:00:00.072
+SQL> 
+SQL> prompt === assertions present and enabled ===
+=== assertions present and enabled ===
+SQL> select assertion_name, status from user_assertions order by assertion_name;
+
+[1mASSERTION_NAME[m               [1mSTATUS[m     
+____________________________ __________ 
+ROAD_ADMIN_REACHABLE         ENABLED    
+ROAD_RESERVED_COMPOSITION    ENABLED    
+
+2 rows selected. 
+
+Elapsed: 00:00:00.265
+SQL> 
+SQL> prompt === prove enforcement: session-attach of a reserved permission must be refused ===
+=== prove enforcement: session-attach of a reserved permission must be refused ===
+SQL> 
+SQL> -- road.role.compose is reserved. Attaching it with a non-null attached_by is the session case
+SQL> -- road_reserved_composition forbids. Expect ORA-08601. Rolled back either way.
+SQL> declare
+  2    l_principal_id number;
+  3  begin
+  4    select min(principal_id) into l_principal_id from road_principals;
+  5  
+  6    insert into road_role_permissions (role_name, permission_name, attached_by)
+  7    values ('road.user_admin', 'road.role.compose', l_principal_id);
+  8  
+  9    rollback;
+ 10    raise_application_error(-20999, 'ASSERTION DID NOT FIRE - road_reserved_composition is not enforcing');
+ 11  exception
+ 12    when others then
+ 13      rollback;
+ 14      if sqlcode = -8601 then
+ 15        dbms_output.put_line('[PASS] session attach of a reserved permission refused with ORA-08601');
+ 16      else
+ 17        raise;
+ 18      end if;
+ 19  end;
+ 20  /
+[PASS] session attach of a reserved permission refused with ORA-08601
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.254
+SQL> 
+SQL> prompt === prove enforcement: the same attach as a DEPLOY (attached_by null) must be permitted ===
+=== prove enforcement: the same attach as a DEPLOY (attached_by null) must be permitted ===
+SQL> 
+SQL> declare
+  2    e_assertion exception;
+  3    pragma exception_init(e_assertion, -8601);
+  4  begin
+  5    insert into road_role_permissions (role_name, permission_name, attached_by)
+  6    values ('road.user_admin', 'road.role.compose', null);
+  7  
+  8    rollback;
+  9    dbms_output.put_line('[PASS] deploy-time attach of the same reserved permission permitted');
+ 10  exception
+ 11    when e_assertion then
+ 12      rollback;
+ 13      raise_application_error(-20999,
+ 14        'ASSERTION TOO BROAD - it refused a deploy-time attach, which attached_by exists to permit');
+ 15  end;
+ 16  /
+[PASS] deploy-time attach of the same reserved permission permitted
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.068
+SQL> 
+SQL> prompt === no rows were left behind ===
+=== no rows were left behind ===
+SQL> select count(*) as leftover_rows
+  2    from road_role_permissions
+  3   where role_name = 'road.user_admin'
+  4     and permission_name = 'road.role.compose';
+
+   [1mLEFTOVER_ROWS[m 
+________________ 
+               0 
+
+1 row selected. 
+
+Elapsed: 00:00:00.041
+Elapsed: 00:00:00.057
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.034
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

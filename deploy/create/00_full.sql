@@ -29,4 +29,5 @@ prompt === full deploy ===
 @deploy/create/80_standalone.generated.sql
 @deploy/create/90_rest.sql
 @deploy/create/95_data.sql
+@deploy/create/96_assertions.sql
 @deploy/create/99_verify.sql

@@ -107,6 +107,6 @@ begin
          'Expected exactly 1 ORDS JWT profile, found ' || l_count
          || ' - road_ctx issuer resolution is ambiguous, see spike-06-1');
 
-  dbms_output.put_line('[INFO] Identity model verified: 6 tables, 3 roles, 4 permissions, bootstrap admin present');
+  dbms_output.put_line('[INFO] Identity model verified: 6 tables, 3 roles, 5 permissions, bootstrap admin present');
 end;
 /
