@@ -1,0 +1,119 @@
+[INFO] START
+
+[INFO] RUN_ID=20260819_152553_grant-assertion-privilege_10724
+[INFO] ENV=admin
+[INFO] CONNECTION=quorate_admin
+[INFO] SCRIPT=scratch/grant-assertion-privilege.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/grant-assertion-privilege.sql
+[INFO] SCRIPT_SHA256=2d726e0de00e4070f0ce5459e4b1a0c029d8f1d09118ca97d14d50a5131e2ceb
+[INFO] GIT_COMMIT=1b67ea3
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=debug
+[INFO] TIMESTAMP=20260819_152553
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/admin/runs/20260819_152553_grant-assertion-privilege_10724.log
+
+[INTENT]
+Purpose: Grant CREATE ASSERTION to ROAD_KIT_DEV, so the spec patch 07 backport
+  (build-plan-08 phase 2) can create road_reserved_composition and road_admin_reachable.
+Approach: Single least-privilege grant from the ADB ADMIN connection, then read back
+  DBA_SYS_PRIVS to prove it landed. Mirrors the line in admin/grant-schema-privileges.sql,
+  copied from road-cal in this phase, which is the reproducible source of truth.
+Reason: Without it deploy/create/96_assertions.sql fails with ORA-01031. road-cal took the
+  same grant on 2026-08-19 (road-cal logs/admin/runs/20260819_103835_grant-assertion-privilege).
+  This is build-plan-08 phase 0, which exists precisely to front-load the one step needing
+  elevated credentials.
+Expected objects: none created. One system privilege granted.
+Risk: Low. CREATE ASSERTION is schema-scoped -- it permits constraining this schema's own
+  tables only. Deliberately NOT CREATE ANY ASSERTION, which would reach other schemas.
+Prior history checked: road-kit has never been granted this privilege; the identical grant to
+  ROAD_CAL_SCHEMA is the only prior instance in any environment.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 19 15:25:54 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> 
+SQL> -- INTENT:
+SQL> -- Purpose: Grant CREATE ASSERTION to ROAD_KIT_DEV, so the spec patch 07 backport
+SQL> --   (build-plan-08 phase 2) can create road_reserved_composition and road_admin_reachable.
+SQL> -- Approach: Single least-privilege grant from the ADB ADMIN connection, then read back
+SQL> --   DBA_SYS_PRIVS to prove it landed. Mirrors the line in admin/grant-schema-privileges.sql,
+SQL> --   copied from road-cal in this phase, which is the reproducible source of truth.
+SQL> -- Reason: Without it deploy/create/96_assertions.sql fails with ORA-01031. road-cal took the
+SQL> --   same grant on 2026-08-19 (road-cal logs/admin/runs/20260819_103835_grant-assertion-privilege).
+SQL> --   This is build-plan-08 phase 0, which exists precisely to front-load the one step needing
+SQL> --   elevated credentials.
+SQL> -- Expected objects: none created. One system privilege granted.
+SQL> -- Risk: Low. CREATE ASSERTION is schema-scoped -- it permits constraining this schema's own
+SQL> --   tables only. Deliberately NOT CREATE ANY ASSERTION, which would reach other schemas.
+SQL> -- Prior history checked: road-kit has never been granted this privilege; the identical grant to
+SQL> --   ROAD_CAL_SCHEMA is the only prior instance in any environment.
+SQL> -- END INTENT
+SQL> 
+SQL> prompt === schema exists ===
+=== schema exists ===
+SQL> select username, account_status from dba_users where username = 'ROAD_KIT_DEV';
+
+[1mUSERNAME[m        [1mACCOUNT_STATUS[m    
+_______________ _________________ 
+ROAD_KIT_DEV    OPEN              
+
+1 row selected. 
+
+Elapsed: 00:00:00.319
+SQL> 
+SQL> prompt === before ===
+=== before ===
+SQL> select privilege from dba_sys_privs where grantee = 'ROAD_KIT_DEV' and privilege like '%ASSERT%';
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.070
+SQL> 
+SQL> prompt === grant ===
+=== grant ===
+SQL> grant create assertion to road_kit_dev;
+
+Grant succeeded.
+
+Elapsed: 00:00:00.044
+SQL> 
+SQL> prompt === after ===
+=== after ===
+SQL> select privilege from dba_sys_privs where grantee = 'ROAD_KIT_DEV' and privilege like '%ASSERT%';
+
+[1mPRIVILEGE[m           
+___________________ 
+CREATE ASSERTION    
+
+1 row selected. 
+
+Elapsed: 00:00:00.045
+SQL> 
+SQL> prompt === grant complete ===
+=== grant complete ===
+Elapsed: 00:00:00.080
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.042
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

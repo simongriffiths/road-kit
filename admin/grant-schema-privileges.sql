@@ -55,6 +55,16 @@ grant create any context to &&schema_user;
 -- the context (ORA-41726) and a teardown-then-rebuild leaves the old definition in place.
 grant drop any context to &&schema_user;
 
+-- Required by spec patch 07: the road_reserved_composition assertion, which enforces at the
+-- database that a RESERVED permission is only ever attached to a role by a deploy (attached_by
+-- null) and never by a session. A CHECK constraint cannot express it -- is_reserved lives on
+-- road_permissions, not on the row being inserted.
+--
+-- CREATE ASSERTION, deliberately NOT CREATE ANY ASSERTION: the schema needs to constrain its own
+-- tables and nothing else. Contrast CREATE ANY CONTEXT above, which is broad only because Oracle
+-- offers no schema-scoped form of it.
+grant create assertion to &&schema_user;
+
 grant execute on dbms_crypto to &&schema_user;
 grant execute on utl_encode to &&schema_user;
 grant execute on utl_i18n to &&schema_user;
@@ -64,6 +74,7 @@ prompt Grants applied to:
 prompt   &&schema_user
 prompt
 prompt Baseline ROAD schema-owner privileges granted:
+prompt   CREATE ASSERTION
 prompt   CREATE SESSION
 prompt   CREATE TABLE
 prompt   CREATE VIEW
