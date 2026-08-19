@@ -1,0 +1,60 @@
+[INFO] START
+
+[INFO] RUN_ID=20260819_155550_probe-invalid_15070
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/probe-invalid.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/probe-invalid.sql
+[INFO] SCRIPT_SHA256=e68a5426d142fbb0f83351870cf926ff3354e1f85a4febe7e940d9aba2e783b8
+[INFO] GIT_COMMIT=d80d9ce
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260819_155550
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260819_155550_probe-invalid_15070.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 19 15:55:51 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+=== recompile ===
+
+Package ROAD_CTX_PKG_TEST altered.
+
+Elapsed: 00:00:00.095
+=== errors ===
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.286
+=== still invalid? ===
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.071
+Elapsed: 00:00:00.088
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.037
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

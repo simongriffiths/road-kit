@@ -1,0 +1,130 @@
+[INFO] START
+
+[INFO] RUN_ID=20260819_155319_phase5-demo-reset_13790
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/phase5-demo-reset.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/phase5-demo-reset.sql
+[INFO] SCRIPT_SHA256=431a8060077693a451bd4e0deca073dbacb004036e6fe656e028b22731b3fda5
+[INFO] GIT_COMMIT=d80d9ce
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=debug
+[INFO] TIMESTAMP=20260819_155319
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260819_155319_phase5-demo-reset_13790.log
+
+[INTENT]
+Purpose: Tear the demo application down so phase 5's create chain can be re-run from clean.
+Approach: Run deploy/drop/97_demo.sql, then confirm nothing demo_ or todo. survives.
+Reason: The first phase-5 attempt created the table and then failed compiling the package, so
+  the schema holds a half-applied demo. Re-running create is the fix, and this proves the drop
+  script works -- which the plan wanted proved anyway.
+Expected objects: ALL demo objects and seed rows REMOVED.
+Risk: Low and confined. Every object it touches is demo_/todo. prefixed. It deletes seed rows
+  from the FRAMEWORK tables road_permissions/road_roles/road_role_permissions -- deliberately,
+  and only the todo. and todo_admin ones.
+Prior history checked: scratch/phase5-demo-app-apply.sql, this session, FAILURE at the package
+  body with PLS-00231.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 19 15:53:20 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+SQL> -- INTENT:
+SQL> -- Purpose: Tear the demo application down so phase 5's create chain can be re-run from clean.
+SQL> -- Approach: Run deploy/drop/97_demo.sql, then confirm nothing demo_ or todo. survives.
+SQL> -- Reason: The first phase-5 attempt created the table and then failed compiling the package, so
+SQL> --   the schema holds a half-applied demo. Re-running create is the fix, and this proves the drop
+SQL> --   script works -- which the plan wanted proved anyway.
+SQL> -- Expected objects: ALL demo objects and seed rows REMOVED.
+SQL> -- Risk: Low and confined. Every object it touches is demo_/todo. prefixed. It deletes seed rows
+SQL> --   from the FRAMEWORK tables road_permissions/road_roles/road_role_permissions -- deliberately,
+SQL> --   and only the todo. and todo_admin ones.
+SQL> -- Prior history checked: scratch/phase5-demo-app-apply.sql, this session, FAILURE at the package
+SQL> --   body with PLS-00231.
+SQL> -- END INTENT
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> set serveroutput on size unlimited
+SQL> 
+SQL> @deploy/drop/97_demo.sql
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> 
+SQL> prompt === drop demo application (spec patch 08) ===
+=== drop demo application (spec patch 08) ===
+SQL> 
+SQL> -- Runs BEFORE the framework teardown, for the same reason 96_assertions.sql does: these rows are
+SQL> -- children of road_permissions and road_roles, and road_reserved_composition constrains the table
+SQL> -- they live in.
+SQL> --
+SQL> -- Deleting the seed rows before dropping the table is not redundant. road_role_permissions and
+SQL> -- road_permissions are FRAMEWORK tables -- dropping demo_todos leaves the demo's rows in them, and
+SQL> -- an adopter who ran the demo once would carry todo.purge in their permission catalogue forever.
+SQL> 
+SQL> prompt --- seed rows ---
+> delete from road_role_permissions where permission_name like 'todo.%';
+--- seed rows -- delete from road_role_permissions where permission_name like 'todo.%'
+SQL> delete from road_role_permissions where role_name = 'todo_admin';
+
+0 rows deleted.
+
+Elapsed: 00:00:00.134
+SQL> delete from road_principal_roles where role_name = 'todo_admin';
+
+0 rows deleted.
+
+Elapsed: 00:00:00.052
+SQL> delete from road_permissions where permission_name like 'todo.%';
+
+0 rows deleted.
+
+Elapsed: 00:00:00.042
+SQL> delete from road_roles where role_name = 'todo_admin';
+
+0 rows deleted.
+
+Elapsed: 00:00:00.033
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.036
+SQL> 
+SQL> prompt --- package ---
+> begin
+--- package -- begin
+SQL> execute immediate 'drop package body demo_todo_api_test';
+Rollback
+BEGIN immediate 'drop package body demo_todo_api_test'; END;
+                *
+ERROR at line 1:
+ORA-06550: line 1, column 17:
+PLS-00103: Encountered the symbol "drop package body demo_todo_api_test" when expecting one of the following:
+
+   := . ( @ % ;
+The symbol ":=" was substituted for "drop package body demo_todo_api_test" to continue.
+
+https://docs.oracle.com/error-help/db/ora-06550/
+
+
+More Details :
+https://docs.oracle.com/error-help/db/ora-06550/
+https://docs.oracle.com/error-help/db/pls-00103/
+Elapsed: 00:00:00.310
+Elapsed: 00:00:00.324
+Elapsed: 00:00:00.339
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=FAILURE
+SQLCL_EXIT=150
+
+[INFO] SQLCL_EXIT=150
+[INFO] END

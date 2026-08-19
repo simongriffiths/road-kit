@@ -1,0 +1,159 @@
+[INFO] START
+
+[INFO] RUN_ID=20260819_155300_phase5-demo-app-apply_13612
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/phase5-demo-app-apply.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/phase5-demo-app-apply.sql
+[INFO] SCRIPT_SHA256=d5f42487a96c341e35bd3cf15d42a3a7bec33d0e1b82cfdd78dee2e9a53bdf11
+[INFO] GIT_COMMIT=d80d9ce
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=debug
+[INFO] TIMESTAMP=20260819_155300
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260819_155300_phase5-demo-app-apply_13612.log
+
+[INTENT]
+Purpose: Land build-plan-08 phase 5 on road_kit_dev -- the todo demo application from
+  spec-patch-08: demo_todos, demo_todo_api, seven permissions, the todo_admin role.
+Approach: Run deploy/create/97_demo.sql, which creates every object and seeds and verifies the
+  permission model, then run demo_todo_api_test.run_all.
+Reason: build-plan-08 phase 5. road-kit has no application, so three of its own framework
+  features are untestable in their own repo.
+Expected objects: DEMO_TODOS, DEMO_TODOS_OWNER_STATUS, DEMO_TODOS_UPDATED_AT_TRG,
+  DEMO_TODO_API + DEMO_TODO_API_TEST, 7 permissions (todo.purge reserved), role todo_admin.
+Risk: Low, and confined -- every object is demo_/todo. prefixed, and 97_demo.sql is not invoked
+  by 00_full.sql, so an adopter deploying the framework does not get any of it.
+Prior history checked: phases 0-4 this session (16430fa..d80d9ce). Nothing named demo_ or todo.
+  exists in this schema.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 19 15:53:01 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+SQL> -- INTENT:
+SQL> -- Purpose: Land build-plan-08 phase 5 on road_kit_dev -- the todo demo application from
+SQL> --   spec-patch-08: demo_todos, demo_todo_api, seven permissions, the todo_admin role.
+SQL> -- Approach: Run deploy/create/97_demo.sql, which creates every object and seeds and verifies the
+SQL> --   permission model, then run demo_todo_api_test.run_all.
+SQL> -- Reason: build-plan-08 phase 5. road-kit has no application, so three of its own framework
+SQL> --   features are untestable in their own repo.
+SQL> -- Expected objects: DEMO_TODOS, DEMO_TODOS_OWNER_STATUS, DEMO_TODOS_UPDATED_AT_TRG,
+SQL> --   DEMO_TODO_API + DEMO_TODO_API_TEST, 7 permissions (todo.purge reserved), role todo_admin.
+SQL> -- Risk: Low, and confined -- every object is demo_/todo. prefixed, and 97_demo.sql is not invoked
+SQL> --   by 00_full.sql, so an adopter deploying the framework does not get any of it.
+SQL> -- Prior history checked: phases 0-4 this session (16430fa..d80d9ce). Nothing named demo_ or todo.
+SQL> --   exists in this schema.
+SQL> -- END INTENT
+SQL> 
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> set serveroutput on size unlimited
+SQL> 
+SQL> @deploy/create/97_demo.sql
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> 
+SQL> prompt === demo application (spec patch 08) ===
+=== demo application (spec patch 08) ===
+SQL> 
+SQL> -- INTENT:
+SQL> -- Purpose: Deploy the todo demo application -- one table, one package, its permissions and its
+SQL> --   role -- so road-kit's own framework features can be exercised in road-kit.
+SQL> -- Approach: Table, index and trigger, then the package, then the seed, then verification.
+SQL> -- Reason: Three framework features are untestable without an application: the RESERVED
+SQL> --   application permission (spec-patch-07 section 3.1's worked example),
+SQL> --   grant_all_app_permissions, and the "an application extends the role model" pattern.
+SQL> -- Expected objects: DEMO_TODOS, DEMO_TODOS_OWNER_STATUS, DEMO_TODOS_UPDATED_AT_TRG,
+SQL> --   DEMO_TODO_API (+ _TEST), 7 permissions, 1 role.
+SQL> -- Risk: Low, and confined -- every object is demo_/todo. prefixed.
+SQL> -- Prior history checked: build-plan-08 phase 5.
+SQL> -- END INTENT
+SQL> 
+SQL> -- NOT INVOKED BY deploy/create/00_full.sql, DELIBERATELY (spec-patch-08 section 3.1).
+SQL> --
+SQL> -- Two failure modes this placement avoids. In 00_full.sql, every adopter deploys todo tables and
+SQL> -- then deletes them, and road-kit stops being clean to adopt -- which is the one thing it is for.
+SQL> -- Kept fully separate and never run, the demo rots, and an unexercised demo is worse than none.
+SQL> --
+SQL> -- Resolution: this file is run unconditionally by whatever deploys road_kit_dev, and by nobody
+SQL> -- else. Dev is the exercise environment; adopters get the framework alone.
+SQL> --
+SQL> -- 97_, after 96_assertions.sql, is also deliberate: this seeds a RESERVED permission, so the
+SQL> -- assertions must already exist to validate that seed rather than be validated by it.
+SQL> 
+SQL> prompt --- table, index, trigger ---
+> -- The demo application's only table (spec-patch-08 section 4). Not framework: nothing in road-kit's
+--- table, index, trigger -- -- The demo application's only table (spec-patch-08 section 4). Not framework: nothing in road-kit's
+SQL> -- own surface references it, and deploy/create/00_full.sql does not create it -- only
+SQL> -- deploy/create/97_demo.sql does, which adopters do not run.
+SQL> --
+SQL> -- The demo_ prefix is load-bearing. It makes a stray demo object visible in user_tables at a
+SQL> -- glance, so "did the demo get deployed into an adopter's schema" is answerable by one query.
+SQL> --
+SQL> -- This is NOT a template to build on. An adopter copying the demo should copy the WIRING -- the
+SQL> -- require_permission calls, the ownership filter, the read_token handling, the error routing --
+SQL> -- and throw the domain away (spec-patch-08 section 11).
+SQL> --
+SQL> -- status DELETED is a soft delete. Hard deletion exists only behind demo_todo_api.purge, which is
+SQL> -- the point: a reserved permission needs something genuinely irreversible to guard, or the
+SQL> -- demonstration is theatre.
+SQL> --
+SQL> -- updated_at is trigger-maintained (coding-standards-v1.md section 5.5) and is exposed for display
+SQL> -- only. It is NOT the concurrency mechanism -- the opaque read_token from road_audit_api is
+SQL> -- (spec-patch-08 section 6.2). A client-supplied updated_at is rejected, never honoured.
+SQL> create table demo_todos (
+  2    todo_id            number generated always as identity,
+  3    owner_principal_id number not null references road_principals,
+  4    title              varchar2(200 char) not null,
+  5    notes              varchar2(4000 char),
+  6    due_at             timestamp with time zone,
+  7    status             varchar2(10 char) default 'OPEN' not null,
+  8    created_at         timestamp with time zone default systimestamp not null,
+  9    updated_at         timestamp with time zone default systimestamp not null,
+ 10    constraint demo_todos_pk primary key (todo_id),
+ 11    constraint demo_todos_status_ck check (status in ('OPEN', 'DONE', 'DELETED'))
+ 12  );
+
+Error starting at line : 33 File @ /Users/simon/Projects/road-kit/deploy/create/97_demo.sql
+In command -
+create table demo_todos (
+  todo_id            number generated always as identity,
+  owner_principal_id number not null references road_principals,
+  title              varchar2(200 char) not null,
+  notes              varchar2(4000 char),
+  due_at             timestamp with time zone,
+  status             varchar2(10 char) default 'OPEN' not null,
+  created_at         timestamp with time zone default systimestamp not null,
+  updated_at         timestamp with time zone default systimestamp not null,
+  constraint demo_todos_pk primary key (todo_id),
+  constraint demo_todos_status_ck check (status in ('OPEN', 'DONE', 'DELETED'))
+)
+Error report -
+ORA-00955: name is already used by an existing object
+
+https://docs.oracle.com/error-help/db/ora-00955/
+00955. 00000 -  "name is already used by an existing object"
+*Cause:    An attempt was made to create a database object (such
+           as a table, view, cluster, index, or synonym) that already
+           existed. A user's database objects must have distinct names.
+*Action:   Enter a unique name for the database object or modify
+           or drop the existing object so it can be reused.
+Rollback
+Elapsed: 00:00:00.116
+Elapsed: 00:00:00.133
+Elapsed: 00:00:00.149
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=FAILURE
+SQLCL_EXIT=187
+
+[INFO] SQLCL_EXIT=187
+[INFO] END

@@ -1,0 +1,110 @@
+[INFO] START
+
+[INFO] RUN_ID=20260819_155137_probe-demo-errors_13224
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/probe-demo-errors.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/probe-demo-errors.sql
+[INFO] SCRIPT_SHA256=b9cf56397536c2de650dc6009bea0866ccdaf698a7ad7fbd53960d58c994fe22
+[INFO] GIT_COMMIT=d80d9ce
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260819_155137
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260819_155137_probe-demo-errors_13224.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 19 15:51:37 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+
+Package DEMO_TODO_API compiled
+
+Elapsed: 00:00:00.183
+Elapsed: 00:00:00.205
+=== errors ===
+
+[1mNAME[m                  [1mTYPE[m               [1mLINE[m    [1mPOSITION[m [1mTEXT[m                                                                           
+_____________________ _______________ _______ ___________ ______________________________________________________________________________ 
+DEMO_TODO_API         PACKAGE BODY          1          14 PLS-00201: identifier 'DEMO_TODO_API' must be declared                         
+DEMO_TODO_API         PACKAGE BODY          1          14 PLS-00304: cannot compile body of 'DEMO_TODO_API' without its specification    
+DEMO_TODO_API         PACKAGE BODY          0           0 PL/SQL: Compilation unit analysis terminated                                   
+DEMO_TODO_API_TEST    PACKAGE BODY         50          12 PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL                      
+DEMO_TODO_API_TEST    PACKAGE BODY         50          12 PL/SQL: ORA-03066: invalid PL/SQL expression                                   
+DEMO_TODO_API_TEST    PACKAGE BODY         49           5 PL/SQL: SQL Statement ignored                                                  
+DEMO_TODO_API_TEST    PACKAGE BODY         54          12 PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL                      
+DEMO_TODO_API_TEST    PACKAGE BODY         54          12 PL/SQL: ORA-03066: invalid PL/SQL expression                                   
+DEMO_TODO_API_TEST    PACKAGE BODY         53           5 PL/SQL: SQL Statement ignored                                                  
+DEMO_TODO_API_TEST    PACKAGE BODY         58          12 PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL                      
+DEMO_TODO_API_TEST    PACKAGE BODY         58          12 PL/SQL: ORA-03066: invalid PL/SQL expression                                   
+DEMO_TODO_API_TEST    PACKAGE BODY         57           5 PL/SQL: SQL Statement ignored                                                  
+DEMO_TODO_API_TEST    PACKAGE BODY         83          13 PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL                      
+DEMO_TODO_API_TEST    PACKAGE BODY         83          13 PL/SQL: ORA-03066: invalid PL/SQL expression                                   
+
+[1mNAME[m                  [1mTYPE[m               [1mLINE[m    [1mPOSITION[m [1mTEXT[m                                                                  
+_____________________ _______________ _______ ___________ _____________________________________________________________________ 
+DEMO_TODO_API_TEST    PACKAGE BODY         82           5 PL/SQL: SQL Statement ignored                                         
+DEMO_TODO_API_TEST    PACKAGE BODY        103          16 PLS-00201: identifier 'DEMO_TODO_API.GET_TODO' must be declared       
+DEMO_TODO_API_TEST    PACKAGE BODY        103           7 PL/SQL: Statement ignored                                             
+DEMO_TODO_API_TEST    PACKAGE BODY        107          23 PLS-00201: identifier 'DEMO_TODO_API.C_NOT_FOUND' must be declared    
+DEMO_TODO_API_TEST    PACKAGE BODY        107           9 PL/SQL: Statement ignored                                             
+DEMO_TODO_API_TEST    PACKAGE BODY        131          16 PLS-00201: identifier 'DEMO_TODO_API.GET_TODOS' must be declared      
+DEMO_TODO_API_TEST    PACKAGE BODY        131           7 PL/SQL: Statement ignored                                             
+DEMO_TODO_API_TEST    PACKAGE BODY        147          14 PLS-00201: identifier 'DEMO_TODO_API.GET_TODOS' must be declared      
+DEMO_TODO_API_TEST    PACKAGE BODY        147           5 PL/SQL: Statement ignored                                             
+
+23 rows selected. 
+
+Elapsed: 00:00:00.271
+Elapsed: 00:00:00.290
+[INFO] USER_ERRORS_CHECK
+
+[1mNAME[m                  [1mTYPE[m               [1mLINE[m    [1mPOSITION[m [1mTEXT[m                                                                           
+_____________________ _______________ _______ ___________ ______________________________________________________________________________ 
+DEMO_TODO_API         PACKAGE BODY          1          14 PLS-00201: identifier 'DEMO_TODO_API' must be declared                         
+DEMO_TODO_API         PACKAGE BODY          1          14 PLS-00304: cannot compile body of 'DEMO_TODO_API' without its specification    
+DEMO_TODO_API         PACKAGE BODY          0           0 PL/SQL: Compilation unit analysis terminated                                   
+DEMO_TODO_API_TEST    PACKAGE BODY         50          12 PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL                      
+DEMO_TODO_API_TEST    PACKAGE BODY         50          12 PL/SQL: ORA-03066: invalid PL/SQL expression                                   
+DEMO_TODO_API_TEST    PACKAGE BODY         49           5 PL/SQL: SQL Statement ignored                                                  
+DEMO_TODO_API_TEST    PACKAGE BODY         54          12 PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL                      
+DEMO_TODO_API_TEST    PACKAGE BODY         54          12 PL/SQL: ORA-03066: invalid PL/SQL expression                                   
+DEMO_TODO_API_TEST    PACKAGE BODY         53           5 PL/SQL: SQL Statement ignored                                                  
+DEMO_TODO_API_TEST    PACKAGE BODY         58          12 PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL                      
+DEMO_TODO_API_TEST    PACKAGE BODY         58          12 PL/SQL: ORA-03066: invalid PL/SQL expression                                   
+DEMO_TODO_API_TEST    PACKAGE BODY         57           5 PL/SQL: SQL Statement ignored                                                  
+DEMO_TODO_API_TEST    PACKAGE BODY         83          13 PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL                      
+DEMO_TODO_API_TEST    PACKAGE BODY         83          13 PL/SQL: ORA-03066: invalid PL/SQL expression                                   
+
+[1mNAME[m                  [1mTYPE[m               [1mLINE[m    [1mPOSITION[m [1mTEXT[m                                                                  
+_____________________ _______________ _______ ___________ _____________________________________________________________________ 
+DEMO_TODO_API_TEST    PACKAGE BODY         82           5 PL/SQL: SQL Statement ignored                                         
+DEMO_TODO_API_TEST    PACKAGE BODY        103          16 PLS-00201: identifier 'DEMO_TODO_API.GET_TODO' must be declared       
+DEMO_TODO_API_TEST    PACKAGE BODY        103           7 PL/SQL: Statement ignored                                             
+DEMO_TODO_API_TEST    PACKAGE BODY        107          23 PLS-00201: identifier 'DEMO_TODO_API.C_NOT_FOUND' must be declared    
+DEMO_TODO_API_TEST    PACKAGE BODY        107           9 PL/SQL: Statement ignored                                             
+DEMO_TODO_API_TEST    PACKAGE BODY        131          16 PLS-00201: identifier 'DEMO_TODO_API.GET_TODOS' must be declared      
+DEMO_TODO_API_TEST    PACKAGE BODY        131           7 PL/SQL: Statement ignored                                             
+DEMO_TODO_API_TEST    PACKAGE BODY        147          14 PLS-00201: identifier 'DEMO_TODO_API.GET_TODOS' must be declared      
+DEMO_TODO_API_TEST    PACKAGE BODY        147           5 PL/SQL: Statement ignored                                             
+
+23 rows selected. 
+
+Elapsed: 00:00:00.048
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

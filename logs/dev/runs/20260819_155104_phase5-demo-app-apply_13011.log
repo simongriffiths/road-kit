@@ -1,0 +1,1368 @@
+[INFO] START
+
+[INFO] RUN_ID=20260819_155104_phase5-demo-app-apply_13011
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/phase5-demo-app-apply.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/phase5-demo-app-apply.sql
+[INFO] SCRIPT_SHA256=d5f42487a96c341e35bd3cf15d42a3a7bec33d0e1b82cfdd78dee2e9a53bdf11
+[INFO] GIT_COMMIT=d80d9ce
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=debug
+[INFO] TIMESTAMP=20260819_155104
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260819_155104_phase5-demo-app-apply_13011.log
+
+[INTENT]
+Purpose: Land build-plan-08 phase 5 on road_kit_dev -- the todo demo application from
+  spec-patch-08: demo_todos, demo_todo_api, seven permissions, the todo_admin role.
+Approach: Run deploy/create/97_demo.sql, which creates every object and seeds and verifies the
+  permission model, then run demo_todo_api_test.run_all.
+Reason: build-plan-08 phase 5. road-kit has no application, so three of its own framework
+  features are untestable in their own repo.
+Expected objects: DEMO_TODOS, DEMO_TODOS_OWNER_STATUS, DEMO_TODOS_UPDATED_AT_TRG,
+  DEMO_TODO_API + DEMO_TODO_API_TEST, 7 permissions (todo.purge reserved), role todo_admin.
+Risk: Low, and confined -- every object is demo_/todo. prefixed, and 97_demo.sql is not invoked
+  by 00_full.sql, so an adopter deploying the framework does not get any of it.
+Prior history checked: phases 0-4 this session (16430fa..d80d9ce). Nothing named demo_ or todo.
+  exists in this schema.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 19 15:51:05 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+SQL> -- INTENT:
+SQL> -- Purpose: Land build-plan-08 phase 5 on road_kit_dev -- the todo demo application from
+SQL> --   spec-patch-08: demo_todos, demo_todo_api, seven permissions, the todo_admin role.
+SQL> -- Approach: Run deploy/create/97_demo.sql, which creates every object and seeds and verifies the
+SQL> --   permission model, then run demo_todo_api_test.run_all.
+SQL> -- Reason: build-plan-08 phase 5. road-kit has no application, so three of its own framework
+SQL> --   features are untestable in their own repo.
+SQL> -- Expected objects: DEMO_TODOS, DEMO_TODOS_OWNER_STATUS, DEMO_TODOS_UPDATED_AT_TRG,
+SQL> --   DEMO_TODO_API + DEMO_TODO_API_TEST, 7 permissions (todo.purge reserved), role todo_admin.
+SQL> -- Risk: Low, and confined -- every object is demo_/todo. prefixed, and 97_demo.sql is not invoked
+SQL> --   by 00_full.sql, so an adopter deploying the framework does not get any of it.
+SQL> -- Prior history checked: phases 0-4 this session (16430fa..d80d9ce). Nothing named demo_ or todo.
+SQL> --   exists in this schema.
+SQL> -- END INTENT
+SQL> 
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> set serveroutput on size unlimited
+SQL> 
+SQL> @deploy/create/97_demo.sql
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> 
+SQL> prompt === demo application (spec patch 08) ===
+=== demo application (spec patch 08) ===
+SQL> 
+SQL> -- INTENT:
+SQL> -- Purpose: Deploy the todo demo application -- one table, one package, its permissions and its
+SQL> --   role -- so road-kit's own framework features can be exercised in road-kit.
+SQL> -- Approach: Table, index and trigger, then the package, then the seed, then verification.
+SQL> -- Reason: Three framework features are untestable without an application: the RESERVED
+SQL> --   application permission (spec-patch-07 section 3.1's worked example),
+SQL> --   grant_all_app_permissions, and the "an application extends the role model" pattern.
+SQL> -- Expected objects: DEMO_TODOS, DEMO_TODOS_OWNER_STATUS, DEMO_TODOS_UPDATED_AT_TRG,
+SQL> --   DEMO_TODO_API (+ _TEST), 7 permissions, 1 role.
+SQL> -- Risk: Low, and confined -- every object is demo_/todo. prefixed.
+SQL> -- Prior history checked: build-plan-08 phase 5.
+SQL> -- END INTENT
+SQL> 
+SQL> -- NOT INVOKED BY deploy/create/00_full.sql, DELIBERATELY (spec-patch-08 section 3.1).
+SQL> --
+SQL> -- Two failure modes this placement avoids. In 00_full.sql, every adopter deploys todo tables and
+SQL> -- then deletes them, and road-kit stops being clean to adopt -- which is the one thing it is for.
+SQL> -- Kept fully separate and never run, the demo rots, and an unexercised demo is worse than none.
+SQL> --
+SQL> -- Resolution: this file is run unconditionally by whatever deploys road_kit_dev, and by nobody
+SQL> -- else. Dev is the exercise environment; adopters get the framework alone.
+SQL> --
+SQL> -- 97_, after 96_assertions.sql, is also deliberate: this seeds a RESERVED permission, so the
+SQL> -- assertions must already exist to validate that seed rather than be validated by it.
+SQL> 
+SQL> prompt --- table, index, trigger ---
+> -- The demo application's only table (spec-patch-08 section 4). Not framework: nothing in road-kit's
+--- table, index, trigger -- -- The demo application's only table (spec-patch-08 section 4). Not framework: nothing in road-kit's
+SQL> -- own surface references it, and deploy/create/00_full.sql does not create it -- only
+SQL> -- deploy/create/97_demo.sql does, which adopters do not run.
+SQL> --
+SQL> -- The demo_ prefix is load-bearing. It makes a stray demo object visible in user_tables at a
+SQL> -- glance, so "did the demo get deployed into an adopter's schema" is answerable by one query.
+SQL> --
+SQL> -- This is NOT a template to build on. An adopter copying the demo should copy the WIRING -- the
+SQL> -- require_permission calls, the ownership filter, the read_token handling, the error routing --
+SQL> -- and throw the domain away (spec-patch-08 section 11).
+SQL> --
+SQL> -- status DELETED is a soft delete. Hard deletion exists only behind demo_todo_api.purge, which is
+SQL> -- the point: a reserved permission needs something genuinely irreversible to guard, or the
+SQL> -- demonstration is theatre.
+SQL> --
+SQL> -- updated_at is trigger-maintained (coding-standards-v1.md section 5.5) and is exposed for display
+SQL> -- only. It is NOT the concurrency mechanism -- the opaque read_token from road_audit_api is
+SQL> -- (spec-patch-08 section 6.2). A client-supplied updated_at is rejected, never honoured.
+SQL> create table demo_todos (
+  2    todo_id            number generated always as identity,
+  3    owner_principal_id number not null references road_principals,
+  4    title              varchar2(200 char) not null,
+  5    notes              varchar2(4000 char),
+  6    due_at             timestamp with time zone,
+  7    status             varchar2(10 char) default 'OPEN' not null,
+  8    created_at         timestamp with time zone default systimestamp not null,
+  9    updated_at         timestamp with time zone default systimestamp not null,
+ 10    constraint demo_todos_pk primary key (todo_id),
+ 11    constraint demo_todos_status_ck check (status in ('OPEN', 'DONE', 'DELETED'))
+ 12  );
+
+Table DEMO_TODOS created.
+
+Elapsed: 00:00:00.078
+SQL> 
+SQL> -- Every list query filters on both columns: the ownership scope and the status exclusion.
+SQL> create index demo_todos_owner_status on demo_todos (owner_principal_id, status);
+
+Index DEMO_TODOS_OWNER_STATUS created.
+
+Elapsed: 00:00:00.041
+SQL> @db/triggers/demo_todos_updated_at.create.sql
+SQL> create or replace trigger demo_todos_updated_at_trg
+  2  before insert or update on demo_todos
+  3  for each row
+  4  begin
+  5    :new.updated_at := systimestamp;
+  6  end;
+  7  /
+
+Trigger DEMO_TODOS_UPDATED_AT_TRG compiled
+
+Elapsed: 00:00:00.085
+Elapsed: 00:00:00.103
+SQL> 
+SQL> prompt --- package ---
+> create or replace package demo_todo_api as
+--- package -- create or replace package demo_todo_api as
+SQL> 
+SQL>   -- The demo application (planning/spec-patch-08-road-kit-demo-app.md, in road-cal).
+SQL>   --
+SQL>   -- This package exists to be READ, and to fail loudly when the framework breaks. It is the
+SQL>   -- smallest application that pulls on every seam an adopter will pull on: permission-gated
+SQL>   -- handlers, an application role, a RESERVED application permission, per-principal ownership, and
+SQL>   -- optimistic concurrency through road_audit_api.
+SQL>   --
+SQL>   -- It is not a product and not a starter template. Nobody should build on top of it.
+SQL>   --
+SQL>   -- Rule 1 of the patch, which keeps it honest: THE DEMO APP MAY NEVER CAUSE A FRAMEWORK CHANGE.
+SQL>   -- If it needs something road-kit lacks, that is a specification question for the framework,
+SQL>   -- raised separately -- never a change smuggled in under a demo.
+SQL>   --
+SQL>   -- Signature convention matches road_admin_api and road-cal's event_api: native JSON in, native
+SQL>   -- JSON out, no ref cursors or PL/SQL collections across the package boundary. Never commits --
+SQL>   -- ORDS commits on success and tests roll back to a savepoint.
+SQL>   --
+SQL>   -- Authorisation is enforced HERE, not only in the handler, for the same reason road_admin_api
+SQL>   -- does it: a second caller -- an MCP tool, a batch job, another package -- must not reach a
+SQL>   -- privileged operation by not being an ORDS handler.
+SQL> 
+SQL>   -- Error codes, matching error_api's fixed mapping exactly. Listed here so the demo reads as
+SQL>   -- documentation of the contract an adopter inherits.
+SQL>   c_validation constant number := -20001;  -- 400 VALIDATION_ERROR
+
+Error starting at line : 93 File @ /Users/simon/Projects/road-kit/deploy/create/97_demo.sql
+In command -
+  c_validation constant number := -20001;  -- 400 VALIDATION_ERROR
+Error report -
+Unknown Command
+
+SQL>   c_not_found  constant number := -20004;  -- 404 NOT_FOUND
+
+Error starting at line : 94 File @ /Users/simon/Projects/road-kit/deploy/create/97_demo.sql
+In command -
+  c_not_found  constant number := -20004;  -- 404 NOT_FOUND
+Error report -
+Unknown Command
+
+SQL>   c_conflict   constant number := -20009;  -- 409 CONFLICT
+
+Error starting at line : 95 File @ /Users/simon/Projects/road-kit/deploy/create/97_demo.sql
+In command -
+  c_conflict   constant number := -20009;  -- 409 CONFLICT
+Error report -
+Unknown Command
+
+SQL> 
+SQL>   -- Fixed 409 wording. It must read as a request to RE-EVALUATE, never as an instruction to retry
+SQL>   -- (spec-patch-02-mcp.md section 5). An agent told to retry will retry, and the second write is
+SQL>   -- the one that silently destroys the change it could not see. Do not vary this text per call.
+SQL>   c_conflict_message constant varchar2(300) :=
+
+Error starting at line : 100 File @ /Users/simon/Projects/road-kit/deploy/create/97_demo.sql
+In command -
+  c_conflict_message constant varchar2(300) :=
+Error report -
+Unknown Command
+
+SP2-0044: For a list of known commands enter HELP
+and to leave enter EXIT.
+SQL>     'The todo changed since you read it. Call GET /todos/{todo_id}/ to see the current state, ' ||
+
+Error starting at line : 101 File @ /Users/simon/Projects/road-kit/deploy/create/97_demo.sql
+In command -
+    'The todo changed since you read it. Call GET /todos/{todo_id}/ to see the current state, ' ||
+Error report -
+Unknown Command
+
+SQL> 'then decide whether the change is still appropriate.';
+
+Error starting at line : 102 File @ /Users/simon/Projects/road-kit/deploy/create/97_demo.sql
+In command -
+'then decide whether the change is still appropriate.'
+Error report -
+Unknown Command
+
+SQL> 
+SQL>   -- GET /todos/   requires todo.list
+SQL>   -- p_request: { "status": "OPEN|DONE|DELETED", "q": "<term>", "owner": n,
+SQL>   --              "offset": n, "limit": n }  -- all optional
+SQL>   -- Returns:   { "items": [ <todo>, ... ], "hasMore": bool, "limit": n, "offset": n, "count": n,
+SQL>   --              "read_token": "<guid>" }
+SQL>   --
+SQL>   -- Scoped to the caller's own rows unless "owner" names someone else, which requires
+SQL>   -- todo.list_all. The same endpoint with permission-dependent scope, deliberately, rather than a
+SQL>   -- separate /todos/all/ route: it is the case adopters actually hit and the one that is easy to
+SQL>   -- get wrong. A route-shaped check teaches nothing transferable (spec-patch-08 section 6.1).
+SQL>   --
+SQL>   -- DELETED rows are excluded unless "status" asks for them by name.
+SQL>   --
+SQL>   -- hasMore comes from fetching limit+1 rows and discarding the extra. There is deliberately no
+SQL>   -- total count, which would be a second full scan to render a number nothing needs.
+SQL> function get_todos(p_request in json default null) return json;
+
+Error starting at line : 119 File @ /Users/simon/Projects/road-kit/deploy/create/97_demo.sql
+In command -
+function get_todos(p_request in json default null) return json
+Error report -
+Unknown Command
+
+SQL> 
+SQL>   -- POST /todos/   requires todo.create
+SQL>   -- p_request: { "title": "...", "notes": "...", "due_at": "<iso8601>" }
+SQL>   -- Returns:   the created todo object. NO read_token -- read it back via get_todo before
+SQL>   --            updating, matching road-cal's create endpoints.
+SQL>   --
+SQL>   -- owner_principal_id is taken from road_ctx_pkg.principal_id and is NEVER read from the body,
+SQL>   -- for the same reason granted_by is not on grant_role and attached_by is not on
+SQL>   -- attach_permission: a caller who could nominate it could forge the record of who owns what. A
+SQL>   -- body that supplies it is a 400, not a silently ignored field -- silently ignoring an attempt
+SQL>   -- to set ownership tells the caller their forgery worked.
+SQL> function create_todo(p_request in json) return json;
+
+Error starting at line : 131 File @ /Users/simon/Projects/road-kit/deploy/create/97_demo.sql
+In command -
+function create_todo(p_request in json) return json
+Error report -
+Unknown Command
+
+SP2-0044: For a list of known commands enter HELP
+and to leave enter EXIT.
+SQL> 
+SQL>   -- GET /todos/:todo_id/   requires todo.get
+SQL>   -- p_request: { "todo_id": n }
+SQL>   -- Returns:   { "todo": <todo>, "read_token": "<guid>" }
+SQL> function get_todo(p_request in json) return json;
+
+Error starting at line : 136 File @ /Users/simon/Projects/road-kit/deploy/create/97_demo.sql
+In command -
+function get_todo(p_request in json) return json
+Error report -
+Unknown Command
+
+SQL> 
+SQL>   -- PATCH /todos/:todo_id/   requires todo.update
+SQL>   -- p_request: { "todo_id": n, "read_token": "<guid>",
+SQL>   --              "title": "...", "notes": "...", "due_at": "...", "status": "OPEN|DONE" }
+SQL>   -- Returns:   the updated todo object.
+SQL>   --
+SQL>   -- status accepts OPEN and DONE only. DELETED is reachable through delete_todo alone, so
+SQL>   -- "I finished it" and "I want it gone" stay distinguishable.
+SQL>   --
+SQL>   -- read_token is required and checked with road_audit_api.check_fresh. Stale -> c_conflict.
+SQL> function update_todo(p_request in json) return json;
+
+Error starting at line : 147 File @ /Users/simon/Projects/road-kit/deploy/create/97_demo.sql
+In command -
+function update_todo(p_request in json) return json
+Error report -
+Unknown Command
+
+SQL> 
+SQL>   -- DELETE /todos/:todo_id/   requires todo.delete
+SQL>   -- p_request: { "todo_id": n, "read_token": "<guid>" }
+SQL>   -- Returns:   { "todo_id": n, "deleted": true|false }
+SQL>   --            deleted=false when it was already DELETED -- idempotent, not an error, matching
+SQL>   --            grant_role and attach_permission.
+SQL>   --
+SQL>   -- Soft delete. The row survives; only purge removes it.
+SQL> function delete_todo(p_request in json) return json;
+
+Error starting at line : 156 File @ /Users/simon/Projects/road-kit/deploy/create/97_demo.sql
+In command -
+function delete_todo(p_request in json) return json
+Error report -
+Unknown Command
+
+SQL> 
+SQL>   -- POST /todos/purge/   requires todo.purge  -- RESERVED
+SQL>   -- p_request: { "before": "<iso8601>" }
+SQL>   -- Returns:   { "purged": n }
+SQL>   --
+SQL>   -- Hard-deletes DONE and DELETED rows older than the cutoff, ACROSS ALL OWNERS. Irreversible,
+SQL>   -- which is exactly what qualifies it to be the reserved permission's subject.
+SQL>   --
+SQL>   -- todo.purge is reserved and does NOT start with road. -- spec-patch-07 section 3.1's worked
+SQL>   -- example, and the whole reason road-kit needed an application: a prefix rule would let any
+SQL>   -- road.role.compose holder attach this from the composition UI, and the entire point of it is to
+SQL>   -- be the permission nobody holds by default.
+SQL> function purge(p_request in json) return json;
+
+Error starting at line : 169 File @ /Users/simon/Projects/road-kit/deploy/create/97_demo.sql
+In command -
+function purge(p_request in json) return json
+Error report -
+Unknown Command
+
+SP2-0044: For a list of known commands enter HELP
+and to leave enter EXIT.
+SQL> 
+SQL> end demo_todo_api;
+
+Error starting at line : 171 File @ /Users/simon/Projects/road-kit/deploy/create/97_demo.sql
+In command -
+end demo_todo_api
+Error report -
+Unknown Command
+
+SQL> /
+
+Trigger DEMO_TODOS_UPDATED_AT_TRG compiled
+
+Elapsed: 00:00:00.083
+SQL> @db/package_specs/demo_todo_api_test.pks
+SQL> create or replace package demo_todo_api_test as
+  2  
+  3    -- Tests for the demo application (spec-patch-08 section 8). Same shape as road_admin_api_test:
+  4    -- seeds its own principals and roles, runs each test independently, tears down in an exception
+  5    -- handler so a failure still cleans up.
+  6    --
+  7    -- Covers what the demo exists to prove: ownership isolation, the read_token staleness path, the
+  8    -- status transition rules, and purge's cross-owner reach. The framework-side assertions the demo
+  9    -- ENABLES -- that attach_permission refuses todo.purge, and that grant_all_app_permissions skips
+ 10    -- it -- belong in road_admin_api_test, not here.
+ 11    procedure run_all;
+ 12  
+ 13  end demo_todo_api_test;
+ 14  /
+
+Package DEMO_TODO_API_TEST compiled
+
+Elapsed: 00:00:00.074
+Elapsed: 00:00:00.090
+SQL> @db/package_bodies/demo_todo_api.pkb
+SQL> create or replace package body demo_todo_api as
+  2  
+  3    c_app_schema constant varchar2(30) := 'ROAD_KIT_DEMO';
+  4  
+  5    c_default_limit constant number := 25;
+  6    c_max_limit     constant number := 100;
+  7  
+  8    -- A search term is user input reaching a LIKE pattern, so its wildcards have to be neutralised
+  9    -- or a user typing '%' silently matches everything. Escape the escape character first, or
+ 10    -- escaping the wildcards re-introduces it. Lifted verbatim from road_admin_api.like_term -- the
+ 11    -- demo copies the framework's idioms rather than inventing its own.
+ 12    function like_term(p_term in varchar2) return varchar2 is
+ 13    begin
+ 14      return '%' || replace(replace(replace(lower(p_term), '\', '\\'), '%', '\%'), '_', '\_') || '%';
+ 15    end like_term;
+ 16  
+ 17    function parse_ts(p_text in varchar2, p_field in varchar2) return timestamp with time zone is
+ 18    begin
+ 19      if p_text is null then
+ 20        return null;
+ 21      end if;
+ 22      return to_timestamp_tz(p_text, 'YYYY-MM-DD"T"HH24:MI:SS.FFTZH:TZM');
+ 23    exception
+ 24      when others then
+ 25        raise_application_error(c_validation, p_field || ' must be ISO 8601 with a UTC offset');
+ 26    end parse_ts;
+ 27  
+ 28    -- The canonical todo object (spec-patch-08 section 6).
+ 29    --
+ 30    -- owner_principal_id is returned; owner email and display_name are not. The id is an opaque
+ 31    -- internal number, and an administrator who needs to put a name to it can resolve it through
+ 32    -- /admin/principals/, which they already hold road.role.grant for. Duplicating principal PII
+ 33    -- into a second endpoint widens the audience for it and gains nothing.
+ 34    function build_todo_json(p_todo_id in number) return json is
+ 35      l_result json;
+ 36    begin
+ 37      select json_object(
+ 38               'todo_id'            value t.todo_id,
+ 39               'owner_principal_id' value t.owner_principal_id,
+ 40               'title'              value t.title,
+ 41               'notes'              value t.notes,
+ 42               'due_at'             value t.due_at,
+ 43               'status'             value t.status,
+ 44               'created_at'         value t.created_at,
+ 45               'updated_at'         value t.updated_at
+ 46               returning json
+ 47             )
+ 48        into l_result
+ 49        from demo_todos t
+ 50       where t.todo_id = p_todo_id;
+ 51  
+ 52      return l_result;
+ 53    end build_todo_json;
+ 54  
+ 55    -- Resolves a todo the caller is entitled to see, or raises NOT_FOUND.
+ 56    --
+ 57    -- 404 rather than 403 for another owner's row, DELIBERATELY, and it is the one place the demo
+ 58    -- departs from the framework's own 403-on-refusal contract (spec-patch-08 section 6.1, decided
+ 59    -- 2026-08-19). There, the PERMISSION is missing and saying so is useful. Here the permission is
+ 60    -- held and the ROW is out of scope -- a 403 would confirm the row exists, which the caller has
+ 61    -- not earned. Same reason a login form should not say "no such user".
+ 62    function owned_todo_id(p_todo_id in number) return number is
+ 63      l_owner number;
+ 64    begin
+ 65      if p_todo_id is null then
+ 66        raise_application_error(c_validation, 'todo_id is required');
+ 67      end if;
+ 68  
+ 69      begin
+ 70        select owner_principal_id into l_owner from demo_todos where todo_id = p_todo_id;
+ 71      exception
+ 72        when no_data_found then
+ 73          raise_application_error(c_not_found, 'Todo ' || p_todo_id || ' not found');
+ 74      end;
+ 75  
+ 76      if l_owner != road_ctx_pkg.principal_id
+ 77         and not road_ctx_pkg.has_permission('todo.list_all') then
+ 78        raise_application_error(c_not_found, 'Todo ' || p_todo_id || ' not found');
+ 79      end if;
+ 80  
+ 81      return p_todo_id;
+ 82    end owned_todo_id;
+ 83  
+ 84    -- Shared by update_todo and delete_todo. Both mutate a row the caller read, so both must prove
+ 85    -- the read is still current (spec-patch-08 section 6.2).
+ 86    procedure require_fresh(p_todo_id in number, p_request in json) is
+ 87      l_token_txt varchar2(100);
+ 88      l_token     raw(16);
+ 89      l_updated   timestamp with time zone;
+ 90    begin
+ 91      l_token_txt := json_value(p_request, '$.read_token');
+ 92      if l_token_txt is null then
+ 93        raise_application_error(c_validation, 'read_token is required');
+ 94      end if;
+ 95  
+ 96      begin
+ 97        l_token := hextoraw(l_token_txt);
+ 98      exception
+ 99        when others then
+100          raise_application_error(c_validation, 'read_token is not a valid token');
+101      end;
+102  
+103      select updated_at into l_updated from demo_todos where todo_id = p_todo_id;
+104  
+105      if not road_audit_api.check_fresh(
+106           p_guid               => l_token,
+107           p_app_schema         => c_app_schema,
+108           p_entity_type        => 'DEMO_TODOS',
+109           p_entity_id          => to_char(p_todo_id),
+110           p_current_updated_at => l_updated
+111         )
+112      then
+113        raise_application_error(c_conflict, c_conflict_message);
+114      end if;
+115    end require_fresh;
+116  
+117    function get_todos(p_request in json default null) return json is
+118      l_offset      number;
+119      l_limit       number;
+120      l_status      varchar2(10 char);
+121      l_q           varchar2(200 char);
+122      l_owner       number;
+123      l_caller_type varchar2(30);
+124      l_caller_ref  varchar2(200);
+125      l_read_token  raw(16);
+126      l_items       json;
+127      l_count       number;
+128    begin
+129      road_ctx_pkg.require_permission('todo.list');
+130  
+131      select nvl(json_value(p_request, '$.offset' returning number), 0),
+132             nvl(json_value(p_request, '$.limit'  returning number), c_default_limit),
+133             upper(json_value(p_request, '$.status')),
+134             json_value(p_request, '$.q'),
+135             json_value(p_request, '$.owner' returning number),
+136             nvl(json_value(p_request, '$.caller_type'), 'BROWSER'),
+137             json_value(p_request, '$.caller_ref')
+138        into l_offset, l_limit, l_status, l_q, l_owner, l_caller_type, l_caller_ref
+139        from dual;
+140  
+141      if l_offset < 0 then
+142        raise_application_error(c_validation, 'offset must not be negative');
+143      end if;
+144      l_limit := least(greatest(l_limit, 1), c_max_limit);
+145  
+146      if l_status is not null and l_status not in ('OPEN', 'DONE', 'DELETED') then
+147        raise_application_error(c_validation, 'status must be one of OPEN, DONE, DELETED');
+148      end if;
+149  
+150      -- THE authorisation case this demo exists to show. Reading your own rows needs todo.list;
+151      -- reading anyone else's needs todo.list_all as well. Note the check is on the VALUE, not on
+152      -- whether the parameter was supplied -- passing your own id explicitly is not an escalation
+153      -- and must not be treated as one.
+154      l_owner := nvl(l_owner, road_ctx_pkg.principal_id);
+155      if l_owner != road_ctx_pkg.principal_id then
+156        road_ctx_pkg.require_permission('todo.list_all');
+157      end if;
+158  
+159      -- limit+1, then discard the extra: hasMore without a second full scan.
+160      select json_arrayagg(
+161               json_object(
+162                 'todo_id'            value todo_id,
+163                 'owner_principal_id' value owner_principal_id,
+164                 'title'              value title,
+165                 'notes'              value notes,
+166                 'due_at'             value due_at,
+167                 'status'             value status,
+168                 'created_at'         value created_at,
+169                 'updated_at'         value updated_at
+170                 returning json
+171               )
+172               order by rn returning json
+173             )
+174        into l_items
+175        from (
+176          select t.*, row_number() over (order by t.created_at desc, t.todo_id desc) as rn
+177            from demo_todos t
+178           where t.owner_principal_id = l_owner
+179             and (l_status is null and t.status != 'DELETED' or t.status = l_status)
+180             and (l_q is null or lower(t.title) like like_term(l_q) escape '\')
+181        )
+182       where rn > l_offset
+183         and rn <= l_offset + l_limit + 1;
+184  
+185      l_items := nvl(l_items, json('[]'));
+186      select count(*) into l_count from json_table(l_items, '$[*]' columns (dummy number path '$.todo_id'));
+187  
+188      l_read_token := road_audit_api.issue_read_token(
+189        p_caller_type => l_caller_type,
+190        p_app_schema  => c_app_schema,
+191        p_endpoint    => 'get_todos',
+192        p_caller_ref  => l_caller_ref
+193      );
+194  
+195      return json_object(
+196               'items'      value case when l_count > l_limit
+197                                  then json_query(l_items, '$[0 to ' || (l_limit - 1) || ']'
+198                                                  returning json)
+199                                  else l_items end,
+200               'hasMore'    value case when l_count > l_limit then 'true' else 'false' end format json,
+201               'limit'      value l_limit,
+202               'offset'     value l_offset,
+203               'count'      value least(l_count, l_limit),
+204               'read_token' value rawtohex(l_read_token)
+205               returning json
+206             );
+207    end get_todos;
+208  
+209    function create_todo(p_request in json) return json is
+210      l_title   varchar2(200 char);
+211      l_notes   varchar2(4000 char);
+212      l_due_txt varchar2(100);
+213      l_todo_id number;
+214    begin
+215      road_ctx_pkg.require_permission('todo.create');
+216  
+217      -- An attempt to nominate the owner is REFUSED, not ignored. Silently dropping it would tell a
+218      -- caller probing for the hole that their forgery was accepted.
+219      if json_exists(p_request, '$.owner_principal_id') then
+220        raise_application_error(c_validation,
+221          'owner_principal_id is taken from the session and must not be supplied');
+222      end if;
+223  
+224      select json_value(p_request, '$.title'),
+225             json_value(p_request, '$.notes'),
+226             json_value(p_request, '$.due_at')
+227        into l_title, l_notes, l_due_txt
+228        from dual;
+229  
+230      if l_title is null then
+231        raise_application_error(c_validation, 'title is required');
+232      end if;
+233  
+234      insert into demo_todos (owner_principal_id, title, notes, due_at)
+235      values (road_ctx_pkg.principal_id, l_title, l_notes, parse_ts(l_due_txt, 'due_at'))
+236      returning todo_id into l_todo_id;
+237  
+238      return build_todo_json(l_todo_id);
+239    end create_todo;
+240  
+241    function get_todo(p_request in json) return json is
+242      l_todo_id     number;
+243      l_caller_type varchar2(30);
+244      l_caller_ref  varchar2(200);
+245      l_read_token  raw(16);
+246    begin
+247      road_ctx_pkg.require_permission('todo.get');
+248  
+249      select json_value(p_request, '$.todo_id' returning number),
+250             nvl(json_value(p_request, '$.caller_type'), 'BROWSER'),
+251             json_value(p_request, '$.caller_ref')
+252        into l_todo_id, l_caller_type, l_caller_ref
+253        from dual;
+254  
+255      l_todo_id := owned_todo_id(l_todo_id);
+256  
+257      l_read_token := road_audit_api.issue_read_token(
+258        p_caller_type => l_caller_type,
+259        p_app_schema  => c_app_schema,
+260        p_endpoint    => 'get_todo',
+261        p_caller_ref  => l_caller_ref
+262      );
+263  
+264      return json_object(
+265               'todo'       value build_todo_json(l_todo_id),
+266               'read_token' value rawtohex(l_read_token)
+267               returning json
+268             );
+269    end get_todo;
+270  
+271    function update_todo(p_request in json) return json is
+272      l_todo_id number;
+273      l_status  varchar2(10 char);
+274    begin
+275      road_ctx_pkg.require_permission('todo.update');
+276  
+277      l_todo_id := owned_todo_id(json_value(p_request, '$.todo_id' returning number));
+278      require_fresh(l_todo_id, p_request);
+279  
+280      l_status := upper(json_value(p_request, '$.status'));
+281  
+282      -- DELETED is deliberately not reachable here. "I finished it" and "I want it gone" are
+283      -- different intentions and the audit trail should keep them apart.
+284      if l_status is not null and l_status not in ('OPEN', 'DONE') then
+285        raise_application_error(c_validation,
+286          'status must be OPEN or DONE - use DELETE /todos/{todo_id}/ to remove a todo');
+287      end if;
+288  
+289      update demo_todos
+290         set title  = case when json_exists(p_request, '$.title')
+291                           then json_value(p_request, '$.title') else title end,
+292             notes  = case when json_exists(p_request, '$.notes')
+293                           then json_value(p_request, '$.notes') else notes end,
+294             due_at = case when json_exists(p_request, '$.due_at')
+295                           then parse_ts(json_value(p_request, '$.due_at'), 'due_at') else due_at end,
+296             status = nvl(l_status, status)
+297       where todo_id = l_todo_id;
+298  
+299      return build_todo_json(l_todo_id);
+300    end update_todo;
+301  
+302    function delete_todo(p_request in json) return json is
+303      l_todo_id number;
+304      l_status  varchar2(10 char);
+305    begin
+306      road_ctx_pkg.require_permission('todo.delete');
+307  
+308      l_todo_id := owned_todo_id(json_value(p_request, '$.todo_id' returning number));
+309      require_fresh(l_todo_id, p_request);
+310  
+311      select status into l_status from demo_todos where todo_id = l_todo_id;
+312  
+313      if l_status = 'DELETED' then
+314        -- Idempotent, not an error: same shape as grant_role and attach_permission.
+315        return json_object('todo_id' value l_todo_id, 'deleted' value 'false' format json
+316                           returning json);
+317      end if;
+318  
+319      update demo_todos set status = 'DELETED' where todo_id = l_todo_id;
+320  
+321      return json_object('todo_id' value l_todo_id, 'deleted' value 'true' format json
+322                         returning json);
+323    end delete_todo;
+324  
+325    function purge(p_request in json) return json is
+326      l_before_txt varchar2(100);
+327      l_before     timestamp with time zone;
+328      l_purged     number;
+329    begin
+330      -- todo.purge is RESERVED. Nothing here reads that flag -- the reservation governs who may
+331      -- attach the permission to a role, not what the handler does once someone holds it. The
+332      -- guard is road_reserved_composition, in the database, one layer down.
+333      road_ctx_pkg.require_permission('todo.purge');
+334  
+335      l_before_txt := json_value(p_request, '$.before');
+336      if l_before_txt is null then
+337        raise_application_error(c_validation, 'before is required');
+338      end if;
+339      l_before := parse_ts(l_before_txt, 'before');
+340  
+341      -- Across ALL owners, and no ownership filter anywhere: that is what makes this the dangerous
+342      -- operation worth reserving.
+343      delete from demo_todos
+344       where status in ('DONE', 'DELETED')
+345         and updated_at < l_before;
+346      l_purged := sql%rowcount;
+347  
+348      road_audit_api.log_admin_action(
+349        p_endpoint    => 'purge',
+350        p_entity_type => 'DEMO_TODOS',
+351        p_entity_id   => to_char(l_purged),
+352        p_outcome     => 'OK'
+353      );
+354  
+355      return json_object('purged' value l_purged returning json);
+356    end purge;
+357  
+358  end demo_todo_api;
+359  /
+
+Package Body DEMO_TODO_API compiled
+
+
+Errors for PACKAGE BODY DEMO_TODO_API:
+
+LINE/COL ERROR
+-------- -----------------------------------------------------------------
+0/0      PL/SQL: Compilation unit analysis terminated
+1/14     PLS-00304: cannot compile body of 'DEMO_TODO_API' without its
+         specification
+1/14     PLS-00201: identifier 'DEMO_TODO_API' must be declared
+Elapsed: 00:00:00.172
+Elapsed: 00:00:00.188
+SQL> @db/package_bodies/demo_todo_api_test.pkb
+SQL> create or replace package body demo_todo_api_test as
+  2  
+  3    -- The tests that carry this package are test_other_owners_todo_is_not_found (the ownership seam)
+  4    -- and test_stale_read_token_conflicts (the concurrency seam). Everything else is ordinary
+  5    -- coverage of the handler contract.
+  6  
+  7    c_issuer constant varchar2(64) := 'urn:road:test:demo_todo';
+  8  
+  9    l_pass number := 0;
+ 10    l_fail number := 0;
+ 11  
+ 12    procedure fail(p_message in varchar2) is
+ 13    begin
+ 14      raise_application_error(-20000, p_message);
+ 15    end fail;
+ 16  
+ 17    procedure assert_eq(p_label in varchar2, p_expected in varchar2, p_actual in varchar2) is
+ 18    begin
+ 19      if nvl(p_actual, '<null>') != nvl(p_expected, '<null>') then
+ 20        fail(p_label || ': expected [' || p_expected || '] got [' || p_actual || ']');
+ 21      end if;
+ 22    end assert_eq;
+ 23  
+ 24    function principal_of(p_subject in varchar2) return number is
+ 25      l_id number;
+ 26    begin
+ 27      select principal_id into l_id
+ 28        from road_principals where issuer = c_issuer and subject = p_subject;
+ 29      return l_id;
+ 30    end principal_of;
+ 31  
+ 32    procedure setup is
+ 33    begin
+ 34      execute immediate 'alter session disable parallel dml';
+ 35  
+ 36      -- OWNER holds the ordinary todo permissions; OTHER holds the same but owns different rows;
+ 37      -- ADMIN holds todo_admin only. Three principals is the minimum that can show ownership
+ 38      -- isolation AND that an administrator crosses it.
+ 39      insert into road_principals (issuer, subject, display_name, status)
+ 40      select c_issuer, 'OWNER', 'demo_todo test fixture', 'ACTIVE' from dual
+ 41       where not exists (select 1 from road_principals where issuer = c_issuer and subject = 'OWNER');
+ 42      insert into road_principals (issuer, subject, display_name, status)
+ 43      select c_issuer, 'OTHER', 'demo_todo test fixture', 'ACTIVE' from dual
+ 44       where not exists (select 1 from road_principals where issuer = c_issuer and subject = 'OTHER');
+ 45      insert into road_principals (issuer, subject, display_name, status)
+ 46      select c_issuer, 'ADMIN', 'demo_todo test fixture', 'ACTIVE' from dual
+ 47       where not exists (select 1 from road_principals where issuer = c_issuer and subject = 'ADMIN');
+ 48  
+ 49      insert into road_principal_roles (principal_id, role_name)
+ 50      select principal_of('OWNER'), 'user' from dual
+ 51       where not exists (select 1 from road_principal_roles
+ 52                          where principal_id = principal_of('OWNER') and role_name = 'user');
+ 53      insert into road_principal_roles (principal_id, role_name)
+ 54      select principal_of('OTHER'), 'user' from dual
+ 55       where not exists (select 1 from road_principal_roles
+ 56                          where principal_id = principal_of('OTHER') and role_name = 'user');
+ 57      insert into road_principal_roles (principal_id, role_name)
+ 58      select principal_of('ADMIN'), 'todo_admin' from dual
+ 59       where not exists (select 1 from road_principal_roles
+ 60                          where principal_id = principal_of('ADMIN') and role_name = 'todo_admin');
+ 61  
+ 62      commit;
+ 63    end setup;
+ 64  
+ 65    procedure teardown is
+ 66    begin
+ 67      delete from demo_todos
+ 68       where owner_principal_id in (select principal_id from road_principals where issuer = c_issuer);
+ 69      delete from road_principal_roles
+ 70       where principal_id in (select principal_id from road_principals where issuer = c_issuer);
+ 71      delete from road_principals where issuer = c_issuer;
+ 72      commit;
+ 73      road_ctx_pkg.end_request;
+ 74    end teardown;
+ 75  
+ 76    -- Creates a todo directly, bypassing the API, so a test can arrange state without depending on
+ 77    -- create_todo being correct.
+ 78    function seed_todo(p_subject in varchar2, p_title in varchar2,
+ 79                       p_status in varchar2 default 'OPEN') return number is
+ 80      l_id number;
+ 81    begin
+ 82      insert into demo_todos (owner_principal_id, title, status)
+ 83      values (principal_of(p_subject), p_title, p_status)
+ 84      returning todo_id into l_id;
+ 85      return l_id;
+ 86    end seed_todo;
+ 87  
+ 88    ---------------------------------------------------------------------------
+ 89    -- Ownership (spec-patch-08 section 6.1)
+ 90    ---------------------------------------------------------------------------
+ 91  
+ 92    -- THE ownership test. A todo belonging to someone else is NOT FOUND, not FORBIDDEN -- a 403
+ 93    -- would confirm the row exists, which the caller has not earned.
+ 94    procedure test_other_owners_todo_is_not_found is
+ 95      l_id     number;
+ 96      l_raised boolean := false;
+ 97      l_res    json;
+ 98    begin
+ 99      l_id := seed_todo('OTHER', 'not yours');
+100      if not road_ctx_pkg.begin_request('OWNER', c_issuer) then fail('establish'); end if;
+101  
+102      begin
+103        l_res := demo_todo_api.get_todo(json('{"todo_id":' || l_id || '}'));
+104      exception
+105        when others then
+106          l_raised := true;
+107          if sqlcode != demo_todo_api.c_not_found then
+108            fail('expected NOT_FOUND (' || demo_todo_api.c_not_found || '), got '
+109                 || sqlcode || ': ' || sqlerrm);
+110          end if;
+111      end;
+112      if not l_raised then fail('another owner''s todo must not be readable'); end if;
+113    end test_other_owners_todo_is_not_found;
+114  
+115    -- todo_admin holds todo.list_all but NOT todo.list, so it cannot list at all. That is the
+116    -- separation rule 2 of spec patch 06 applies to road.system_admin, carried into the application:
+117    -- administering todos is not using them. It also proves list_all does not imply list -- an
+118    -- easy and invisible mistake to make when wiring the two.
+119    --
+120    -- Naming this honestly matters. An earlier draft called it test_admin_can_list_another_owner,
+121    -- which is the opposite of what it asserts.
+122    procedure test_list_all_does_not_imply_list is
+123      l_ignore number;
+124      l_res    json;
+125      l_raised boolean := false;
+126    begin
+127      l_ignore := seed_todo('OWNER', 'admin cannot see me either');
+128      if not road_ctx_pkg.begin_request('ADMIN', c_issuer) then fail('establish'); end if;
+129  
+130      begin
+131        l_res := demo_todo_api.get_todos(json('{"owner":' || principal_of('OWNER') || '}'));
+132      exception
+133        when others then
+134          l_raised := true;
+135          if sqlcode != road_ctx_pkg.c_forbidden then
+136            fail('expected forbidden, got ' || sqlcode || ': ' || sqlerrm);
+137          end if;
+138      end;
+139      if not l_raised then fail('todo_admin holds no todo.list and must not be able to list'); end if;
+140    end test_list_all_does_not_imply_list;
+141  
+142    -- Naming your own principal_id explicitly is not an escalation and must not be treated as one.
+143    procedure test_own_owner_param_is_not_escalation is
+144      l_res json;
+145    begin
+146      if not road_ctx_pkg.begin_request('OWNER', c_issuer) then fail('establish'); end if;
+147      l_res := demo_todo_api.get_todos(json('{"owner":' || principal_of('OWNER') || '}'));
+148      assert_eq('own rows listed', '0', json_value(l_res, '$.offset'));
+149    end test_own_owner_param_is_not_escalation;
+150  
+151    procedure test_listing_another_owner_requires_list_all is
+152      l_raised boolean := false;
+153      l_res    json;
+154    begin
+155      if not road_ctx_pkg.begin_request('OWNER', c_issuer) then fail('establish'); end if;
+156      begin
+157        l_res := demo_todo_api.get_todos(json('{"owner":' || principal_of('OTHER') || '}'));
+158      exception
+159        when others then
+160          l_raised := true;
+161          if sqlcode != road_ctx_pkg.c_forbidden then
+162            fail('expected forbidden, got ' || sqlcode || ': ' || sqlerrm);
+163          end if;
+164      end;
+165      if not l_raised then fail('listing another owner must require todo.list_all'); end if;
+166    end test_listing_another_owner_requires_list_all;
+167  
+168    ---------------------------------------------------------------------------
+169    -- Ownership is taken from the session, never the body
+170    ---------------------------------------------------------------------------
+171  
+172    procedure test_owner_ignores_request_body is
+173      l_raised boolean := false;
+174      l_res    json;
+175    begin
+176      if not road_ctx_pkg.begin_request('OWNER', c_issuer) then fail('establish'); end if;
+177      begin
+178        l_res := demo_todo_api.create_todo(
+179                   json('{"title":"forged","owner_principal_id":' || principal_of('OTHER') || '}'));
+180      exception
+181        when others then
+182          l_raised := true;
+183          if sqlcode != demo_todo_api.c_validation then
+184            fail('expected validation, got ' || sqlcode || ': ' || sqlerrm);
+185          end if;
+186      end;
+187      if not l_raised then
+188        fail('supplying owner_principal_id must be refused, not silently ignored');
+189      end if;
+190    end test_owner_ignores_request_body;
+191  
+192    procedure test_create_takes_owner_from_session is
+193      l_res json;
+194    begin
+195      if not road_ctx_pkg.begin_request('OWNER', c_issuer) then fail('establish'); end if;
+196      l_res := demo_todo_api.create_todo(json('{"title":"mine"}'));
+197      assert_eq('owner is the caller', to_char(principal_of('OWNER')),
+198                json_value(l_res, '$.owner_principal_id'));
+199      assert_eq('starts OPEN', 'OPEN', json_value(l_res, '$.status'));
+200    end test_create_takes_owner_from_session;
+201  
+202    ---------------------------------------------------------------------------
+203    -- Concurrency (spec-patch-08 section 6.2)
+204    ---------------------------------------------------------------------------
+205  
+206    -- THE concurrency test. A second writer moved the row after this caller read it; the update
+207    -- must be refused, not silently applied over the top.
+208    procedure test_stale_read_token_conflicts is
+209      l_id     number;
+210      l_token  varchar2(100);
+211      l_read   json;
+212      l_raised boolean := false;
+213      l_res    json;
+214    begin
+215      l_id := seed_todo('OWNER', 'contended');
+216      if not road_ctx_pkg.begin_request('OWNER', c_issuer) then fail('establish'); end if;
+217  
+218      l_read  := demo_todo_api.get_todo(json('{"todo_id":' || l_id || '}'));
+219      l_token := json_value(l_read, '$.read_token');
+220  
+221      -- Somebody else moves it. The trigger advances updated_at past the token's issued_at.
+222      update demo_todos set title = 'moved by someone else' where todo_id = l_id;
+223  
+224      begin
+225        l_res := demo_todo_api.update_todo(
+226                   json('{"todo_id":' || l_id || ',"read_token":"' || l_token || '","title":"mine"}'));
+227      exception
+228        when others then
+229          l_raised := true;
+230          if sqlcode != demo_todo_api.c_conflict then
+231            fail('expected CONFLICT, got ' || sqlcode || ': ' || sqlerrm);
+232          end if;
+233      end;
+234      if not l_raised then fail('a stale read_token must be refused'); end if;
+235  
+236      declare
+237        l_title varchar2(200 char);
+238      begin
+239        select title into l_title from demo_todos where todo_id = l_id;
+240        assert_eq('the losing write did not land', 'moved by someone else', l_title);
+241      end;
+242    end test_stale_read_token_conflicts;
+243  
+244    procedure test_fresh_read_token_updates is
+245      l_id    number;
+246      l_token varchar2(100);
+247      l_read  json;
+248      l_res   json;
+249    begin
+250      l_id := seed_todo('OWNER', 'before');
+251      if not road_ctx_pkg.begin_request('OWNER', c_issuer) then fail('establish'); end if;
+252  
+253      l_read  := demo_todo_api.get_todo(json('{"todo_id":' || l_id || '}'));
+254      l_token := json_value(l_read, '$.read_token');
+255  
+256      l_res := demo_todo_api.update_todo(
+257                 json('{"todo_id":' || l_id || ',"read_token":"' || l_token || '","title":"after"}'));
+258      assert_eq('title updated', 'after', json_value(l_res, '$.title'));
+259    end test_fresh_read_token_updates;
+260  
+261    procedure test_update_requires_read_token is
+262      l_id     number;
+263      l_raised boolean := false;
+264      l_res    json;
+265    begin
+266      l_id := seed_todo('OWNER', 'no token');
+267      if not road_ctx_pkg.begin_request('OWNER', c_issuer) then fail('establish'); end if;
+268      begin
+269        l_res := demo_todo_api.update_todo(json('{"todo_id":' || l_id || ',"title":"x"}'));
+270      exception
+271        when others then
+272          l_raised := true;
+273          if sqlcode != demo_todo_api.c_validation then
+274            fail('expected validation, got ' || sqlcode || ': ' || sqlerrm);
+275          end if;
+276      end;
+277      if not l_raised then fail('update without a read_token must be refused'); end if;
+278    end test_update_requires_read_token;
+279  
+280    ---------------------------------------------------------------------------
+281    -- Status transitions
+282    ---------------------------------------------------------------------------
+283  
+284    -- DELETED is not reachable through update. "I finished it" and "I want it gone" are different
+285    -- intentions and the audit trail should keep them apart.
+286    procedure test_update_cannot_set_deleted is
+287      l_id     number;
+288      l_token  varchar2(100);
+289      l_raised boolean := false;
+290      l_res    json;
+291    begin
+292      l_id := seed_todo('OWNER', 'not via update');
+293      if not road_ctx_pkg.begin_request('OWNER', c_issuer) then fail('establish'); end if;
+294      l_token := json_value(demo_todo_api.get_todo(json('{"todo_id":' || l_id || '}')), '$.read_token');
+295  
+296      begin
+297        l_res := demo_todo_api.update_todo(
+298                   json('{"todo_id":' || l_id || ',"read_token":"' || l_token
+299                        || '","status":"DELETED"}'));
+300      exception
+301        when others then
+302          l_raised := true;
+303          if sqlcode != demo_todo_api.c_validation then
+304            fail('expected validation, got ' || sqlcode || ': ' || sqlerrm);
+305          end if;
+306      end;
+307      if not l_raised then fail('update must not set DELETED'); end if;
+308    end test_update_cannot_set_deleted;
+309  
+310    procedure test_delete_is_soft_and_idempotent is
+311      l_id    number;
+312      l_token varchar2(100);
+313      l_res   json;
+314      l_count number;
+315    begin
+316      l_id := seed_todo('OWNER', 'soft delete me');
+317      if not road_ctx_pkg.begin_request('OWNER', c_issuer) then fail('establish'); end if;
+318  
+319      l_token := json_value(demo_todo_api.get_todo(json('{"todo_id":' || l_id || '}')), '$.read_token');
+320      l_res := demo_todo_api.delete_todo(
+321                 json('{"todo_id":' || l_id || ',"read_token":"' || l_token || '"}'));
+322      assert_eq('first delete reports true', 'true', json_value(l_res, '$.deleted'));
+323  
+324      select count(*) into l_count from demo_todos where todo_id = l_id and status = 'DELETED';
+325      assert_eq('row survives as DELETED', '1', to_char(l_count));
+326  
+327      l_token := json_value(demo_todo_api.get_todo(json('{"todo_id":' || l_id || '}')), '$.read_token');
+328      l_res := demo_todo_api.delete_todo(
+329                 json('{"todo_id":' || l_id || ',"read_token":"' || l_token || '"}'));
+330      assert_eq('second delete reports false, not an error', 'false', json_value(l_res, '$.deleted'));
+331    end test_delete_is_soft_and_idempotent;
+332  
+333    procedure test_deleted_excluded_from_default_list is
+334      l_res   json;
+335      l_id    number;
+336      l_count number;
+337    begin
+338      l_id := seed_todo('OWNER', 'hidden', 'DELETED');
+339      if not road_ctx_pkg.begin_request('OWNER', c_issuer) then fail('establish'); end if;
+340  
+341      l_res := demo_todo_api.get_todos(null);
+342      select count(*) into l_count
+343        from json_table(json_query(l_res, '$.items' returning json), '$[*]'
+344                        columns (id number path '$.todo_id'))
+345       where id = l_id;
+346      assert_eq('DELETED hidden by default', '0', to_char(l_count));
+347  
+348      l_res := demo_todo_api.get_todos(json('{"status":"DELETED"}'));
+349      select count(*) into l_count
+350        from json_table(json_query(l_res, '$.items' returning json), '$[*]'
+351                        columns (id number path '$.todo_id'))
+352       where id = l_id;
+353      assert_eq('DELETED visible when asked for', '1', to_char(l_count));
+354    end test_deleted_excluded_from_default_list;
+355  
+356    ---------------------------------------------------------------------------
+357    -- Purge -- the reserved permission's subject
+358    ---------------------------------------------------------------------------
+359  
+360    procedure test_purge_denied_without_permission is
+361      l_raised boolean := false;
+362      l_res    json;
+363    begin
+364      if not road_ctx_pkg.begin_request('OWNER', c_issuer) then fail('establish'); end if;
+365      begin
+366        l_res := demo_todo_api.purge(json('{"before":"2999-01-01T00:00:00.000+00:00"}'));
+367      exception
+368        when others then
+369          l_raised := true;
+370          if sqlcode != road_ctx_pkg.c_forbidden then
+371            fail('expected forbidden, got ' || sqlcode || ': ' || sqlerrm);
+372          end if;
+373      end;
+374      if not l_raised then fail('purge must require todo.purge'); end if;
+375    end test_purge_denied_without_permission;
+376  
+377    -- Purge reaches ACROSS OWNERS and only takes finished rows. Both halves matter: the cross-owner
+378    -- reach is what makes it dangerous enough to reserve, and sparing OPEN rows is what stops it
+379    -- being a table truncate with extra steps.
+380    procedure test_purge_crosses_owners_and_spares_open is
+381      l_open   number;
+382      l_done_a number;
+383      l_done_b number;
+384      l_res    json;
+385      l_count  number;
+386    begin
+387      l_open   := seed_todo('OWNER', 'still open', 'OPEN');
+388      l_done_a := seed_todo('OWNER', 'finished a', 'DONE');
+389      l_done_b := seed_todo('OTHER', 'finished b', 'DONE');
+390  
+391      if not road_ctx_pkg.begin_request('ADMIN', c_issuer) then fail('establish'); end if;
+392      l_res := demo_todo_api.purge(json('{"before":"2999-01-01T00:00:00.000+00:00"}'));
+393  
+394      select count(*) into l_count from demo_todos where todo_id in (l_done_a, l_done_b);
+395      assert_eq('both owners'' finished todos purged', '0', to_char(l_count));
+396  
+397      select count(*) into l_count from demo_todos where todo_id = l_open;
+398      assert_eq('an OPEN todo is untouched', '1', to_char(l_count));
+399    end test_purge_crosses_owners_and_spares_open;
+400  
+401    ---------------------------------------------------------------------------
+402  
+403    procedure run_all is
+404      procedure exec(p_name in varchar2) is
+405      begin
+406        savepoint sp_demo;
+407        case p_name
+408          when 'other_owner_not_found'   then test_other_owners_todo_is_not_found;
+409          when 'list_all_not_list'       then test_list_all_does_not_imply_list;
+410          when 'own_owner_ok'            then test_own_owner_param_is_not_escalation;
+411          when 'other_owner_needs_all'   then test_listing_another_owner_requires_list_all;
+412          when 'owner_from_session'      then test_create_takes_owner_from_session;
+413          when 'owner_body_refused'      then test_owner_ignores_request_body;
+414          when 'stale_token_conflicts'   then test_stale_read_token_conflicts;
+415          when 'fresh_token_updates'     then test_fresh_read_token_updates;
+416          when 'update_needs_token'      then test_update_requires_read_token;
+417          when 'update_not_deleted'      then test_update_cannot_set_deleted;
+418          when 'delete_soft_idempotent'  then test_delete_is_soft_and_idempotent;
+419          when 'deleted_hidden'          then test_deleted_excluded_from_default_list;
+420          when 'purge_needs_permission'  then test_purge_denied_without_permission;
+421          when 'purge_cross_owner'       then test_purge_crosses_owners_and_spares_open;
+422          else fail('unknown test ' || p_name);
+423        end case;
+424        dbms_output.put_line('PASS ' || p_name);
+425        l_pass := l_pass + 1;
+426        rollback to sp_demo;
+427        road_ctx_pkg.end_request;
+428      exception
+429        when others then
+430          dbms_output.put_line('FAIL ' || p_name || ': ' || sqlerrm);
+431          l_fail := l_fail + 1;
+432          rollback to sp_demo;
+433          road_ctx_pkg.end_request;
+434      end exec;
+435    begin
+436      l_pass := 0;
+437      l_fail := 0;
+438      setup;
+439  
+440      exec('other_owner_not_found');
+441      exec('list_all_not_list');
+442      exec('own_owner_ok');
+443      exec('other_owner_needs_all');
+444      exec('owner_from_session');
+445      exec('owner_body_refused');
+446      exec('stale_token_conflicts');
+447      exec('fresh_token_updates');
+448      exec('update_needs_token');
+449      exec('update_not_deleted');
+450      exec('delete_soft_idempotent');
+451      exec('deleted_hidden');
+452      exec('purge_needs_permission');
+453      exec('purge_cross_owner');
+454  
+455      teardown;
+456      dbms_output.put_line('demo_todo_api_test: ' || l_pass || ' passed, ' || l_fail || ' failed');
+457      if l_fail > 0 then
+458        raise_application_error(-20000, l_fail || ' demo_todo_api test(s) failed');
+459      end if;
+460    exception
+461      when others then
+462        teardown;
+463        raise;
+464    end run_all;
+465  
+466  end demo_todo_api_test;
+467  /
+
+Package Body DEMO_TODO_API_TEST compiled
+
+
+Errors for PACKAGE BODY DEMO_TODO_API_TEST:
+
+LINE/COL ERROR
+-------- -----------------------------------------------------------------
+49/5     PL/SQL: SQL Statement ignored
+50/12    PL/SQL: ORA-03066: invalid PL/SQL expression
+50/12    PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL
+53/5     PL/SQL: SQL Statement ignored
+54/12    PL/SQL: ORA-03066: invalid PL/SQL expression
+54/12    PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL
+57/5     PL/SQL: SQL Statement ignored
+58/12    PL/SQL: ORA-03066: invalid PL/SQL expression
+58/12    PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL
+82/5     PL/SQL: SQL Statement ignored
+83/13    PL/SQL: ORA-03066: invalid PL/SQL expression
+83/13    PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL
+103/7    PL/SQL: Statement ignored
+103/16   PLS-00201: identifier 'DEMO_TODO_API.GET_TODO' must be declared
+107/9    PL/SQL: Statement ignored
+107/23   PLS-00201: identifier 'DEMO_TODO_API.C_NOT_FOUND' must be declared
+131/7    PL/SQL: Statement ignored
+131/16   PLS-00201: identifier 'DEMO_TODO_API.GET_TODOS' must be declared
+147/5    PL/SQL: Statement ignored
+147/14   PLS-00201: identifier 'DEMO_TODO_API.GET_TODOS' must be declared
+Elapsed: 00:00:00.170
+Elapsed: 00:00:00.185
+SQL> 
+SQL> prompt --- permissions ---
+--- permissions --
+SQL> -- Six unreserved, one reserved. todo.purge is the reason this app exists: it is a RESERVED
+SQL> -- APPLICATION permission that does not start with road., which is exactly the case
+SQL> -- spec-patch-07 section 3.1 says a naming convention gets wrong. Until this file, road-kit had no
+SQL> -- way to test that rule at all.
+SQL> insert into road_permissions (permission_name, description, is_reserved)
+  2  select p.name, p.descr, p.reserved from (
+  3    select 'todo.list'     as name, 'List your own todos'                 as descr, 'N' as reserved from dual union all
+  4    select 'todo.get',           'Read one todo',                              'N' from dual union all
+  5    select 'todo.create',        'Create a todo',                              'N' from dual union all
+  6    select 'todo.update',        'Modify a todo you own',                      'N' from dual union all
+  7    select 'todo.delete',        'Soft-delete a todo you own',                 'N' from dual union all
+  8    select 'todo.list_all',      'List todos belonging to any principal',      'N' from dual union all
+  9    select 'todo.purge',         'Irreversibly delete completed todos before a cutoff, across all '
+ 10                                 || 'owners',                                  'Y' from dual
+ 11  ) p
+ 12   where not exists (select 1 from road_permissions x where x.permission_name = p.name);
+
+7 rows inserted.
+
+Elapsed: 00:00:00.168
+SQL> 
+SQL> -- The migration case, same shape as the framework's own in 95_data.sql: an ALTER-added column
+SQL> -- defaults every pre-existing row to 'N', and the insert guard above skips rows that already
+SQL> -- exist. Without this a schema that had todo.purge before is_reserved existed sits fail-open.
+SQL> update road_permissions
+  2     set is_reserved = 'Y'
+  3   where permission_name = 'todo.purge'
+  4     and is_reserved = 'N';
+
+0 rows updated.
+
+Elapsed: 00:00:00.063
+SQL> 
+SQL> prompt --- todo_admin role ---
+--- todo_admin role --
+SQL> -- An application role, mirroring road-cal's calendar_admin. is_reserved = 'N': the role is the
+SQL> -- application's to compose, unlike the road.* roles. It holds todo.list_all and todo.purge and
+SQL> -- NOTHING ELSE -- an administrator of todos is not thereby a user of them, the same separation
+SQL> -- rule 2 of spec patch 06 applies to road.system_admin.
+SQL> insert into road_roles (role_name, display_name, description, is_reserved)
+  2  select 'todo_admin', 'Todo administrator',
+  3         'Reads every principal''s todos and may purge completed ones. Holds no ordinary todo '
+  4         || 'permissions -- administering todos is not using them.', 'N'
+  5    from dual
+  6   where not exists (select 1 from road_roles where role_name = 'todo_admin');
+
+1 row inserted.
+
+Elapsed: 00:00:00.181
+SQL> 
+SQL> prompt --- role composition ---
+--- role composition --
+SQL> -- Spelled out row by row rather than through grant_all_app_permissions. That helper is for the
+SQL> -- simple case and this is not it: it would give todo_admin every unreserved todo.* permission,
+SQL> -- which is the opposite of what the role means. (It would correctly skip todo.purge -- that is
+SQL> -- the spec-patch-08 section 7.1 fix -- but skipping the reserved one is not enough to make a
+SQL> -- blanket grant right here.)
+SQL> --
+SQL> -- attached_by is left to default NULL throughout: "seeded at deploy time", which is what
+SQL> -- road_reserved_composition reads to permit todo.purge here while refusing the identical attach
+SQL> -- from a session.
+SQL> insert into road_role_permissions (role_name, permission_name)
+  2  select 'user', p.name from (
+  3    select 'todo.list' as name from dual union all
+  4    select 'todo.get'         from dual union all
+  5    select 'todo.create'      from dual union all
+  6    select 'todo.update'      from dual union all
+  7    select 'todo.delete'      from dual
+  8  ) p
+  9   where not exists (select 1 from road_role_permissions x
+ 10                      where x.role_name = 'user' and x.permission_name = p.name);
+
+5 rows inserted.
+
+Elapsed: 00:00:00.068
+SQL> 
+SQL> insert into road_role_permissions (role_name, permission_name)
+  2  select 'todo_admin', p.name from (
+  3    select 'todo.list_all' as name from dual union all
+  4    select 'todo.purge'          from dual
+  5  ) p
+  6   where not exists (select 1 from road_role_permissions x
+  7                      where x.role_name = 'todo_admin' and x.permission_name = p.name);
+
+Error starting at line : 148 File @ file:/Users/simon/Projects/road-kit/deploy/create/97_demo.sql
+In command -
+insert into road_role_permissions (role_name, permission_name)
+select 'todo_admin', p.name from (
+  select 'todo.list_all' as name from dual union all
+  select 'todo.purge'          from dual
+) p
+ where not exists (select 1 from road_role_permissions x
+                    where x.role_name = 'todo_admin' and x.permission_name = p.name)
+Error at Command Line : 154 Column : 78 File @ file:/Users/simon/Projects/road-kit/deploy/create/97_demo.sql
+Error report -
+SQL Error: ORA-12860: deadlock detected while waiting for a sibling row lock
+
+https://docs.oracle.com/error-help/db/ora-12860/12860. 00000 -  "deadlock detected while waiting for a sibling row lock"
+*Cause:    Two Parallel Data Manipulation Language (PDML) sibling transactions
+           deadlocked one another while waiting for a row lock.
+*Action:   Look at the trace file to see the transactions and resources
+           involved. Commit the open transactions and retry if necessary.
+           If parallel operation retry fails, retry the operation serially.
+
+More Details :
+https://docs.oracle.com/error-help/db/ora-12860/
+Rollback
+Elapsed: 00:00:00.243
+Elapsed: 00:00:00.260
+Elapsed: 00:00:00.276
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=FAILURE
+SQLCL_EXIT=60
+
+[INFO] SQLCL_EXIT=60
+[INFO] END

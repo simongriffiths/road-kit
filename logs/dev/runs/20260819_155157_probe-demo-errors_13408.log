@@ -1,0 +1,139 @@
+[INFO] START
+
+[INFO] RUN_ID=20260819_155157_probe-demo-errors_13408
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/probe-demo-errors.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/probe-demo-errors.sql
+[INFO] SCRIPT_SHA256=1e0d01bce734a3512efda078b0d733540449c256f4e84c1dfee525c679edf1e7
+[INFO] GIT_COMMIT=d80d9ce
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260819_155157
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260819_155157_probe-demo-errors_13408.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 19 15:51:58 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+=== objects ===
+
+[1mOBJECT_NAME[m                  [1mOBJECT_TYPE[m     [1mSTATUS[m     
+____________________________ _______________ __________ 
+DEMO_TODOS                   TABLE           VALID      
+DEMO_TODOS_OWNER_STATUS      INDEX           VALID      
+DEMO_TODOS_PK                INDEX           VALID      
+DEMO_TODOS_UPDATED_AT_TRG    TRIGGER         VALID      
+DEMO_TODO_API                PACKAGE         VALID      
+DEMO_TODO_API                PACKAGE BODY    INVALID    
+DEMO_TODO_API_TEST           PACKAGE         VALID      
+DEMO_TODO_API_TEST           PACKAGE BODY    INVALID    
+
+8 rows selected. 
+
+Elapsed: 00:00:00.276
+=== recompile body ===
+
+Package Body DEMO_TODO_API compiled
+
+
+Errors for PACKAGE BODY DEMO_TODO_API:
+
+LINE/COL ERROR
+-------- -----------------------------------------------------------------
+160/5    PL/SQL: SQL Statement ignored
+180/52   PL/SQL: ORA-03066: invalid PL/SQL expression
+180/52   PLS-00231: function 'LIKE_TERM' may not be used in SQL
+185/5    PL/SQL: Statement ignored
+185/16   PLS-00306: wrong number or types of arguments in call to 'NVL'
+234/5    PL/SQL: SQL Statement ignored
+235/58   PL/SQL: ORA-03066: invalid PL/SQL expression
+235/58   PLS-00231: function 'PARSE_TS' may not be used in SQL
+289/5    PL/SQL: SQL Statement ignored
+295/31   PL/SQL: ORA-03066: invalid PL/SQL expression
+295/31   PLS-00231: function 'PARSE_TS' may not be used in SQL
+Elapsed: 00:00:00.179
+Elapsed: 00:00:00.194
+=== errors ===
+
+   [1mLINE[m    [1mPOSITION[m [1mTEXT[m                                                              
+_______ ___________ _________________________________________________________________ 
+    180          52 PLS-00231: function 'LIKE_TERM' may not be used in SQL            
+    180          52 PL/SQL: ORA-03066: invalid PL/SQL expression                      
+    160           5 PL/SQL: SQL Statement ignored                                     
+    185          16 PLS-00306: wrong number or types of arguments in call to 'NVL'    
+    185           5 PL/SQL: Statement ignored                                         
+    235          58 PLS-00231: function 'PARSE_TS' may not be used in SQL             
+    235          58 PL/SQL: ORA-03066: invalid PL/SQL expression                      
+    234           5 PL/SQL: SQL Statement ignored                                     
+    295          31 PLS-00231: function 'PARSE_TS' may not be used in SQL             
+    295          31 PL/SQL: ORA-03066: invalid PL/SQL expression                      
+    289           5 PL/SQL: SQL Statement ignored                                     
+
+11 rows selected. 
+
+Elapsed: 00:00:00.048
+Elapsed: 00:00:00.062
+[INFO] USER_ERRORS_CHECK
+
+[1mNAME[m                  [1mTYPE[m               [1mLINE[m    [1mPOSITION[m [1mTEXT[m                                                              
+_____________________ _______________ _______ ___________ _________________________________________________________________ 
+DEMO_TODO_API         PACKAGE BODY        180          52 PLS-00231: function 'LIKE_TERM' may not be used in SQL            
+DEMO_TODO_API         PACKAGE BODY        180          52 PL/SQL: ORA-03066: invalid PL/SQL expression                      
+DEMO_TODO_API         PACKAGE BODY        160           5 PL/SQL: SQL Statement ignored                                     
+DEMO_TODO_API         PACKAGE BODY        185          16 PLS-00306: wrong number or types of arguments in call to 'NVL'    
+DEMO_TODO_API         PACKAGE BODY        185           5 PL/SQL: Statement ignored                                         
+DEMO_TODO_API         PACKAGE BODY        235          58 PLS-00231: function 'PARSE_TS' may not be used in SQL             
+DEMO_TODO_API         PACKAGE BODY        235          58 PL/SQL: ORA-03066: invalid PL/SQL expression                      
+DEMO_TODO_API         PACKAGE BODY        234           5 PL/SQL: SQL Statement ignored                                     
+DEMO_TODO_API         PACKAGE BODY        295          31 PLS-00231: function 'PARSE_TS' may not be used in SQL             
+DEMO_TODO_API         PACKAGE BODY        295          31 PL/SQL: ORA-03066: invalid PL/SQL expression                      
+DEMO_TODO_API         PACKAGE BODY        289           5 PL/SQL: SQL Statement ignored                                     
+DEMO_TODO_API_TEST    PACKAGE BODY         50          12 PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL         
+DEMO_TODO_API_TEST    PACKAGE BODY         50          12 PL/SQL: ORA-03066: invalid PL/SQL expression                      
+DEMO_TODO_API_TEST    PACKAGE BODY         49           5 PL/SQL: SQL Statement ignored                                     
+
+[1mNAME[m                  [1mTYPE[m               [1mLINE[m    [1mPOSITION[m [1mTEXT[m                                                                  
+_____________________ _______________ _______ ___________ _____________________________________________________________________ 
+DEMO_TODO_API_TEST    PACKAGE BODY         54          12 PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL             
+DEMO_TODO_API_TEST    PACKAGE BODY         54          12 PL/SQL: ORA-03066: invalid PL/SQL expression                          
+DEMO_TODO_API_TEST    PACKAGE BODY         53           5 PL/SQL: SQL Statement ignored                                         
+DEMO_TODO_API_TEST    PACKAGE BODY         58          12 PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL             
+DEMO_TODO_API_TEST    PACKAGE BODY         58          12 PL/SQL: ORA-03066: invalid PL/SQL expression                          
+DEMO_TODO_API_TEST    PACKAGE BODY         57           5 PL/SQL: SQL Statement ignored                                         
+DEMO_TODO_API_TEST    PACKAGE BODY         83          13 PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL             
+DEMO_TODO_API_TEST    PACKAGE BODY         83          13 PL/SQL: ORA-03066: invalid PL/SQL expression                          
+DEMO_TODO_API_TEST    PACKAGE BODY         82           5 PL/SQL: SQL Statement ignored                                         
+DEMO_TODO_API_TEST    PACKAGE BODY        103          16 PLS-00201: identifier 'DEMO_TODO_API.GET_TODO' must be declared       
+DEMO_TODO_API_TEST    PACKAGE BODY        103           7 PL/SQL: Statement ignored                                             
+DEMO_TODO_API_TEST    PACKAGE BODY        107          23 PLS-00201: identifier 'DEMO_TODO_API.C_NOT_FOUND' must be declared    
+DEMO_TODO_API_TEST    PACKAGE BODY        107           9 PL/SQL: Statement ignored                                             
+DEMO_TODO_API_TEST    PACKAGE BODY        131          16 PLS-00201: identifier 'DEMO_TODO_API.GET_TODOS' must be declared      
+
+[1mNAME[m                  [1mTYPE[m               [1mLINE[m    [1mPOSITION[m [1mTEXT[m                                                                
+_____________________ _______________ _______ ___________ ___________________________________________________________________ 
+DEMO_TODO_API_TEST    PACKAGE BODY        131           7 PL/SQL: Statement ignored                                           
+DEMO_TODO_API_TEST    PACKAGE BODY        147          14 PLS-00201: identifier 'DEMO_TODO_API.GET_TODOS' must be declared    
+DEMO_TODO_API_TEST    PACKAGE BODY        147           5 PL/SQL: Statement ignored                                           
+
+31 rows selected. 
+
+Elapsed: 00:00:00.035
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

@@ -1,0 +1,225 @@
+[INFO] START
+
+[INFO] RUN_ID=20260819_155353_phase5-demo-reset_13987
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/phase5-demo-reset.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/phase5-demo-reset.sql
+[INFO] SCRIPT_SHA256=431a8060077693a451bd4e0deca073dbacb004036e6fe656e028b22731b3fda5
+[INFO] GIT_COMMIT=d80d9ce
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=debug
+[INFO] TIMESTAMP=20260819_155353
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260819_155353_phase5-demo-reset_13987.log
+
+[INTENT]
+Purpose: Tear the demo application down so phase 5's create chain can be re-run from clean.
+Approach: Run deploy/drop/97_demo.sql, then confirm nothing demo_ or todo. survives.
+Reason: The first phase-5 attempt created the table and then failed compiling the package, so
+  the schema holds a half-applied demo. Re-running create is the fix, and this proves the drop
+  script works -- which the plan wanted proved anyway.
+Expected objects: ALL demo objects and seed rows REMOVED.
+Risk: Low and confined. Every object it touches is demo_/todo. prefixed. It deletes seed rows
+  from the FRAMEWORK tables road_permissions/road_roles/road_role_permissions -- deliberately,
+  and only the todo. and todo_admin ones.
+Prior history checked: scratch/phase5-demo-app-apply.sql, this session, FAILURE at the package
+  body with PLS-00231.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 19 15:53:54 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+SQL> -- INTENT:
+SQL> -- Purpose: Tear the demo application down so phase 5's create chain can be re-run from clean.
+SQL> -- Approach: Run deploy/drop/97_demo.sql, then confirm nothing demo_ or todo. survives.
+SQL> -- Reason: The first phase-5 attempt created the table and then failed compiling the package, so
+SQL> --   the schema holds a half-applied demo. Re-running create is the fix, and this proves the drop
+SQL> --   script works -- which the plan wanted proved anyway.
+SQL> -- Expected objects: ALL demo objects and seed rows REMOVED.
+SQL> -- Risk: Low and confined. Every object it touches is demo_/todo. prefixed. It deletes seed rows
+SQL> --   from the FRAMEWORK tables road_permissions/road_roles/road_role_permissions -- deliberately,
+SQL> --   and only the todo. and todo_admin ones.
+SQL> -- Prior history checked: scratch/phase5-demo-app-apply.sql, this session, FAILURE at the package
+SQL> --   body with PLS-00231.
+SQL> -- END INTENT
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> set serveroutput on size unlimited
+SQL> 
+SQL> @deploy/drop/97_demo.sql
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> 
+SQL> prompt === drop demo application (spec patch 08) ===
+=== drop demo application (spec patch 08) ===
+SQL> 
+SQL> -- Runs BEFORE the framework teardown, for the same reason 96_assertions.sql does: these rows are
+SQL> -- children of road_permissions and road_roles, and road_reserved_composition constrains the table
+SQL> -- they live in.
+SQL> --
+SQL> -- Deleting the seed rows before dropping the table is not redundant. road_role_permissions and
+SQL> -- road_permissions are FRAMEWORK tables -- dropping demo_todos leaves the demo's rows in them, and
+SQL> -- an adopter who ran the demo once would carry todo.purge in their permission catalogue forever.
+SQL> 
+SQL> prompt --- seed rows ---
+--- seed rows --
+SQL> delete from road_role_permissions where permission_name like 'todo.%';
+
+0 rows deleted.
+
+Elapsed: 00:00:00.135
+SQL> delete from road_role_permissions where role_name = 'todo_admin';
+
+0 rows deleted.
+
+Elapsed: 00:00:00.045
+SQL> delete from road_principal_roles where role_name = 'todo_admin';
+
+0 rows deleted.
+
+Elapsed: 00:00:00.050
+SQL> delete from road_permissions where permission_name like 'todo.%';
+
+0 rows deleted.
+
+Elapsed: 00:00:00.038
+SQL> delete from road_roles where role_name = 'todo_admin';
+
+0 rows deleted.
+
+Elapsed: 00:00:00.032
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.040
+SQL> 
+SQL> prompt --- package ---
+--- package --
+SQL> begin
+  2    execute immediate 'drop package body demo_todo_api_test';
+  3  exception
+  4    when others then
+  5      if sqlcode != -4043 then raise; end if;
+  6  end;
+  7  /
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.313
+SQL> begin
+  2    execute immediate 'drop package body demo_todo_api';
+  3  exception
+  4    when others then
+  5      if sqlcode != -4043 then raise; end if;
+  6  end;
+  7  /
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.049
+SQL> begin
+  2    execute immediate 'drop package demo_todo_api_test';
+  3  exception
+  4    when others then
+  5      if sqlcode != -4043 then raise; end if;
+  6  end;
+  7  /
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.046
+SQL> begin
+  2    execute immediate 'drop package demo_todo_api';
+  3  exception
+  4    when others then
+  5      if sqlcode != -4043 then raise; end if;
+  6  end;
+  7  /
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.046
+SQL> 
+SQL> prompt --- trigger and table ---
+--- trigger and table --
+SQL> @db/triggers/demo_todos_updated_at.drop.sql
+SQL> begin
+  2    execute immediate 'drop trigger demo_todos_updated_at_trg';
+  3  exception
+  4    when others then
+  5      if sqlcode != -4080 then
+  6        raise;
+  7      end if;
+  8  end;
+  9  /
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.045
+Elapsed: 00:00:00.059
+SQL> @db/tables/demo_todos.drop.sql
+SQL> begin
+  2    execute immediate 'drop table demo_todos cascade constraints purge';
+  3  exception
+  4    when others then
+  5      if sqlcode != -942 then
+  6        raise;
+  7      end if;
+  8  end;
+  9  /
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.141
+Elapsed: 00:00:00.156
+Elapsed: 00:00:00.171
+SQL> 
+SQL> prompt === nothing demo_ survives ===
+=== nothing demo_ survives ===
+SQL> select object_name, object_type from user_objects where object_name like 'DEMO%';
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.061
+SQL> 
+SQL> prompt === no todo seed survives in the framework tables ===
+=== no todo seed survives in the framework tables ===
+SQL> select 'permissions' as tbl, count(*) as n from road_permissions where permission_name like 'todo.%'
+  2  union all
+  3  select 'roles', count(*) from road_roles where role_name = 'todo_admin'
+  4  union all
+  5  select 'attachments', count(*) from road_role_permissions where permission_name like 'todo.%';
+
+[1mTBL[m               [1mN[m 
+______________ ____ 
+permissions       0 
+roles             0 
+attachments       0 
+
+3 rows selected. 
+
+Elapsed: 00:00:00.072
+Elapsed: 00:00:00.089
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.032
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END
