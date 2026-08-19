@@ -1,0 +1,274 @@
+[INFO] START
+
+[INFO] RUN_ID=20260819_175352_rebuild-04-verify_27110
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/rebuild-04-verify.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/rebuild-04-verify.sql
+[INFO] SCRIPT_SHA256=aafdae9064787a6c16b275e0510f3e0c7b260292f1c2a98ffe0badb70d69710e
+[INFO] GIT_COMMIT=4887190
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=debug
+[INFO] TIMESTAMP=20260819_175352
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260819_175352_rebuild-04-verify_27110.log
+
+[INTENT]
+Purpose: Prove the rebuilt road_kit_dev matches the state captured before teardown, and that
+  every test suite still passes against a schema built from nothing.
+Approach: Same queries as scratch/rebuild-00-before.sql, plus all four PL/SQL suites.
+Reason: build-plan-08 section 7 Q3 close-out. "The rebuild completed" is not the claim being
+  made; "the rebuild restored it" is.
+Expected objects: none created.
+Risk: None beyond the suites' own fixtures, which roll back and tear down.
+Prior history checked: rebuild-01 through rebuild-03 this session, all SUCCESS.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 19 17:53:52 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+SQL> -- INTENT:
+SQL> -- Purpose: Prove the rebuilt road_kit_dev matches the state captured before teardown, and that
+SQL> --   every test suite still passes against a schema built from nothing.
+SQL> -- Approach: Same queries as scratch/rebuild-00-before.sql, plus all four PL/SQL suites.
+SQL> -- Reason: build-plan-08 section 7 Q3 close-out. "The rebuild completed" is not the claim being
+SQL> --   made; "the rebuild restored it" is.
+SQL> -- Expected objects: none created.
+SQL> -- Risk: None beyond the suites' own fixtures, which roll back and tear down.
+SQL> -- Prior history checked: rebuild-01 through rebuild-03 this session, all SUCCESS.
+SQL> -- END INTENT
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> set serveroutput on size unlimited
+SQL> set pagesize 200
+SQL> 
+SQL> prompt === object inventory ===
+=== object inventory ===
+SQL> select object_type, count(*) as n from user_objects group by object_type order by object_type;
+
+[1mOBJECT_TYPE[m         [1mN[m 
+_______________ _____ 
+INDEX              31 
+LOB                15 
+PACKAGE            14 
+PACKAGE BODY       14 
+SEQUENCE            4 
+TABLE              14 
+TRIGGER             3 
+UNDEFINED           2 
+
+8 rows selected. 
+
+Elapsed: 00:00:00.258
+SQL> 
+SQL> prompt === assertions ===
+=== assertions ===
+SQL> select assertion_name, status from user_assertions order by assertion_name;
+
+[1mASSERTION_NAME[m               [1mSTATUS[m     
+____________________________ __________ 
+ROAD_ADMIN_REACHABLE         ENABLED    
+ROAD_RESERVED_COMPOSITION    ENABLED    
+
+2 rows selected. 
+
+Elapsed: 00:00:00.112
+SQL> 
+SQL> prompt === counts (compare with rebuild-00-before) ===
+=== counts (compare with rebuild-00-before) ===
+SQL> select 'principals' as what, count(*) as n from road_principals
+  2  union all select 'principal_roles', count(*) from road_principal_roles
+  3  union all select 'roles', count(*) from road_roles
+  4  union all select 'permissions', count(*) from road_permissions
+  5  union all select 'role_permissions', count(*) from road_role_permissions
+  6  union all select 'config', count(*) from road_config
+  7  union all select 'ui_assets', count(*) from ui_assets
+  8  union all select 'demo_todos', count(*) from demo_todos
+  9  union all select 'api_log', count(*) from road_api_log;
+
+[1mWHAT[m                    [1mN[m 
+___________________ _____ 
+principals              1 
+principal_roles         2 
+roles                   4 
+permissions            12 
+role_permissions       14 
+config                  3 
+ui_assets               3 
+demo_todos              0 
+api_log                 0 
+
+9 rows selected. 
+
+Elapsed: 00:00:00.202
+SQL> 
+SQL> prompt === ORDS modules ===
+=== ORDS modules ===
+SQL> select name, uri_prefix from user_ords_modules order by name;
+
+[1mNAME[m                 [1mURI_PREFIX[m          
+____________________ ___________________ 
+hello_api.admin      /api/v1/admin/      
+hello_api.auth       /jwt-auth/          
+hello_api.health     /api/v1/            
+hello_api.session    /api/v1/session/    
+hello_api.todos      /api/v1/todos/      
+hello_api.ui         /ui/hello_world/    
+
+6 rows selected. 
+
+Elapsed: 00:00:00.034
+SQL> 
+SQL> prompt === test suites ===
+=== test suites ===
+SQL> 
+SQL> -- COMMIT between suites, not decoration. Each setup does `alter session disable parallel dml`,
+SQL> -- which raises ORA-12841 inside an open transaction -- and the suite before it leaves one. These
+SQL> -- suites have only ever been run one per script before now.
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.033
+SQL> begin road_ctx_pkg_test.run_all; end;
+  2  /
+[PASS] road_ctx_pkg_test: 13 tests
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.313
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.037
+SQL> begin error_api_test.run_all; end;
+  2  /
+PASS test_handle_known_validation
+PASS test_handle_known_agenda_locked
+PASS test_handle_known_not_found
+PASS test_handle_known_conflict
+PASS test_handle_known_forbidden
+PASS test_handle_known_unmapped_escalates
+PASS test_handle_unknown
+error_api_test: 7 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.073
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.032
+SQL> begin road_audit_api_test.run_all; end;
+  2  /
+PASS test_issue_read_token_creates_row
+PASS test_check_fresh_true_when_unchanged
+PASS test_check_fresh_false_when_stale
+PASS test_check_fresh_false_for_unknown_guid
+road_audit_api_test: 4 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.041
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.031
+SQL> begin road_admin_api_test.run_all; end;
+  2  /
+PASS test_user_admin_cannot_grant_reserved
+PASS test_system_admin_can_grant_reserved
+PASS test_granted_by_ignores_request_body
+PASS test_grant_is_idempotent
+PASS test_define_role_rejects_road_namespace
+PASS test_user_admin_cannot_define_roles
+PASS test_unauthenticated_denied
+PASS test_grant_all_app_permissions_is_explicit
+PASS test_get_principals_requires_permission
+PASS test_get_principals_search
+PASS test_get_principals_paging
+PASS test_attach_reserved_permission_refused
+PASS test_attach_to_reserved_role_refused
+PASS test_composition_takes_effect_on_next_request
+PASS test_attached_by_ignores_request_body
+PASS test_attach_detach_idempotent
+PASS test_compose_denied_without_permission
+PASS test_assertion_permits_ordinary_session_attach
+PASS test_assertion_refuses_reserved_session_attach
+PASS test_assertion_refuses_flip_under_session_attach
+PASS test_assertion_permits_reserved_deploy_attach
+PASS test_cannot_revoke_last_system_admin
+road_admin_api_test: 22 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:01.246
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.039
+SQL> begin demo_todo_api_test.run_all; end;
+  2  /
+PASS other_owner_not_found
+PASS list_all_not_list
+PASS own_owner_ok
+PASS other_owner_needs_all
+PASS owner_from_session
+PASS owner_body_refused
+PASS stale_token_conflicts
+PASS fresh_token_updates
+PASS update_needs_token
+PASS update_not_deleted
+PASS delete_soft_idempotent
+PASS deleted_hidden
+PASS purge_needs_permission
+PASS purge_cross_owner
+demo_todo_api_test: 14 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.525
+SQL> commit;
+
+Commit complete.
+
+Elapsed: 00:00:00.038
+SQL> 
+SQL> prompt === invalid objects ===
+=== invalid objects ===
+SQL> select object_name, object_type from user_objects where status != 'VALID';
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.057
+Elapsed: 00:00:00.076
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.039
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

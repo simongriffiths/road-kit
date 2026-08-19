@@ -1,0 +1,47 @@
+[INFO] START
+
+[INFO] RUN_ID=20260819_175249_assets_index-BcO3m6GB_js_26542
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/var/folders/zq/vz__y9m90n92dh_3fs7lbgqw0000gn/T/tmp.IdApIioX6g/assets_index-BcO3m6GB_js.sql
+[INFO] SCRIPT_PATH=/var/folders/zq/vz__y9m90n92dh_3fs7lbgqw0000gn/T/tmp.IdApIioX6g/assets_index-BcO3m6GB_js.sql
+[INFO] SCRIPT_SHA256=49c8030aac9d3cf1b213e40a978797e9820db02d75277285f6a90904859ccf47
+[INFO] GIT_COMMIT=4887190
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260819_175249
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260819_175249_assets_index-BcO3m6GB_js_26542.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 19 17:52:50 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:10.950
+Elapsed: 00:00:10.974
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.235
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

@@ -1,0 +1,160 @@
+[INFO] START
+
+[INFO] RUN_ID=20260819_175014_rebuild-00-before_24976
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/rebuild-00-before.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/rebuild-00-before.sql
+[INFO] SCRIPT_SHA256=89f0ffc7abd21a4e1f262567bb042638d6687acd03078127d7c8d6665857ab10
+[INFO] GIT_COMMIT=4887190
+[INFO] GIT_DIRTY=false
+[INFO] LOG_LEVEL=debug
+[INFO] TIMESTAMP=20260819_175014
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260819_175014_rebuild-00-before_24976.log
+
+[INTENT]
+Purpose: Capture road_kit_dev's state immediately BEFORE the full teardown/rebuild, so the
+  rebuild can be shown to have restored it rather than merely to have completed.
+Approach: Read-only counts and lists of everything the rebuild touches.
+Reason: build-plan-08 section 7 Q3 -- the deploy chain ordering was wired but only ever applied
+  incrementally, so the ordering itself is untested. Simon authorised the rebuild 2026-08-19.
+Expected objects: none created.
+Risk: None; read-only.
+Prior history checked: phases 0-7 this session, all SUCCESS.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 19 17:50:15 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+SQL> -- INTENT:
+SQL> -- Purpose: Capture road_kit_dev's state immediately BEFORE the full teardown/rebuild, so the
+SQL> --   rebuild can be shown to have restored it rather than merely to have completed.
+SQL> -- Approach: Read-only counts and lists of everything the rebuild touches.
+SQL> -- Reason: build-plan-08 section 7 Q3 -- the deploy chain ordering was wired but only ever applied
+SQL> --   incrementally, so the ordering itself is untested. Simon authorised the rebuild 2026-08-19.
+SQL> -- Expected objects: none created.
+SQL> -- Risk: None; read-only.
+SQL> -- Prior history checked: phases 0-7 this session, all SUCCESS.
+SQL> -- END INTENT
+SQL> set pagesize 200
+SQL> prompt === object inventory ===
+=== object inventory ===
+SQL> select object_type, count(*) as n from user_objects group by object_type order by object_type;
+
+[1mOBJECT_TYPE[m         [1mN[m 
+_______________ _____ 
+INDEX              31 
+LOB                15 
+PACKAGE            14 
+PACKAGE BODY       14 
+SEQUENCE            4 
+TABLE              14 
+TRIGGER             3 
+UNDEFINED           2 
+
+8 rows selected. 
+
+Elapsed: 00:00:00.376
+SQL> 
+SQL> prompt === assertions ===
+=== assertions ===
+SQL> select assertion_name, status from user_assertions order by assertion_name;
+
+[1mASSERTION_NAME[m               [1mSTATUS[m     
+____________________________ __________ 
+ROAD_ADMIN_REACHABLE         ENABLED    
+ROAD_RESERVED_COMPOSITION    ENABLED    
+
+2 rows selected. 
+
+Elapsed: 00:00:00.111
+SQL> 
+SQL> prompt === principals, roles, permissions ===
+=== principals, roles, permissions ===
+SQL> select 'principals' as what, count(*) as n from road_principals
+  2  union all select 'principal_roles', count(*) from road_principal_roles
+  3  union all select 'roles', count(*) from road_roles
+  4  union all select 'permissions', count(*) from road_permissions
+  5  union all select 'role_permissions', count(*) from road_role_permissions
+  6  union all select 'config', count(*) from road_config
+  7  union all select 'ui_assets', count(*) from ui_assets
+  8  union all select 'demo_todos', count(*) from demo_todos
+  9  union all select 'api_log', count(*) from road_api_log;
+
+[1mWHAT[m                    [1mN[m 
+___________________ _____ 
+principals              2 
+principal_roles         3 
+roles                   4 
+permissions            12 
+role_permissions       14 
+config                  3 
+ui_assets               3 
+demo_todos              3 
+api_log                22 
+
+9 rows selected. 
+
+Elapsed: 00:00:00.177
+SQL> 
+SQL> prompt === jwt scaffold config (no key material printed) ===
+=== jwt scaffold config (no key material printed) ===
+SQL> select config_id, issuer, audience, scope_name, ttl_minutes,
+  2         case when private_key_b64 is null then 'ABSENT' else 'PRESENT' end as key_state, kid
+  3    from jwt_scaffold_config;
+
+   [1mCONFIG_ID[m [1mISSUER[m                      [1mAUDIENCE[m    [1mSCOPE_NAME[m                                  [1mTTL_MINUTES[m [1mKEY_STATE[m    [1mKID[m                             
+____________ ___________________________ ___________ ________________________________________ ______________ ____________ _______________________________ 
+           1 urn:road:hello_world:dev    road-dev    session.me.read road.admin.rw todo.rw                60 PRESENT      hello_world-dev-14649f497300    
+
+1 row selected. 
+
+Elapsed: 00:00:00.047
+SQL> 
+SQL> prompt === ORDS modules ===
+=== ORDS modules ===
+SQL> select name, uri_prefix from user_ords_modules order by name;
+
+[1mNAME[m                 [1mURI_PREFIX[m          
+____________________ ___________________ 
+hello_api.admin      /api/v1/admin/      
+hello_api.auth       /jwt-auth/          
+hello_api.health     /api/v1/            
+hello_api.session    /api/v1/session/    
+hello_api.todos      /api/v1/todos/      
+hello_api.ui         /ui/hello_world/    
+
+6 rows selected. 
+
+Elapsed: 00:00:00.037
+SQL> 
+SQL> prompt === invalid objects ===
+=== invalid objects ===
+SQL> select object_name, object_type from user_objects where status != 'VALID';
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.067
+Elapsed: 00:00:00.082
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.101
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END
