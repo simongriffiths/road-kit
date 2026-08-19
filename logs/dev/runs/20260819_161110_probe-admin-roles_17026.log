@@ -1,0 +1,77 @@
+[INFO] START
+
+[INFO] RUN_ID=20260819_161110_probe-admin-roles_17026
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/probe-admin-roles.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/probe-admin-roles.sql
+[INFO] SCRIPT_SHA256=56309d303415281df5835175ef3c3e0470675089d7a74d34057f79dcbf4f7bd0
+[INFO] GIT_COMMIT=608b6bd
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260819_161110
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260819_161110_probe-admin-roles_17026.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 19 16:11:10 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+=== who holds what ===
+
+[1mSUBJECT[m    [1mROLE_NAME[m            
+__________ ____________________ 
+ADMIN      road.system_admin    
+ADMIN      user                 
+USER1      user                 
+
+3 rows selected. 
+
+Elapsed: 00:00:00.383
+=== effective permissions of each role ===
+
+[1mROLE_NAME[m            [1mPERMISSION_NAME[m           
+____________________ _________________________ 
+road.system_admin    road.permission.define    
+road.system_admin    road.role.compose         
+road.system_admin    road.role.define          
+road.system_admin    road.role.grant           
+road.system_admin    road.role.revoke          
+road.user_admin      road.role.grant           
+road.user_admin      road.role.revoke          
+todo_admin           todo.list_all             
+todo_admin           todo.purge                
+user                 todo.create               
+user                 todo.delete               
+user                 todo.get                  
+user                 todo.list                 
+user                 todo.update               
+
+
+14 rows selected. 
+
+Elapsed: 00:00:00.043
+Elapsed: 00:00:00.060
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.040
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

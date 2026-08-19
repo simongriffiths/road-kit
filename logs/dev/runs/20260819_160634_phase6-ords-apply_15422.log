@@ -1,0 +1,727 @@
+[INFO] START
+
+[INFO] RUN_ID=20260819_160634_phase6-ords-apply_15422
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/phase6-ords-apply.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/phase6-ords-apply.sql
+[INFO] SCRIPT_SHA256=09e265992a11b20a8186da67b63ff455995fc516b58c9f3a3bd38e0faecce90d
+[INFO] GIT_COMMIT=608b6bd
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=debug
+[INFO] TIMESTAMP=20260819_160634
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260819_160634_phase6-ords-apply_15422.log
+
+[INTENT]
+Purpose: Land build-plan-08 phase 6's ORDS layer on road_kit_dev -- the four admin routes
+  road-kit lacked (permissions GET, roles/:role_name/permissions POST + DELETE, principals GET)
+  and the demo application's six todo routes.
+Approach: Redefine the admin module (also RENAMING it hello_api.admin from the unrenamed
+  road_cal_api.admin, deleting both names first), then re-run 97_demo.sql which now registers
+  the todos module and appends its scope.
+Reason: build-plan-08 phase 6.
+Expected objects: ORDS modules hello_api.admin (9 handlers) and hello_api.todos (6 handlers),
+  privilege todo.rw, jwt_scaffold_config.scope_name gaining todo.rw.
+Risk: Medium-low. Module creates delete and recreate, so in-flight requests may briefly 404.
+  Dev only. The scope append is idempotent and reversed by deploy/drop/97_demo.sql.
+Prior history checked: phases 0-5 this session. The admin module has been deployed here since
+  the patch 06 backport, under the wrong name.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 19 16:06:35 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+SQL> -- INTENT:
+SQL> -- Purpose: Land build-plan-08 phase 6's ORDS layer on road_kit_dev -- the four admin routes
+SQL> --   road-kit lacked (permissions GET, roles/:role_name/permissions POST + DELETE, principals GET)
+SQL> --   and the demo application's six todo routes.
+SQL> -- Approach: Redefine the admin module (also RENAMING it hello_api.admin from the unrenamed
+SQL> --   road_cal_api.admin, deleting both names first), then re-run 97_demo.sql which now registers
+SQL> --   the todos module and appends its scope.
+SQL> -- Reason: build-plan-08 phase 6.
+SQL> -- Expected objects: ORDS modules hello_api.admin (9 handlers) and hello_api.todos (6 handlers),
+SQL> --   privilege todo.rw, jwt_scaffold_config.scope_name gaining todo.rw.
+SQL> -- Risk: Medium-low. Module creates delete and recreate, so in-flight requests may briefly 404.
+SQL> --   Dev only. The scope append is idempotent and reversed by deploy/drop/97_demo.sql.
+SQL> -- Prior history checked: phases 0-5 this session. The admin module has been deployed here since
+SQL> --   the patch 06 backport, under the wrong name.
+SQL> -- END INTENT
+SQL> 
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> set serveroutput on size unlimited
+SQL> 
+SQL> prompt === admin module (renamed + 4 new routes) ===
+=== admin module (renamed + 4 new routes) ===
+SQL> @api/modules/admin/module.create.sql
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> 
+SQL> -- ROAD role administration (spec-patch-06 section 5, spec-patch-07 section 7).
+SQL> --
+SQL> -- Byte-identical to road-cal's api/modules/admin/module.create.sql apart from the module name and
+SQL> -- the absence of POST /admin/purge/, which is a calendar operation. The file is NOT on the parity
+SQL> -- list -- ORDS modules diverge deliberately, because they name an application -- so that identity
+SQL> -- is a convention to maintain by hand, not one the check will enforce.
+SQL> --
+SQL> -- The module was named road_cal_api.admin here until 2026-08-19: an unrenamed copy-paste from the
+SQL> -- patch 06 backport, while every other road-kit module is hello_api.*. ORDS module names are
+SQL> -- schema-scoped so it worked, but road-kit's admin API announced itself as road-cal's.
+SQL> --
+SQL> -- Every handler here follows the same two-line preamble: establish session context, or 401. ORDS
+SQL> -- exposes no schema-callable pre-dispatch hook, so this is per handler by necessity
+SQL> -- (spec-patch-06 section 6.3) and bin/check-handler-coverage.sh is what stops one being forgotten.
+SQL> --
+SQL> -- The handlers are thin. They bind path parameters and the body into one JSON payload and call
+SQL> -- road_admin_api, which enforces the permission requirement itself -- so the authorisation travels
+SQL> -- with the operation rather than living only in the handler.
+SQL> 
+SQL> -- Both names: hello_api.admin is current, road_cal_api.admin is what this module was called until
+SQL> -- 2026-08-19. Without the second delete, a schema deployed before the rename keeps serving the old
+SQL> -- module alongside the new one, on the same base path.
+SQL> begin
+  2    ords.delete_module(p_module_name => 'hello_api.admin');
+  3  exception
+  4    when others then
+  5      null;
+  6  end;
+  7  /
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.289
+SQL> 
+SQL> begin
+  2    ords.delete_module(p_module_name => 'road_cal_api.admin');
+  3  exception
+  4    when others then
+  5      null;
+  6  end;
+  7  /
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.054
+SQL> 
+SQL> begin
+  2    ords.define_module(
+  3      p_module_name    => 'hello_api.admin',
+  4      p_base_path      => '/api/v1/admin/',
+  5      p_items_per_page => 25,
+  6      p_status         => 'PUBLISHED',
+  7      p_comments       => 'ROAD role administration'
+  8    );
+  9  
+ 10    ---------------------------------------------------------------------------
+ 11    -- GET /admin/roles/
+ 12    ---------------------------------------------------------------------------
+ 13    ords.define_template(
+ 14      p_module_name => 'hello_api.admin',
+ 15      p_pattern     => 'roles/',
+ 16      p_comments    => 'Role catalogue'
+ 17    );
+ 18  
+ 19    ords.define_handler(
+ 20      p_module_name => 'hello_api.admin',
+ 21      p_pattern     => 'roles/',
+ 22      p_method      => 'GET',
+ 23      p_source_type => ords.source_type_plsql,
+ 24      p_source      => q'[
+ 25        declare
+ 26          l_response       json;
+ 27          l_status_code    number;
+ 28          l_error_response clob;
+ 29        begin
+ 30          if not road_ctx_pkg.begin_request(:current_user) then
+ 31            owa_util.status_line(401);
+ 32            htp.p('{"error":"UNAUTHORIZED","message":"No session could be established"}');
+ 33            return;
+ 34          end if;
+ 35          l_response := road_admin_api.get_roles;
+ 36          owa_util.status_line(200);
+ 37          htp.p(json_serialize(l_response));
+ 38        exception
+ 39          when others then
+ 40            if sqlcode between -20999 and -20000 then
+ 41              error_api.handle_known(sqlcode, sqlerrm, l_status_code, l_error_response);
+ 42            else
+ 43              error_api.handle_unknown(sqlerrm, dbms_utility.format_error_backtrace,
+ 44                                       'admin.roles.list', l_status_code, l_error_response);
+ 45            end if;
+ 46            owa_util.status_line(l_status_code);
+ 47            htp.p(l_error_response);
+ 48        end;
+ 49      ]',
+ 50      p_comments    => 'Lists roles and the permissions they compose'
+ 51    );
+ 52  
+ 53    ords.define_handler(
+ 54      p_module_name => 'hello_api.admin',
+ 55      p_pattern     => 'roles/',
+ 56      p_method      => 'POST',
+ 57      p_source_type => ords.source_type_plsql,
+ 58      p_source      => q'[
+ 59        declare
+ 60          l_request        json;
+ 61          l_response       json;
+ 62          l_status_code    number;
+ 63          l_error_response clob;
+ 64        begin
+ 65          if not road_ctx_pkg.begin_request(:current_user) then
+ 66            owa_util.status_line(401);
+ 67            htp.p('{"error":"UNAUTHORIZED","message":"No session could be established"}');
+ 68            return;
+ 69          end if;
+ 70          l_request := json(:body_text);
+ 71          l_response := road_admin_api.define_role(l_request);
+ 72          owa_util.status_line(201);
+ 73          htp.p(json_serialize(l_response));
+ 74        exception
+ 75          when others then
+ 76            if sqlcode between -20999 and -20000 then
+ 77              error_api.handle_known(sqlcode, sqlerrm, l_status_code, l_error_response);
+ 78            else
+ 79              error_api.handle_unknown(sqlerrm, dbms_utility.format_error_backtrace,
+ 80                                       'admin.roles.define', l_status_code, l_error_response);
+ 81            end if;
+ 82            owa_util.status_line(l_status_code);
+ 83            htp.p(l_error_response);
+ 84        end;
+ 85      ]',
+ 86      p_comments    => 'Defines a new application role'
+ 87    );
+ 88  
+ 89    ---------------------------------------------------------------------------
+ 90    -- GET /admin/permissions/
+ 91    ---------------------------------------------------------------------------
+ 92    -- Not a convenience: there is no other way to list road_permissions at all, so nothing can
+ 93    -- offer a catalogue to compose from (spec-patch-07 section 7). Static segment, declared before
+ 94    -- roles/:role_name/permissions/ for readability only, same as principals/ below.
+ 95    ords.define_template(
+ 96      p_module_name => 'hello_api.admin',
+ 97      p_pattern     => 'permissions/',
+ 98      p_comments    => 'Permission catalogue'
+ 99    );
+100  
+101    ords.define_handler(
+102      p_module_name => 'hello_api.admin',
+103      p_pattern     => 'permissions/',
+104      p_method      => 'GET',
+105      p_source_type => ords.source_type_plsql,
+106      p_source      => q'[
+107        declare
+108          l_response       json;
+109          l_status_code    number;
+110          l_error_response clob;
+111        begin
+112          if not road_ctx_pkg.begin_request(:current_user) then
+113            owa_util.status_line(401);
+114            htp.p('{"error":"UNAUTHORIZED","message":"No session could be established"}');
+115            return;
+116          end if;
+117          l_response := road_admin_api.get_permissions;
+118          owa_util.status_line(200);
+119          htp.p(json_serialize(l_response));
+120        exception
+121          when others then
+122            if sqlcode between -20999 and -20000 then
+123              error_api.handle_known(sqlcode, sqlerrm, l_status_code, l_error_response);
+124            else
+125              error_api.handle_unknown(sqlerrm, dbms_utility.format_error_backtrace,
+126                                       'admin.permissions.list', l_status_code, l_error_response);
+127            end if;
+128            owa_util.status_line(l_status_code);
+129            htp.p(l_error_response);
+130        end;
+131      ]',
+132      p_comments    => 'Lists permissions and the roles that compose them'
+133    );
+134  
+135    ---------------------------------------------------------------------------
+136    -- POST / DELETE /admin/roles/:role_name/permissions/:permission_name/
+137    ---------------------------------------------------------------------------
+138    -- Both handlers below widen the usual "sqlcode between -20999 and -20000" routing check to also
+139    -- catch -8601: this is the only pair of handlers that writes to road_role_permissions through
+140    -- the admin API, so it is the only pair that can ever observe road_reserved_composition or
+141    -- road_admin_reachable fire in practice (spec-patch-07 section 5.5). road_admin_api's own
+142    -- is_reserved check raises -20403 first on the ordinary path -- reaching an actual ORA-08601
+143    -- here means that check was bypassed or has a bug (defence in depth, not the primary path).
+144    ords.define_template(
+145      p_module_name => 'hello_api.admin',
+146      p_pattern     => 'roles/:role_name/permissions/',
+147      p_comments    => 'Permissions composed onto one role'
+148    );
+149  
+150    ords.define_handler(
+151      p_module_name => 'hello_api.admin',
+152      p_pattern     => 'roles/:role_name/permissions/',
+153      p_method      => 'POST',
+154      p_source_type => ords.source_type_plsql,
+155      p_source      => q'[
+156        declare
+157          l_request        json;
+158          l_response       json;
+159          l_status_code    number;
+160          l_error_response clob;
+161        begin
+162          if not road_ctx_pkg.begin_request(:current_user) then
+163            owa_util.status_line(401);
+164            htp.p('{"error":"UNAUTHORIZED","message":"No session could be established"}');
+165            return;
+166          end if;
+167          -- role_name from the path, permission_name from the body. attached_by is deliberately NOT
+168          -- accepted from either: road_admin_api takes it from the session.
+169          select json_object(
+170                   'role_name'       value :role_name,
+171                   'permission_name' value json_value(:body_text, '$.permission_name')
+172                   returning json
+173                 )
+174            into l_request from dual;
+175          l_response := road_admin_api.attach_permission(l_request);
+176          owa_util.status_line(200);
+177          htp.p(json_serialize(l_response));
+178        exception
+179          when others then
+180            if sqlcode between -20999 and -20000 or sqlcode = -8601 then
+181              error_api.handle_known(sqlcode, sqlerrm, l_status_code, l_error_response);
+182            else
+183              error_api.handle_unknown(sqlerrm, dbms_utility.format_error_backtrace,
+184                                       'admin.roles.permissions.attach', l_status_code, l_error_response);
+185            end if;
+186            owa_util.status_line(l_status_code);
+187            htp.p(l_error_response);
+188        end;
+189      ]',
+190      p_comments    => 'Attaches an existing permission to a role'
+191    );
+192  
+193    ords.define_template(
+194      p_module_name => 'hello_api.admin',
+195      p_pattern     => 'roles/:role_name/permissions/:permission_name/',
+196      p_comments    => 'One role/permission composition'
+197    );
+198  
+199    ords.define_handler(
+200      p_module_name => 'hello_api.admin',
+201      p_pattern     => 'roles/:role_name/permissions/:permission_name/',
+202      p_method      => 'DELETE',
+203      p_source_type => ords.source_type_plsql,
+204      p_source      => q'[
+205        declare
+206          l_request        json;
+207          l_response       json;
+208          l_status_code    number;
+209          l_error_response clob;
+210        begin
+211          if not road_ctx_pkg.begin_request(:current_user) then
+212            owa_util.status_line(401);
+213            htp.p('{"error":"UNAUTHORIZED","message":"No session could be established"}');
+214            return;
+215          end if;
+216          select json_object(
+217                   'role_name'       value :role_name,
+218                   'permission_name' value :permission_name
+219                   returning json
+220                 )
+221            into l_request from dual;
+222          l_response := road_admin_api.detach_permission(l_request);
+223          owa_util.status_line(200);
+224          htp.p(json_serialize(l_response));
+225        exception
+226          when others then
+227            if sqlcode between -20999 and -20000 or sqlcode = -8601 then
+228              error_api.handle_known(sqlcode, sqlerrm, l_status_code, l_error_response);
+229            else
+230              error_api.handle_unknown(sqlerrm, dbms_utility.format_error_backtrace,
+231                                       'admin.roles.permissions.detach', l_status_code, l_error_response);
+232            end if;
+233            owa_util.status_line(l_status_code);
+234            htp.p(l_error_response);
+235        end;
+236      ]',
+237      p_comments    => 'Detaches a permission from a role'
+238    );
+239  
+240    ---------------------------------------------------------------------------
+241    -- GET /admin/principals/
+242    ---------------------------------------------------------------------------
+243    -- The listing endpoint any roles screen needs, absent until now
+244    -- (ui-authorisation-design-v1.md section 5). Framework surface: it is identity, which
+245    -- spec-patch-06 rule 1 assigns to road-kit, so it lives in road_admin_api beside the rest.
+246    --
+247    -- Static segment, declared BEFORE principals/:principal_id/roles/ for readability only -- ORDS
+248    -- resolves static segments ahead of templates regardless of declaration order.
+249    --
+250    -- NOTE on the "query" parameter name: this repeats the deviation documented at length on
+251    -- GET /events/search/. ORDS reserves "q" globally for its AutoREST JSON filter syntax and returns
+252    -- a platform-level 400 for any non-JSON value, even on a plain PL/SQL-source handler. The
+253    -- external parameter is therefore "query"; road_admin_api's own JSON contract still uses "q", and
+254    -- the mapping is contained here at the ORDS layer.
+255    --
+256    -- offset/limit keep their spec-mandated external names (ords-api-design-standards-v1.md section
+257    -- 6.1). ORDS reserves BOTH for pagination and validates them as numeric before dispatching, so a
+258    -- ?limit=abc never reaches this block: it comes back as ORDS's own 400, with ORDS's envelope
+259    -- ("code":"BadRequest") rather than error_api's. Verified against dev 2026-08-19 -- the same
+260    -- class of platform behaviour as the reserved "q" above, found the same way.
+261    --
+262    -- DEFAULT NULL ON CONVERSION ERROR therefore cannot fire for these two today. It stays because it
+263    -- is right for any bind ORDS does not pre-validate and because relying on an undocumented
+264    -- platform guard is how a 500 arrives later; but do not read it as live cover. The behaviour that
+265    -- IS live is pinned by test/endpoint/admin-principals.endpoint.sh.
+266    ords.define_template(
+267      p_module_name => 'hello_api.admin',
+268      p_pattern     => 'principals/',
+269      p_comments    => 'Principal directory'
+270    );
+271  
+272    ords.define_handler(
+273      p_module_name => 'hello_api.admin',
+274      p_pattern     => 'principals/',
+275      p_method      => 'GET',
+276      p_source_type => ords.source_type_plsql,
+277      p_source      => q'[
+278        declare
+279          l_request        json;
+280          l_response       json;
+281          l_status_code    number;
+282          l_error_response clob;
+283        begin
+284          if not road_ctx_pkg.begin_request(:current_user) then
+285            owa_util.status_line(401);
+286            htp.p('{"error":"UNAUTHORIZED","message":"No session could be established"}');
+287            return;
+288          end if;
+289          select json_object(
+290                   'offset' value to_number(:offset default null on conversion error),
+291                   'limit'  value to_number(:limit  default null on conversion error),
+292                   'q'      value :query,
+293                   'status' value :status
+294                   returning json
+295                 )
+296            into l_request from dual;
+297          l_response := road_admin_api.get_principals(l_request);
+298          owa_util.status_line(200);
+299          htp.p(json_serialize(l_response));
+300        exception
+301          when others then
+302            if sqlcode between -20999 and -20000 then
+303              error_api.handle_known(sqlcode, sqlerrm, l_status_code, l_error_response);
+304            else
+305              error_api.handle_unknown(sqlerrm, dbms_utility.format_error_backtrace,
+306                                       'admin.principals.list', l_status_code, l_error_response);
+307            end if;
+308            owa_util.status_line(l_status_code);
+309            htp.p(l_error_response);
+310        end;
+311      ]',
+312      p_comments    => 'Lists principals with their roles. "query" not "q" -- see comment above.'
+313    );
+314  
+315    ---------------------------------------------------------------------------
+316    -- GET / POST /admin/principals/:principal_id/roles/
+317    ---------------------------------------------------------------------------
+318    ords.define_template(
+319      p_module_name => 'hello_api.admin',
+320      p_pattern     => 'principals/:principal_id/roles/',
+321      p_comments    => 'Roles held by one principal'
+322    );
+323  
+324    ords.define_handler(
+325      p_module_name => 'hello_api.admin',
+326      p_pattern     => 'principals/:principal_id/roles/',
+327      p_method      => 'GET',
+328      p_source_type => ords.source_type_plsql,
+329      p_source      => q'[
+330        declare
+331          l_request        json;
+332          l_response       json;
+333          l_status_code    number;
+334          l_error_response clob;
+335        begin
+336          if not road_ctx_pkg.begin_request(:current_user) then
+337            owa_util.status_line(401);
+338            htp.p('{"error":"UNAUTHORIZED","message":"No session could be established"}');
+339            return;
+340          end if;
+341          select json_object('principal_id' value to_number(:principal_id) returning json)
+342            into l_request from dual;
+343          l_response := road_admin_api.get_principal_roles(l_request);
+344          owa_util.status_line(200);
+345          htp.p(json_serialize(l_response));
+346        exception
+347          when others then
+348            if sqlcode between -20999 and -20000 then
+349              error_api.handle_known(sqlcode, sqlerrm, l_status_code, l_error_response);
+350            else
+351              error_api.handle_unknown(sqlerrm, dbms_utility.format_error_backtrace,
+352                                       'admin.principal.roles.list', l_status_code, l_error_response);
+353            end if;
+354            owa_util.status_line(l_status_code);
+355            htp.p(l_error_response);
+356        end;
+357      ]',
+358      p_comments    => 'Lists the roles held by a principal'
+359    );
+360  
+361    ords.define_handler(
+362      p_module_name => 'hello_api.admin',
+363      p_pattern     => 'principals/:principal_id/roles/',
+364      p_method      => 'POST',
+365      p_source_type => ords.source_type_plsql,
+366      p_source      => q'[
+367        declare
+368          l_request        json;
+369          l_response       json;
+370          l_status_code    number;
+371          l_error_response clob;
+372        begin
+373          if not road_ctx_pkg.begin_request(:current_user) then
+374            owa_util.status_line(401);
+375            htp.p('{"error":"UNAUTHORIZED","message":"No session could be established"}');
+376            return;
+377          end if;
+378          -- principal_id comes from the path, role_name from the body. granted_by is deliberately
+379          -- NOT accepted from either: road_admin_api takes it from the session.
+380          select json_object(
+381                   'principal_id' value to_number(:principal_id),
+382                   'role_name'    value json_value(:body_text, '$.role_name')
+383                   returning json
+384                 )
+385            into l_request from dual;
+386          l_response := road_admin_api.grant_role(l_request);
+387          owa_util.status_line(200);
+388          htp.p(json_serialize(l_response));
+389        exception
+390          when others then
+391            if sqlcode between -20999 and -20000 then
+392              error_api.handle_known(sqlcode, sqlerrm, l_status_code, l_error_response);
+393            else
+394              error_api.handle_unknown(sqlerrm, dbms_utility.format_error_backtrace,
+395                                       'admin.principal.roles.grant', l_status_code, l_error_response);
+396            end if;
+397            owa_util.status_line(l_status_code);
+398            htp.p(l_error_response);
+399        end;
+400      ]',
+401      p_comments    => 'Grants a role to a principal'
+402    );
+403  
+404    ---------------------------------------------------------------------------
+405    -- DELETE /admin/principals/:principal_id/roles/:role_name/
+406    ---------------------------------------------------------------------------
+407    ords.define_template(
+408      p_module_name => 'hello_api.admin',
+409      p_pattern     => 'principals/:principal_id/roles/:role_name/',
+410      p_comments    => 'One role grant'
+411    );
+412  
+413    ords.define_handler(
+414      p_module_name => 'hello_api.admin',
+415      p_pattern     => 'principals/:principal_id/roles/:role_name/',
+416      p_method      => 'DELETE',
+417      p_source_type => ords.source_type_plsql,
+418      p_source      => q'[
+419        declare
+420          l_request        json;
+421          l_response       json;
+422          l_status_code    number;
+423          l_error_response clob;
+424        begin
+425          if not road_ctx_pkg.begin_request(:current_user) then
+426            owa_util.status_line(401);
+427            htp.p('{"error":"UNAUTHORIZED","message":"No session could be established"}');
+428            return;
+429          end if;
+430          select json_object(
+431                   'principal_id' value to_number(:principal_id),
+432                   'role_name'    value :role_name
+433                   returning json
+434                 )
+435            into l_request from dual;
+436          l_response := road_admin_api.revoke_role(l_request);
+437          owa_util.status_line(200);
+438          htp.p(json_serialize(l_response));
+439        exception
+440          when others then
+441            if sqlcode between -20999 and -20000 then
+442              error_api.handle_known(sqlcode, sqlerrm, l_status_code, l_error_response);
+443            else
+444              error_api.handle_unknown(sqlerrm, dbms_utility.format_error_backtrace,
+445                                       'admin.principal.roles.revoke', l_status_code, l_error_response);
+446            end if;
+447            owa_util.status_line(l_status_code);
+448            htp.p(l_error_response);
+449        end;
+450      ]',
+451      p_comments    => 'Revokes a role from a principal'
+452    );
+453  
+454  end;
+455  /
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.100
+Elapsed: 00:00:00.115
+SQL> @api/modules/admin/privileges.create.sql
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> 
+SQL> -- The privilege name is also the scope value the token must carry
+SQL> -- (ords-security-configuration-v1.md section 6), so this string must stay in step with SCOPE_NAME in
+SQL> -- JWT_SCAFFOLD_CONFIG, rendered from deploy/create/80_standalone.sql.tmpl.
+SQL> --
+SQL> -- Note what this gate can and cannot do today. The scaffold issues IDENTICAL scopes to every user,
+SQL> -- so every signed-in caller carries road.admin.rw and ORDS admits them all. The real gate is
+SQL> -- road_admin_api's require_permission on road.role.grant / road.role.define, which reads
+SQL> -- database-held roles. That is spec-patch-06 section 8.4 exactly: the ORDS privilege is currently
+SQL> -- decorative and the permission check is what holds. It becomes meaningful once road-kit is the
+SQL> -- issuer and can mint per-principal scopes.
+SQL> 
+SQL> begin
+  2    ords.delete_privilege(p_name => 'road.admin.rw');
+  3  exception
+  4    when others then
+  5      null;
+  6  end;
+  7  /
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.077
+SQL> 
+SQL> declare
+  2    l_roles    owa.vc_arr;
+  3    l_patterns owa.vc_arr;
+  4  begin
+  5    l_patterns(1) := '/api/v1/admin/*';
+  6  
+  7    ords.define_privilege(
+  8      p_privilege_name => 'road.admin.rw',
+  9      p_roles          => l_roles,
+ 10      p_patterns       => l_patterns,
+ 11      p_label          => 'ROAD Administration',
+ 12      p_description    => 'Protects the ROAD role administration endpoints'
+ 13    );
+ 14  
+ 15    commit;
+ 16  end;
+ 17  /
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.056
+Elapsed: 00:00:00.070
+SQL> 
+SQL> prompt === demo: table, package, seed, todos module ===
+=== demo: table, package, seed, todos module ===
+SQL> @deploy/create/97_demo.sql
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> 
+SQL> prompt === demo application (spec patch 08) ===
+=== demo application (spec patch 08) ===
+SQL> 
+SQL> -- INTENT:
+SQL> -- Purpose: Deploy the todo demo application -- one table, one package, its permissions and its
+SQL> --   role -- so road-kit's own framework features can be exercised in road-kit.
+SQL> -- Approach: Table, index and trigger, then the package, then the seed, then verification.
+SQL> -- Reason: Three framework features are untestable without an application: the RESERVED
+SQL> --   application permission (spec-patch-07 section 3.1's worked example),
+SQL> --   grant_all_app_permissions, and the "an application extends the role model" pattern.
+SQL> -- Expected objects: DEMO_TODOS, DEMO_TODOS_OWNER_STATUS, DEMO_TODOS_UPDATED_AT_TRG,
+SQL> --   DEMO_TODO_API (+ _TEST), 7 permissions, 1 role.
+SQL> -- Risk: Low, and confined -- every object is demo_/todo. prefixed.
+SQL> -- Prior history checked: build-plan-08 phase 5.
+SQL> -- END INTENT
+SQL> 
+SQL> -- NOT INVOKED BY deploy/create/00_full.sql, DELIBERATELY (spec-patch-08 section 3.1).
+SQL> --
+SQL> -- Two failure modes this placement avoids. In 00_full.sql, every adopter deploys todo tables and
+SQL> -- then deletes them, and road-kit stops being clean to adopt -- which is the one thing it is for.
+SQL> -- Kept fully separate and never run, the demo rots, and an unexercised demo is worse than none.
+SQL> --
+SQL> -- Resolution: this file is run unconditionally by whatever deploys road_kit_dev, and by nobody
+SQL> -- else. Dev is the exercise environment; adopters get the framework alone.
+SQL> --
+SQL> -- 97_, after 96_assertions.sql, is also deliberate: this seeds a RESERVED permission, so the
+SQL> -- assertions must already exist to validate that seed rather than be validated by it.
+SQL> 
+SQL> prompt --- table, index, trigger ---
+--- table, index, trigger --
+SQL> @db/tables/demo_todos.create.sql
+SQL> -- The demo application's only table (spec-patch-08 section 4). Not framework: nothing in road-kit's
+SQL> -- own surface references it, and deploy/create/00_full.sql does not create it -- only
+SQL> -- deploy/create/97_demo.sql does, which adopters do not run.
+SQL> --
+SQL> -- The demo_ prefix is load-bearing. It makes a stray demo object visible in user_tables at a
+SQL> -- glance, so "did the demo get deployed into an adopter's schema" is answerable by one query.
+SQL> --
+SQL> -- This is NOT a template to build on. An adopter copying the demo should copy the WIRING -- the
+SQL> -- require_permission calls, the ownership filter, the read_token handling, the error routing --
+SQL> -- and throw the domain away (spec-patch-08 section 11).
+SQL> --
+SQL> -- status DELETED is a soft delete. Hard deletion exists only behind demo_todo_api.purge, which is
+SQL> -- the point: a reserved permission needs something genuinely irreversible to guard, or the
+SQL> -- demonstration is theatre.
+SQL> --
+SQL> -- updated_at is trigger-maintained (coding-standards-v1.md section 5.5) and is exposed for display
+SQL> -- only. It is NOT the concurrency mechanism -- the opaque read_token from road_audit_api is
+SQL> -- (spec-patch-08 section 6.2). A client-supplied updated_at is rejected, never honoured.
+SQL> create table demo_todos (
+  2    todo_id            number generated always as identity,
+  3    owner_principal_id number not null references road_principals,
+  4    title              varchar2(200 char) not null,
+  5    notes              varchar2(4000 char),
+  6    due_at             timestamp with time zone,
+  7    status             varchar2(10 char) default 'OPEN' not null,
+  8    created_at         timestamp with time zone default systimestamp not null,
+  9    updated_at         timestamp with time zone default systimestamp not null,
+ 10    constraint demo_todos_pk primary key (todo_id),
+ 11    constraint demo_todos_status_ck check (status in ('OPEN', 'DONE', 'DELETED'))
+ 12  );
+
+Error starting at line : 19 File @ /Users/simon/Projects/road-kit/db/tables/demo_todos.create.sql
+In command -
+create table demo_todos (
+  todo_id            number generated always as identity,
+  owner_principal_id number not null references road_principals,
+  title              varchar2(200 char) not null,
+  notes              varchar2(4000 char),
+  due_at             timestamp with time zone,
+  status             varchar2(10 char) default 'OPEN' not null,
+  created_at         timestamp with time zone default systimestamp not null,
+  updated_at         timestamp with time zone default systimestamp not null,
+  constraint demo_todos_pk primary key (todo_id),
+  constraint demo_todos_status_ck check (status in ('OPEN', 'DONE', 'DELETED'))
+)
+Error report -
+ORA-00955: name is already used by an existing object
+
+https://docs.oracle.com/error-help/db/ora-00955/
+00955. 00000 -  "name is already used by an existing object"
+*Cause:    An attempt was made to create a database object (such
+           as a table, view, cluster, index, or synonym) that already
+           existed. A user's database objects must have distinct names.
+*Action:   Enter a unique name for the database object or modify
+           or drop the existing object so it can be reused.
+Rollback
+Elapsed: 00:00:00.110
+Elapsed: 00:00:00.125
+Elapsed: 00:00:00.140
+Elapsed: 00:00:00.156
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=FAILURE
+SQLCL_EXIT=187
+
+[INFO] SQLCL_EXIT=187
+[INFO] END

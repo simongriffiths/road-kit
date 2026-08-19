@@ -132,6 +132,31 @@ select 'todo_admin', 'todo.purge' from dual
 
 commit;
 
+prompt --- ORDS module and scope ---
+
+-- Registered HERE, not in 90_rest.sql, for the same reason the table is not in 10_tables.sql:
+-- an adopter deploying the framework must not acquire the demo's routes.
+@api/modules/todos/module.create.sql
+@api/modules/todos/privileges.create.sql
+
+-- The scope the ORDS privilege above requires must be one the scaffold actually mints, or every
+-- request to /todos/* is a 401 before any PL/SQL runs.
+--
+-- Appended HERE rather than added to deploy/create/80_standalone.sql.tmpl, deliberately: rule 1 of
+-- spec patch 08 is that the demo may never cause a framework change, and the scaffold's issued
+-- scope list is framework surface. This is also what a real adopter has to do, so the demo
+-- demonstrating it is the point rather than a workaround.
+--
+-- ORDER MATTERS: 80_standalone.sql rewrites scope_name wholesale on every deploy, so this append
+-- must run after it -- 97_ > 80_ -- and must re-apply each time. Idempotent by construction.
+update jwt_scaffold_config
+   set scope_name = scope_name || ' todo.rw',
+       updated_at = systimestamp
+ where config_id = 1
+   and scope_name not like '%todo.rw%';
+
+commit;
+
 prompt --- verify the demo model ---
 
 declare

@@ -187,7 +187,21 @@ end;
 exit success
 EOF
 
-CONFORMANCE_USER_TOKEN="$("${GET_TEST_TOKEN_SCRIPT}" --env "${ENV_NAME}" --username USER1 --scope "session.me.read events.rw series.rw road.admin.rw" 2>/dev/null || true)"
+# The scope list is READ FROM THE DEPLOYMENT, not hardcoded. It used to be the literal
+# "session.me.read events.rw series.rw road.admin.rw" -- road-cal's scopes, in a file on the
+# road-kit parity list, so road-kit minted conformance tokens carrying scopes for routes it does
+# not have and none for the routes it does. Taking it from jwt_scaffold_config means each repo
+# mints exactly what its own issuer advertises, and the file stays byte-identical. (2026-08-19)
+CONFORMANCE_SCOPES="$(sql -name "${DB_CONNECTION}" 2>/dev/null <<'EOF' | tr -d '\r' | sed -n 's/^SCOPES=//p' | head -1
+set feedback off
+set heading off
+set pagesize 0
+select 'SCOPES=' || scope_name from jwt_scaffold_config where config_id = 1;
+exit success
+EOF
+)"
+CONFORMANCE_SCOPES="${CONFORMANCE_SCOPES:-session.me.read}"
+CONFORMANCE_USER_TOKEN="$("${GET_TEST_TOKEN_SCRIPT}" --env "${ENV_NAME}" --username USER1 --scope "${CONFORMANCE_SCOPES}" 2>/dev/null || true)"
 set -e
 
 if [[ -z "${CONFORMANCE_USER_TOKEN}" ]]; then

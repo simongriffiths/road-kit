@@ -20,6 +20,34 @@ delete from road_permissions where permission_name like 'todo.%';
 delete from road_roles where role_name = 'todo_admin';
 commit;
 
+prompt --- ORDS module, privilege and scope ---
+
+begin
+  ords.delete_module(p_module_name => 'hello_api.todos');
+exception
+  when others then
+    null;
+end;
+/
+
+begin
+  ords.delete_privilege(p_name => 'todo.rw');
+exception
+  when others then
+    null;
+end;
+/
+
+-- Put the scaffold's scope list back the way the framework left it. Without this an adopter who
+-- ran the demo once keeps minting tokens carrying a scope for routes that no longer exist.
+update jwt_scaffold_config
+   set scope_name = trim(replace(scope_name, ' todo.rw', '')),
+       updated_at = systimestamp
+ where config_id = 1
+   and scope_name like '%todo.rw%';
+
+commit;
+
 prompt --- package ---
 
 begin

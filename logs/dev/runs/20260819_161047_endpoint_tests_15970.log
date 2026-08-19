@@ -1,0 +1,174 @@
+[INFO] Starting endpoint tests
+[TEST] GET /health/ returns 200
+[PASS] HTTP 200
+[TEST] Configured jwk_url points at the host under test
+[PASS] jwk_url is on https://GEB0D0F36A9A4B0-QUORATEDB.adb.uk-cardiff-1.oraclecloudapps.com/ords/hello_api
+[TEST] JWKS document is reachable at the configured jwk_url
+[PASS] HTTP 200
+[TEST] JWKS document carries a keys array
+[PASS] Body contains expected fragment
+[TEST] Minted token's kid is published in the JWKS document
+[PASS] kid hello_world-dev-14649f497300 present in JWKS
+[TEST] Configured issuer matches the logical URN convention
+[PASS] configured issuer is urn:road:hello_world:dev
+[TEST] Token issuer is the logical URN for this app and environment
+[PASS] iss is urn:road:hello_world:dev
+[INFO] auth-config.endpoint.sh complete
+[TEST] GET /ui/<app>/ returns 200
+[PASS] HTTP 200
+[TEST] UI root returns HTML shell
+[PASS] Body contains expected fragment
+[TEST] GET /ui/<app>/index.html returns 200
+[PASS] HTTP 200
+[TEST] GET bundled JS asset returns 200
+[PASS] HTTP 200
+[TEST] Bundled JS asset references deployed UI path
+[PASS] Body contains expected fragment
+[TEST] GET SPA fallback route returns 200
+[PASS] HTTP 200
+[TEST] SPA fallback returns index.html shell
+[PASS] Body contains expected fragment
+[TEST] GET /session/me/ without token returns 401
+[PASS] HTTP 401
+[TEST] GET /session/me/ with token returns 200
+[PASS] HTTP 200
+[TEST] session/me returns ADMIN principal
+[PASS] Body contains expected fragment
+[TEST] session/me returns configured scope
+[PASS] Body contains expected fragment
+[TEST] GET /session/me/ with wrong scope returns 401
+[PASS] HTTP 401
+[INFO] auth-conformance: authentication-spec-v1.md section 12
+[TEST] s12: protected endpoint without token
+[PASS] HTTP 401
+[TEST] s12: protected endpoint with valid token
+[PASS] HTTP 200
+[TEST] s12: malformed token
+[PASS] HTTP 401
+[TEST] s12: valid structure, bad signature
+[PASS] HTTP 401
+[TEST] s12: expired token
+[PASS] HTTP 401
+[TEST] s12: wrong issuer
+[PASS] HTTP 401
+[TEST] s12: wrong audience
+[PASS] HTTP 401
+[TEST] s12: missing required scope
+[PASS] HTTP 401
+[TEST] s12: authenticated principal without permission
+[PASS] HTTP 403
+[TEST] s12: 403 carries the FORBIDDEN error code
+[PASS] Body contains expected fragment
+[TEST] s12: 403 names the missing permission
+[PASS] Body contains expected fragment
+[TEST] s12: same principal is admitted where entitled
+[PASS] HTTP 200
+[INFO] auth-conformance.endpoint.sh complete
+[INFO] admin-principals: GET /admin/principals/
+[TEST] GET /admin/principals/ without token returns 401
+[PASS] HTTP 401
+[TEST] GET /admin/principals/ with an admin token returns 200
+[PASS] HTTP 200
+[TEST] collection carries items
+[PASS] Body contains expected fragment
+[TEST] collection carries hasMore
+[PASS] Body contains expected fragment
+[TEST] collection carries offset
+[PASS] Body contains expected fragment
+[TEST] principal rows carry their roles
+[PASS] Body contains expected fragment
+[TEST] the bootstrap principal is listed
+[PASS] Body contains expected fragment
+[TEST] limit is bound and honoured
+[PASS] HTTP 200
+[TEST] limit=1 is echoed back
+[PASS] Body contains expected fragment
+[TEST] limit=1 returns one row
+[PASS] Body contains expected fragment
+[TEST] an oversized limit is clamped
+[PASS] HTTP 200
+[TEST] limit clamped to 100
+[PASS] Body contains expected fragment
+[TEST] a non-numeric limit is rejected by ORDS before the handler
+[PASS] HTTP 400
+[TEST] the 400 is ORDS's, not the application's
+[PASS] Body contains expected fragment
+[TEST] a non-numeric offset is rejected the same way
+[PASS] HTTP 400
+[TEST] query filters, and the parameter name survives
+[PASS] HTTP 200
+[TEST] query matched the bootstrap principal
+[PASS] Body contains expected fragment
+[TEST] a query matching nothing returns an empty page
+[PASS] HTTP 200
+[TEST] empty page reports count 0
+[PASS] Body contains expected fragment
+[TEST] empty page reports hasMore false
+[PASS] Body contains expected fragment
+[TEST] an unrecognised status is a 400
+[PASS] HTTP 400
+[TEST] a recognised status is accepted
+[PASS] HTTP 200
+[TEST] a principal without road.role.grant is denied
+[PASS] HTTP 403
+[TEST] denial carries the FORBIDDEN error code
+[PASS] Body contains expected fragment
+[INFO] admin-principals.endpoint.sh complete
+[INFO] admin-permissions: GET /admin/permissions/, POST/DELETE /admin/roles/:role_name/permissions/
+[TEST] GET /admin/permissions/ without token returns 401
+[PASS] HTTP 401
+[TEST] GET /admin/permissions/ with an admin token returns 200
+[PASS] HTTP 200
+[TEST] catalogue carries permissions
+[PASS] Body contains expected fragment
+[TEST] todo.purge is reported reserved
+[PASS] Body contains expected fragment
+[TEST] the reserved flag is Y
+[PASS] Body contains expected fragment
+[TEST] todo_admin is listed as a todo.purge holder
+[PASS] Body contains expected fragment
+[TEST] a principal without road.role.compose is denied the catalogue
+[PASS] HTTP 403
+[TEST] denial carries the FORBIDDEN error code
+[PASS] Body contains expected fragment
+[TEST] POST attach without a token returns 401
+[PASS] HTTP 401
+[TEST] an admin token attaches todo.get to todo_admin
+[PASS] HTTP 200
+[TEST] attached is true
+[PASS] Body contains expected fragment
+[TEST] attaching the same permission again is idempotent, not an error
+[PASS] HTTP 200
+[TEST] second attach is a no-op
+[PASS] Body contains expected fragment
+[TEST] DELETE detach without a token returns 401
+[PASS] HTTP 401
+[TEST] an admin token detaches todo.get from todo_admin
+[PASS] HTTP 200
+[TEST] detached is true
+[PASS] Body contains expected fragment
+[TEST] detaching again is idempotent, not an error
+[PASS] HTTP 200
+[TEST] second detach is a no-op
+[PASS] Body contains expected fragment
+[TEST] attaching a reserved permission is refused with 403, not 500
+[PASS] HTTP 403
+[TEST] reserved-permission denial carries FORBIDDEN
+[PASS] Body contains expected fragment
+[TEST] attaching to a reserved role is refused with 403
+[PASS] HTTP 403
+[TEST] reserved-role denial carries FORBIDDEN
+[PASS] Body contains expected fragment
+[TEST] a principal without road.role.compose cannot attach
+[PASS] HTTP 403
+[TEST] a principal without road.role.compose cannot detach
+[PASS] HTTP 403
+[INFO] admin-permissions.endpoint.sh complete
+[INFO] todos: the demo application (spec patch 08)
+[TEST] GET /todos/ without a token returns 401
+[PASS] HTTP 401
+[TEST] POST /todos/ without a token returns 401
+[PASS] HTTP 401
+[TEST] road.system_admin cannot list todos
+[FAIL] Expected HTTP 403, got HTTP 200
+[FAIL] Response: {"items":[],"hasMore":false,"limit":25,"offset":0,"count":0,"read_token":"5968CF9322B24DFDE063585A000AC598"}
