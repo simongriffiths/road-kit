@@ -76,6 +76,7 @@ SHARED_FILES=(
   admin/grant-schema-privileges.sql
   test/endpoint/auth-conformance.endpoint.sh
   planning/coding-standards-v1.md
+  planning/ui-theme-standards-v1.md
 )
 
 DIVERGED=0
