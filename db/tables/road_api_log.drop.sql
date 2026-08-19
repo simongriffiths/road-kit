@@ -1,0 +1,9 @@
+begin
+  execute immediate 'drop table road_api_log cascade constraints purge';
+exception
+  when others then
+    if sqlcode != -942 then
+      raise;
+    end if;
+end;
+/

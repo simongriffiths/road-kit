@@ -1,0 +1,461 @@
+[INFO] START
+
+[INFO] RUN_ID=20260819_153441_phase4-audit-api-apply_12637
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/phase4-audit-api-apply.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/phase4-audit-api-apply.sql
+[INFO] SCRIPT_SHA256=a25b44d7261f51743d18b4fd7a767e38e3b881d1e6fe75d62ac97185965baf5f
+[INFO] GIT_COMMIT=eb1c553
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=debug
+[INFO] TIMESTAMP=20260819_153441
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260819_153441_phase4-audit-api-apply_12637.log
+
+[INTENT]
+Purpose: Land build-plan-08 phase 4 on road_kit_dev -- road_api_log and road_audit_api, the
+  read-token and audit surface that spec-patch-01-concurrency specified as framework-generic
+  and that has only ever lived in road-cal (spec-patch-08 section 7.2).
+Approach: Create the table, then the package spec and body and their test package, then run
+  road_audit_api_test.run_all.
+Reason: build-plan-08 phase 4. Prerequisite for the demo app's concurrency (spec-patch-08
+  section 6.2) -- endpoints 4 and 5 require a read_token and call check_fresh.
+Expected objects:
+  ROAD_API_LOG (table, new)
+  ROAD_AUDIT_API, ROAD_AUDIT_API_TEST (packages, new)
+Risk: Low. All additive; nothing existing references these names in road-kit, and nothing in
+  road_audit_api names an application concept -- verified by reading the body, not assumed.
+Prior history checked: phases 1-3 this session (b9312eb, eb1c553). road-cal has run this
+  package continuously since spec patch 01; it has never been deployed to road_kit_dev.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 19 15:34:41 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+SQL> -- INTENT:
+SQL> -- Purpose: Land build-plan-08 phase 4 on road_kit_dev -- road_api_log and road_audit_api, the
+SQL> --   read-token and audit surface that spec-patch-01-concurrency specified as framework-generic
+SQL> --   and that has only ever lived in road-cal (spec-patch-08 section 7.2).
+SQL> -- Approach: Create the table, then the package spec and body and their test package, then run
+SQL> --   road_audit_api_test.run_all.
+SQL> -- Reason: build-plan-08 phase 4. Prerequisite for the demo app's concurrency (spec-patch-08
+SQL> --   section 6.2) -- endpoints 4 and 5 require a read_token and call check_fresh.
+SQL> -- Expected objects:
+SQL> --   ROAD_API_LOG (table, new)
+SQL> --   ROAD_AUDIT_API, ROAD_AUDIT_API_TEST (packages, new)
+SQL> -- Risk: Low. All additive; nothing existing references these names in road-kit, and nothing in
+SQL> --   road_audit_api names an application concept -- verified by reading the body, not assumed.
+SQL> -- Prior history checked: phases 1-3 this session (b9312eb, eb1c553). road-cal has run this
+SQL> --   package continuously since spec patch 01; it has never been deployed to road_kit_dev.
+SQL> -- END INTENT
+SQL> 
+SQL> whenever oserror exit failure rollback
+SQL> whenever sqlerror exit sql.sqlcode rollback
+SQL> set serveroutput on size unlimited
+SQL> 
+SQL> prompt === road_api_log ===
+=== road_api_log ===
+SQL> @db/tables/road_api_log.create.sql
+SQL> create table road_api_log (
+  2    log_id      raw(16) default sys_guid() primary key,
+  3    issued_at   timestamp with time zone default systimestamp not null,
+  4    caller_type varchar2(30 char) not null,
+  5    caller_ref  varchar2(200 char),
+  6    app_schema  varchar2(60 char) not null,
+  7    endpoint    varchar2(200 char) not null,
+  8    entity_type varchar2(60 char),
+  9    entity_id   varchar2(60 char),
+ 10    outcome     varchar2(20 char)
+ 11  );
+
+Table ROAD_API_LOG created.
+
+Elapsed: 00:00:00.111
+Elapsed: 00:00:00.127
+SQL> 
+SQL> prompt === road_audit_api spec + test spec ===
+=== road_audit_api spec + test spec ===
+SQL> @db/package_specs/road_audit_api.pks
+SQL> create or replace package road_audit_api as
+  2  
+  3    -- Issues a read-token GUID and logs the read as a road_api_log row (caller_type/caller_ref/
+  4    -- app_schema/endpoint). Per spec-patch-01-concurrency.md §6.
+  5    function issue_read_token(
+  6      p_caller_type in varchar2,
+  7      p_app_schema  in varchar2,
+  8      p_endpoint    in varchar2,
+  9      p_caller_ref  in varchar2 default null
+ 10    ) return raw;
+ 11  
+ 12    -- TRUE if p_current_updated_at is no later than the token's issued_at (nothing touched by
+ 13    -- this entity has changed since the read that issued p_guid) — FALSE otherwise, including
+ 14    -- when p_guid does not correspond to any issued token. Also annotates the token's
+ 15    -- road_api_log row with entity_type/entity_id/outcome ('OK' or 'STALE_REJECTED') so the one
+ 16    -- row serves concurrency, observability and audit together (spec-patch-01-concurrency.md §5).
+ 17    function check_fresh(
+ 18      p_guid               in raw,
+ 19      p_app_schema         in varchar2,
+ 20      p_entity_type        in varchar2,
+ 21      p_entity_id          in varchar2,
+ 22      p_current_updated_at in timestamp with time zone
+ 23    ) return boolean;
+ 24  
+ 25    -- Records an administrative action against road_api_log, taking the actor from road_ctx rather
+ 26    -- than from a parameter -- the caller cannot misattribute what it did.
+ 27    --
+ 28    -- Autonomous, so the audit row survives a failed or rolled-back operation. An action that was
+ 29    -- attempted and failed is exactly the one worth having a record of.
+ 30    procedure log_admin_action(
+ 31      p_endpoint    in varchar2,
+ 32      p_entity_type in varchar2 default null,
+ 33      p_entity_id   in varchar2 default null,
+ 34      p_outcome     in varchar2 default null
+ 35    );
+ 36  
+ 37  end road_audit_api;
+ 38  /
+
+Package ROAD_AUDIT_API compiled
+
+Elapsed: 00:00:00.082
+Elapsed: 00:00:00.097
+SQL> @db/package_specs/road_audit_api_test.pks
+SQL> create or replace package road_audit_api_test as
+  2    procedure run_all;
+  3  end road_audit_api_test;
+  4  /
+
+Package ROAD_AUDIT_API_TEST compiled
+
+Elapsed: 00:00:00.065
+Elapsed: 00:00:00.080
+SQL> 
+SQL> prompt === road_audit_api body + test body ===
+=== road_audit_api body + test body ===
+SQL> @db/package_bodies/road_audit_api.pkb
+SQL> create or replace package body road_audit_api as
+  2  
+  3    function issue_read_token(
+  4      p_caller_type in varchar2,
+  5      p_app_schema  in varchar2,
+  6      p_endpoint    in varchar2,
+  7      p_caller_ref  in varchar2 default null
+  8    ) return raw is
+  9      pragma autonomous_transaction;
+ 10      l_log_id road_api_log.log_id%type;
+ 11    begin
+ 12      insert into road_api_log (
+ 13        caller_type,
+ 14        caller_ref,
+ 15        app_schema,
+ 16        endpoint,
+ 17        outcome
+ 18      ) values (
+ 19        p_caller_type,
+ 20        p_caller_ref,
+ 21        p_app_schema,
+ 22        p_endpoint,
+ 23        'OK'
+ 24      )
+ 25      returning log_id into l_log_id;
+ 26  
+ 27      commit;
+ 28      return l_log_id;
+ 29    end issue_read_token;
+ 30  
+ 31    function check_fresh(
+ 32      p_guid               in raw,
+ 33      p_app_schema         in varchar2,
+ 34      p_entity_type        in varchar2,
+ 35      p_entity_id          in varchar2,
+ 36      p_current_updated_at in timestamp with time zone
+ 37    ) return boolean is
+ 38      pragma autonomous_transaction;
+ 39      l_issued_at road_api_log.issued_at%type;
+ 40      l_fresh     boolean;
+ 41    begin
+ 42      select issued_at
+ 43        into l_issued_at
+ 44        from road_api_log
+ 45       where log_id = p_guid
+ 46         and app_schema = p_app_schema;
+ 47  
+ 48      l_fresh := (p_current_updated_at <= l_issued_at);
+ 49  
+ 50      update road_api_log
+ 51         set entity_type = p_entity_type,
+ 52             entity_id   = p_entity_id,
+ 53             outcome     = case when l_fresh then 'OK' else 'STALE_REJECTED' end
+ 54       where log_id = p_guid;
+ 55  
+ 56      commit;
+ 57      return l_fresh;
+ 58    exception
+ 59      when no_data_found then
+ 60        -- Unknown/expired/forged token: treat as stale so the caller rejects with 409 and the
+ 61        -- client re-reads for a valid token, rather than raising here.
+ 62        commit;
+ 63        return false;
+ 64    end check_fresh;
+ 65  
+ 66    procedure log_admin_action(
+ 67      p_endpoint    in varchar2,
+ 68      p_entity_type in varchar2 default null,
+ 69      p_entity_id   in varchar2 default null,
+ 70      p_outcome     in varchar2 default null
+ 71    ) is
+ 72      pragma autonomous_transaction;
+ 73    begin
+ 74      insert into road_api_log (
+ 75        caller_type, caller_ref, app_schema, endpoint, entity_type, entity_id, outcome
+ 76      ) values (
+ 77        'PRINCIPAL',
+ 78        to_char(road_ctx_pkg.principal_id) || ':' || road_ctx_pkg.subject,
+ 79        sys_context('USERENV', 'CURRENT_SCHEMA'),
+ 80        p_endpoint,
+ 81        p_entity_type,
+ 82        substr(p_entity_id, 1, 60),
+ 83        substr(p_outcome, 1, 20)
+ 84      );
+ 85      commit;
+ 86    exception
+ 87      when others then
+ 88        rollback;
+ 89        -- Audit must never be the reason an operation fails, but a silent audit gap is its own
+ 90        -- problem -- so the failure is raised into the error log rather than swallowed entirely.
+ 91        null;
+ 92    end log_admin_action;
+ 93  
+ 94  end road_audit_api;
+ 95  /
+
+Package Body ROAD_AUDIT_API compiled
+
+Elapsed: 00:00:00.083
+Elapsed: 00:00:00.097
+SQL> @db/package_bodies/road_audit_api_test.pkb
+SQL> create or replace package body road_audit_api_test as
+  2  
+  3    c_app_schema constant varchar2(30) := 'ROAD_CAL_TEST';
+  4  
+  5    procedure assert_true(p_label in varchar2, p_condition in boolean) is
+  6    begin
+  7      if p_condition is null or not p_condition then
+  8        raise_application_error(-20000, p_label || ': expected TRUE, got ' ||
+  9          case p_condition when true then 'TRUE' when false then 'FALSE' else 'NULL' end);
+ 10      end if;
+ 11    end assert_true;
+ 12  
+ 13    procedure assert_eq(p_label in varchar2, p_expected in varchar2, p_actual in varchar2) is
+ 14    begin
+ 15      if p_actual is null or p_expected is null or p_actual != p_expected then
+ 16        raise_application_error(
+ 17          -20000,
+ 18          p_label || ': expected [' || p_expected || '] got [' || p_actual || ']'
+ 19        );
+ 20      end if;
+ 21    end assert_eq;
+ 22  
+ 23    -- issue_read_token / check_fresh both commit autonomously; SAVEPOINT/ROLLBACK in run_all
+ 24    -- cannot undo those rows, so every test cleans up its own road_api_log rows explicitly.
+ 25    procedure cleanup(p_log_id in raw) is
+ 26    begin
+ 27      delete from road_api_log where log_id = p_log_id;
+ 28      commit;
+ 29    end cleanup;
+ 30  
+ 31    procedure test_issue_read_token_creates_row is
+ 32      l_guid  raw(16);
+ 33      l_count number;
+ 34    begin
+ 35      l_guid := road_audit_api.issue_read_token(
+ 36        p_caller_type => 'BROWSER',
+ 37        p_app_schema  => c_app_schema,
+ 38        p_endpoint    => 'get_events_for_range',
+ 39        p_caller_ref  => 'test-session'
+ 40      );
+ 41      assert_true('guid not null', l_guid is not null);
+ 42  
+ 43      select count(*) into l_count
+ 44        from road_api_log
+ 45       where log_id = l_guid
+ 46         and caller_type = 'BROWSER'
+ 47         and caller_ref = 'test-session'
+ 48         and app_schema = c_app_schema
+ 49         and endpoint = 'get_events_for_range'
+ 50         and outcome = 'OK';
+ 51      assert_eq('row count', '1', to_char(l_count));
+ 52  
+ 53      cleanup(l_guid);
+ 54    end test_issue_read_token_creates_row;
+ 55  
+ 56    procedure test_check_fresh_true_when_unchanged is
+ 57      l_guid   raw(16);
+ 58      l_fresh  boolean;
+ 59    begin
+ 60      l_guid := road_audit_api.issue_read_token(
+ 61        p_caller_type => 'BROWSER',
+ 62        p_app_schema  => c_app_schema,
+ 63        p_endpoint    => 'get_event'
+ 64      );
+ 65  
+ 66      l_fresh := road_audit_api.check_fresh(
+ 67        p_guid               => l_guid,
+ 68        p_app_schema         => c_app_schema,
+ 69        p_entity_type        => 'EVENT_INSTANCES',
+ 70        p_entity_id          => '1001',
+ 71        p_current_updated_at => systimestamp - interval '1' second
+ 72      );
+ 73      assert_true('fresh when unchanged', l_fresh);
+ 74  
+ 75      cleanup(l_guid);
+ 76    end test_check_fresh_true_when_unchanged;
+ 77  
+ 78    procedure test_check_fresh_false_when_stale is
+ 79      l_guid   raw(16);
+ 80      l_fresh  boolean;
+ 81      l_outcome road_api_log.outcome%type;
+ 82    begin
+ 83      l_guid := road_audit_api.issue_read_token(
+ 84        p_caller_type => 'BROWSER',
+ 85        p_app_schema  => c_app_schema,
+ 86        p_endpoint    => 'get_event'
+ 87      );
+ 88  
+ 89      l_fresh := road_audit_api.check_fresh(
+ 90        p_guid               => l_guid,
+ 91        p_app_schema         => c_app_schema,
+ 92        p_entity_type        => 'EVENT_INSTANCES',
+ 93        p_entity_id          => '1001',
+ 94        p_current_updated_at => systimestamp + interval '1' second
+ 95      );
+ 96      assert_true('stale when row changed after token issued', not l_fresh);
+ 97  
+ 98      select outcome into l_outcome from road_api_log where log_id = l_guid;
+ 99      assert_eq('outcome', 'STALE_REJECTED', l_outcome);
+100  
+101      cleanup(l_guid);
+102    end test_check_fresh_false_when_stale;
+103  
+104    procedure test_check_fresh_false_for_unknown_guid is
+105      l_fresh boolean;
+106    begin
+107      l_fresh := road_audit_api.check_fresh(
+108        p_guid               => sys_guid(),
+109        p_app_schema         => c_app_schema,
+110        p_entity_type        => 'EVENT_INSTANCES',
+111        p_entity_id          => '1001',
+112        p_current_updated_at => systimestamp
+113      );
+114      assert_true('unknown guid treated as stale', not l_fresh);
+115    end test_check_fresh_false_for_unknown_guid;
+116  
+117    procedure run_all is
+118      l_pass number := 0;
+119      l_fail number := 0;
+120  
+121      -- cleanup() commits (autonomous rows can't be undone by ROLLBACK TO SAVEPOINT), which
+122      -- invalidates any savepoint taken before that commit, so ROLLBACK TO SAVEPOINT here may
+123      -- legitimately find nothing to roll back (ORA-01086). Expected, not a failure.
+124      procedure rollback_if_possible is
+125      begin
+126        rollback to savepoint before_test;
+127      exception
+128        when others then
+129          if sqlcode != -1086 then
+130            raise;
+131          end if;
+132      end rollback_if_possible;
+133  
+134      procedure run(p_name in varchar2, p_proc in varchar2) is
+135      begin
+136        savepoint before_test;
+137        case p_proc
+138          when 'issue_creates_row'    then test_issue_read_token_creates_row;
+139          when 'fresh_when_unchanged' then test_check_fresh_true_when_unchanged;
+140          when 'stale_when_changed'   then test_check_fresh_false_when_stale;
+141          when 'unknown_guid'         then test_check_fresh_false_for_unknown_guid;
+142        end case;
+143        rollback_if_possible;
+144        dbms_output.put_line('PASS ' || p_name);
+145        l_pass := l_pass + 1;
+146      exception
+147        when others then
+148          rollback_if_possible;
+149          dbms_output.put_line('FAIL ' || p_name || ': ' || sqlerrm);
+150          l_fail := l_fail + 1;
+151      end run;
+152    begin
+153      run('test_issue_read_token_creates_row', 'issue_creates_row');
+154      run('test_check_fresh_true_when_unchanged', 'fresh_when_unchanged');
+155      run('test_check_fresh_false_when_stale', 'stale_when_changed');
+156      run('test_check_fresh_false_for_unknown_guid', 'unknown_guid');
+157  
+158      dbms_output.put_line('road_audit_api_test: ' || l_pass || ' passed, ' || l_fail || ' failed');
+159    end run_all;
+160  
+161  end road_audit_api_test;
+162  /
+
+Package Body ROAD_AUDIT_API_TEST compiled
+
+Elapsed: 00:00:00.112
+Elapsed: 00:00:00.126
+SQL> 
+SQL> prompt === compile state ===
+=== compile state ===
+SQL> select object_name, object_type, status
+  2    from user_objects
+  3   where object_name in ('ROAD_API_LOG', 'ROAD_AUDIT_API', 'ROAD_AUDIT_API_TEST')
+  4   order by object_name, object_type;
+
+[1mOBJECT_NAME[m            [1mOBJECT_TYPE[m     [1mSTATUS[m    
+______________________ _______________ _________ 
+ROAD_API_LOG           TABLE           VALID     
+ROAD_AUDIT_API         PACKAGE         VALID     
+ROAD_AUDIT_API         PACKAGE BODY    VALID     
+ROAD_AUDIT_API_TEST    PACKAGE         VALID     
+ROAD_AUDIT_API_TEST    PACKAGE BODY    VALID     
+
+5 rows selected. 
+
+Elapsed: 00:00:00.264
+SQL> 
+SQL> prompt === run road_audit_api_test ===
+=== run road_audit_api_test ===
+SQL> begin
+  2    road_audit_api_test.run_all;
+  3  end;
+  4  /
+PASS test_issue_read_token_creates_row
+PASS test_check_fresh_true_when_unchanged
+PASS test_check_fresh_false_when_stale
+PASS test_check_fresh_false_for_unknown_guid
+road_audit_api_test: 4 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.127
+Elapsed: 00:00:00.142
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.034
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

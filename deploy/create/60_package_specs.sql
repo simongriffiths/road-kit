@@ -22,3 +22,5 @@ prompt === deploy package specs ===
 @db/package_specs/road_ctx_pkg_test.pks
 @db/package_specs/road_admin_api.pks
 @db/package_specs/road_admin_api_test.pks
+@db/package_specs/road_audit_api.pks
+@db/package_specs/road_audit_api_test.pks
