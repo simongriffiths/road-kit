@@ -1,10 +1,13 @@
-:root {
-  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
-  color: #11221e;
-  background:
-    radial-gradient(circle at top left, rgba(249, 214, 101, 0.35), transparent 28rem),
-    linear-gradient(180deg, #f7f2e6 0%, #e7efe8 100%);
-}
+/* ROAD core components -- tier 2 of planning/ui-theme-standards-v1.md.
+ *
+ * SHARED, BYTE-IDENTICAL across every road-* application. road-kit is canonical.
+ *
+ * Nineteen classes, and nothing else belongs here. An app's own components go in its CSS modules
+ * and get their appearance from tokens.css -- never from a literal colour, radius or font-family.
+ *
+ * Modifiers use the BEM-ish -- form (.notice--error), not compound classes (.notice.error).
+ */
+@import './tokens.css';
 
 * {
   box-sizing: border-box;
@@ -14,89 +17,72 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
 }
 
 code {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-family: var(--font-mono);
 }
+
+h1, h2, h3 {
+  font-weight: 500;
+}
+
+h1 { font-size: clamp(1.45rem, 2vw, 1.9rem); }
+h2 { font-size: clamp(1.35rem, 2vw, 1.75rem); }
+h3 { font-size: 1rem; }
 
 .app-shell {
-  width: min(64rem, calc(100vw - 2rem));
+  width: min(86rem, calc(100vw - 2rem));
   margin: 0 auto;
-  padding: 3rem 0 4rem;
+  padding: 1.75rem 0 2.5rem;
 }
 
-.hero {
-  padding: 2.5rem;
-  border: 1px solid rgba(17, 34, 30, 0.12);
-  border-radius: 1.5rem;
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 1rem 2rem rgba(17, 34, 30, 0.08);
-}
-
-.masthead {
+.topbar {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 1rem;
-  align-items: flex-start;
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
 }
 
 .eyebrow {
   margin: 0 0 0.5rem;
   font-size: 0.75rem;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #456b61;
+  color: var(--ink-eyebrow);
 }
 
 .nav-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 1rem;
   align-items: center;
   justify-content: flex-end;
 }
 
 .nav-link {
-  color: #1d4c41;
+  color: var(--ink-muted);
   text-decoration: none;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 
 .nav-link.active {
-  font-weight: 700;
-}
-
-.hero h1 {
-  margin: 0;
-  font-size: clamp(2.5rem, 6vw, 4.5rem);
-  line-height: 0.95;
-}
-
-.lede {
-  max-width: 40rem;
-  margin: 1rem 0 0;
-  font-size: 1.1rem;
-  line-height: 1.6;
-}
-
-.status-line {
-  margin: 1rem 0 0;
-  color: #33584f;
-}
-
-.status-line a {
-  color: #1d4c41;
+  color: var(--primary);
+  font-weight: 500;
 }
 
 .panel {
-  margin-top: 1.5rem;
-  padding: 2rem;
-  border-radius: 1.5rem;
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid rgba(17, 34, 30, 0.1);
-  box-shadow: 0 1rem 2rem rgba(17, 34, 30, 0.08);
+  padding: 1.5rem;
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-panel);
 }
 
 .stack {
@@ -104,14 +90,13 @@ code {
   gap: 1.5rem;
 }
 
-.section-heading h2,
-.card h3 {
+.section-heading h2 {
   margin: 0;
 }
 
 .section-heading p,
 .card p {
-  margin: 0.75rem 0 0;
+  margin: 0.5rem 0 0;
 }
 
 .card-grid {
@@ -121,37 +106,42 @@ code {
 }
 
 .card {
-  padding: 1.25rem;
-  border-radius: 1rem;
-  background: #f3f8f5;
-  border: 1px solid rgba(17, 34, 30, 0.08);
+  padding: 1.1rem;
+  border-radius: var(--radius-panel);
+  background: var(--bg);
+  border: 1px solid var(--border);
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
+}
+
+.card h3 {
+  margin: 0;
 }
 
 .kv {
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
+  margin: 0;
 }
 
 .kv div {
-  padding: 1rem 1.25rem;
-  border-radius: 1rem;
-  background: #f3f8f5;
-  border: 1px solid rgba(17, 34, 30, 0.08);
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-control);
+  background: var(--bg);
+  border: 1px solid var(--border);
 }
 
 .kv dt {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #456b61;
+  letter-spacing: 0.06em;
+  color: var(--ink-eyebrow);
 }
 
 .kv dd {
-  margin: 0.5rem 0 0;
-  font-size: 1rem;
+  margin: 0.35rem 0 0;
+  font-size: 0.95rem;
   overflow-wrap: anywhere;
 }
 
@@ -163,28 +153,32 @@ code {
 }
 
 .muted {
-  color: #4b655f;
+  color: var(--ink-muted);
 }
 
 .auth-form {
   display: grid;
   gap: 1rem;
+  max-width: 24rem;
 }
 
 .field {
   display: grid;
-  gap: 0.4rem;
-  font-size: 0.95rem;
+  gap: 0.35rem;
+  font-size: 0.9rem;
 }
 
-.field input {
+.field input,
+.field select,
+.field textarea {
   width: 100%;
-  padding: 0.8rem 0.9rem;
-  border-radius: 0.85rem;
-  border: 1px solid rgba(17, 34, 30, 0.18);
-  background: rgba(255, 255, 255, 0.94);
-  color: #11221e;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--ink);
   font: inherit;
+  font-size: 0.9rem;
 }
 
 .button {
@@ -192,58 +186,69 @@ code {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  min-height: 2.75rem;
-  padding: 0.7rem 1.1rem;
-  border: 0;
-  border-radius: 999px;
-  background: #1d4c41;
-  color: #f7f2e6;
+  min-height: 2.35rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: var(--radius-control);
+  background: var(--primary);
+  color: #fff;
   font: inherit;
-  font-weight: 600;
+  font-size: 0.85rem;
+  font-weight: 500;
   text-decoration: none;
   cursor: pointer;
 }
 
 .button:disabled {
-  opacity: 0.65;
+  opacity: 0.6;
   cursor: default;
 }
 
 .button.secondary {
-  background: #456b61;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--border-strong);
 }
 
 .button.ghost {
   background: transparent;
-  color: #1d4c41;
-  border: 1px solid rgba(29, 76, 65, 0.3);
+  color: var(--primary);
+  border: 1px solid var(--border-strong);
 }
 
 .notice {
   margin: 0;
-  padding: 0.9rem 1rem;
-  border-radius: 0.9rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-control);
+  font-size: 0.85rem;
+  border: 1px solid;
 }
 
-.notice.error {
-  background: #f7e6df;
-  color: #7f2f18;
-  border: 1px solid rgba(127, 47, 24, 0.14);
+.notice--error {
+  background: var(--error-bg);
+  color: var(--error-fg);
+  border-color: var(--error-border);
+}
+
+.notice--warning {
+  background: var(--warning-bg);
+  color: var(--warning-fg);
+  border-color: var(--warning-border);
 }
 
 @media (max-width: 640px) {
   .app-shell {
-    width: min(64rem, calc(100vw - 1rem));
+    width: min(86rem, calc(100vw - 1rem));
     padding-top: 1rem;
   }
 
-  .hero,
   .panel {
-    padding: 1.25rem;
+    padding: 1rem;
   }
 
-  .masthead {
+  .topbar {
     flex-direction: column;
+    align-items: flex-start;
   }
 
   .nav-actions,

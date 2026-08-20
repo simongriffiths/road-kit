@@ -75,7 +75,7 @@ export function LoginPage() {
           />
         </label>
 
-        {errorMessage ? <p className="notice error">{errorMessage}</p> : null}
+        {errorMessage ? <p className="notice notice--error">{errorMessage}</p> : null}
 
         <div className="row">
           <button className="button" disabled={submitting} type="submit">

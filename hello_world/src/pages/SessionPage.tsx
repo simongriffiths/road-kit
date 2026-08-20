@@ -68,13 +68,13 @@ export function SessionPage() {
             The route is protected, but the API call still failed after the token was attached.
           </p>
         </div>
-        <p className="notice error">{errorMessage}</p>
+        <p className="notice notice--error">{errorMessage}</p>
       </div>
     );
   }
 
   if (!session) {
-    return <p className="notice error">No session data was returned.</p>;
+    return <p className="notice notice--error">No session data was returned.</p>;
   }
 
   return (

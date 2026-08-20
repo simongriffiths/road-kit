@@ -13,37 +13,39 @@ export function App() {
 
   return (
     <main className="app-shell">
-      <header className="hero">
-        <div className="masthead">
-          <p className="eyebrow">ROAD Stage 3</p>
-          <div className="nav-actions">
-            <NavLink className="nav-link" to="/">Home</NavLink>
-            <NavLink className="nav-link" to="/login">Login</NavLink>
-            <NavLink className="nav-link" to="/session">Session</NavLink>
-            {hasToken ? (
-              <button className="button ghost" onClick={handleLogout} type="button">
-                Log Out
-              </button>
-            ) : null}
-          </div>
+      <div className="topbar">
+        <p className="eyebrow">ROAD Stage 3</p>
+        <div className="nav-actions">
+          <NavLink className="nav-link" to="/">Home</NavLink>
+          <NavLink className="nav-link" to="/login">Login</NavLink>
+          <NavLink className="nav-link" to="/session">Session</NavLink>
+          {hasToken ? (
+            <button className="button ghost" onClick={handleLogout} type="button">
+              Log Out
+            </button>
+          ) : null}
         </div>
-        <h1>Hello World</h1>
-        <p className="lede">
-          Minimal hosted React shell proving public and protected routing against the ROAD ORDS auth
-          scaffold.
-        </p>
-        <p className="status-line">
-          Token status:
-          {' '}
-          <strong>{hasToken ? 'present in session storage' : 'not authenticated'}</strong>
-          .
-          {' '}
-          <Link to="/session">Protected session route</Link>
-        </p>
-      </header>
-      <section className="panel">
-        <Outlet />
-      </section>
+      </div>
+      <div className="stack">
+        <div className="section-heading">
+          <h2>Hello World</h2>
+          <p className="muted">
+            Minimal hosted React shell proving public and protected routing against the ROAD ORDS
+            auth scaffold.
+          </p>
+          <p className="muted">
+            Token status:
+            {' '}
+            <strong>{hasToken ? 'present in session storage' : 'not authenticated'}</strong>
+            .
+            {' '}
+            <Link to="/session">Protected session route</Link>
+          </p>
+        </div>
+        <section className="panel">
+          <Outlet />
+        </section>
+      </div>
     </main>
   );
 }
