@@ -150,6 +150,12 @@ Deliberate, because getting it wrong wastes the work:
    a half-applied theme there is worse than a late one everywhere else.
 2. **road-cal follows** — it is closest already: it has the tokens, needs the rename to `--divider`
    and the `--today-tint` demotion.
+
+   **Done 2026-08-19, tier 1 only.** `tokens.css` is byte-identical with road-kit's; `--today-tint`
+   is declared in road-cal's own `styles.css`. **Tier 2 is NOT aligned yet** — road-cal's
+   `styles.css` still carries app classes (`wordmark`, the `.notice.error` compatibility selector)
+   alongside the core, so the two files are deliberately not identical. Finishing that is a
+   separate, larger job: it means finding a home for the app classes first.
 3. **road-blogger follows** — the largest job. It has no token layer at all; its 462 lines hardcode
    the values tier 1 names. Its 33 dashboard classes stay exactly where they are.
 4. **aida adopts on rebuild.** It has no CSS today and is due a fresh start, so it is the first real
