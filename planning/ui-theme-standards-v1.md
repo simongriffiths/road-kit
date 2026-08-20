@@ -151,13 +151,23 @@ Deliberate, because getting it wrong wastes the work:
 2. **road-cal follows** — it is closest already: it has the tokens, needs the rename to `--divider`
    and the `--today-tint` demotion.
 
-   **Done 2026-08-19, tier 1 only.** `tokens.css` is byte-identical with road-kit's; `--today-tint`
-   is declared in road-cal's own `styles.css`. **Tier 2 is NOT aligned yet** — road-cal's
-   `styles.css` still carries app classes (`wordmark`, the `.notice.error` compatibility selector)
-   alongside the core, so the two files are deliberately not identical. Finishing that is a
-   separate, larger job: it means finding a home for the app classes first.
+   **Done 2026-08-19, tiers 1 and 2.** Both `tokens.css` and `styles.css` are byte-identical with
+   road-kit's. `--today-tint` and `.wordmark` moved to a new `src/app.css` — the tier 3 file — and
+   eleven `className="notice error"` usages became `notice notice--error`.
 3. **road-blogger follows** — the largest job. It has no token layer at all; its 462 lines hardcode
    the values tier 1 names. Its 33 dashboard classes stay exactly where they are.
+
+   **Done 2026-08-19, tier 1 only.** `tokens.css` is byte-identical; all 28 hardcoded values are
+   gone. Twelve mapped exactly onto shared tokens. **Thirteen were near-misses and were collapsed**
+   — five separately-invented greys within a few points of `--ink-muted`, three borders around
+   `--border`, two darks around `--ink`. That drift, in one app, across 462 lines, is the clearest
+   argument for the token layer this document specifies. Two genuinely app-specific colours became
+   road-blogger's own tokens: `--pill-bg` and `--primary-light` (a gradient stop).
+
+   **Tier 2 is NOT aligned.** road-blogger still defines its own `app-shell`, `panel`, `topbar` and
+   `notice` rather than importing the shared core. Its values already match, so this is structural
+   rather than visual — but its `.panel` carries extra rules and its `.topbar` is not the core's
+   flex layout, so the swap needs a proper visual pass against real data. Left deliberately.
 4. **aida adopts on rebuild.** It has no CSS today and is due a fresh start, so it is the first real
    test of whether tiers 1 and 2 are usable by an app that did not grow them.
 
