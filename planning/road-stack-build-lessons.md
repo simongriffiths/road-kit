@@ -851,3 +851,49 @@ Note also that `CREATE ANY CONTEXT` and `DROP ANY CONTEXT` are **separate privil
 Two habits that made the difference here: a teardown-then-rebuild from an empty schema rather than an incremental apply, which proves the deploy chain and not just the diff; and running the *original* application's suite again immediately afterwards, which is what caught the context collision. A backport that only proves the new repo works has tested half of what changed.
 
 **Corollary on the shared surface.** Every file the two repos hold identically is maintained by hand. The mitigation is not discipline, it is a `diff -q` list that can be run on demand — cheap, and it converts "we think these agree" into a yes or no.
+
+## React: registering a token getter for a non-React API client
+
+Found in road-blogger 2026-08-21, while adopting Auth0. It will recur in any ROAD app that moves to
+an external identity provider, because the shape of the problem is forced by the SDK.
+
+**The situation.** With a scaffold, `api/client.ts` reads the token from `sessionStorage`
+synchronously and needs nothing from React. With Auth0 the SDK owns the token and hands it out
+through a hook, so a plain module cannot reach it. The usual fix is a small bridge component inside
+the provider tree that registers a getter into the client.
+
+**The trap.** Registering it in a `useEffect` looks right and is wrong:
+
+```tsx
+function TokenBridge({ children }) {
+  const { getToken } = useAuth();
+  useEffect(() => { setTokenProvider(getToken); }, [getToken]);   // too late
+  return <>{children}</>;
+}
+```
+
+**React runs child effects before parent effects.** Any child that fetches on mount — a session
+context, a data hook — fires before the parent has registered the getter. The request goes out with
+no `Authorization` header and comes back 401. If the client redirects on 401, the page reloads,
+everything remounts, and it happens again: an infinite refresh loop with nothing in the console
+explaining it.
+
+Reasoning about the JSX nesting misleads here. Nesting runs parent-to-child; effects run the other
+way.
+
+**Fix.** Register during render, not in an effect. Render runs parent-before-child, so the getter
+exists before any child renders:
+
+```tsx
+function TokenBridge({ children }) {
+  const { getToken } = useAuth();
+  setTokenProvider(getToken);   // idempotent module assignment, no state, no subscription
+  return <>{children}</>;
+}
+```
+
+**Also worth doing regardless of cause:** put a cooldown on the 401 redirect, held in
+`sessionStorage` rather than a module variable — module state resets on every page load, and it is
+across reloads that the loop lives. One redirect then a visible error beats a page that thrashes
+and tells the user nothing.
+
