@@ -1,0 +1,51 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_232741_check_scope_now_19922
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/check_scope_now.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/check_scope_now.sql
+[INFO] SCRIPT_SHA256=1248154601ab6daaceefe89b988fa0c7b9437e9462dc5c61ca942fa68dd2134e
+[INFO] GIT_COMMIT=45b1b78
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_232741
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_232741_check_scope_now_19922.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 23:27:42 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+
+   [1mCONFIG_ID[m [1mSCOPE_NAME[m                                  [1mLEN[m [1mUPDATED_AT[m                          
+____________ ________________________________________ ______ ___________________________________ 
+           1 session.me.read road.admin.rw todo.rw        37 19-AUG-26 16.52.36.719474000 GMT    
+
+1 row selected. 
+
+Elapsed: 00:00:00.397
+Elapsed: 00:00:00.416
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.041
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

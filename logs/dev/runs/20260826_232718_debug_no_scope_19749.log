@@ -1,0 +1,50 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_232718_debug_no_scope_19749
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/debug_no_scope.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/debug_no_scope.sql
+[INFO] SCRIPT_SHA256=1ff99f5fc576c7220d4a4193ee03df25c2ef776f8fc8051332086f7b1c425e20
+[INFO] GIT_COMMIT=45b1b78
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_232718
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_232718_debug_no_scope_19749.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 23:27:18 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+config.scope_name is null: NO
+token: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImhlbGxvX3dvcmxkLWRldi1jMTFkZWFmZGQ4MDMifQ.eyJzdWIiOiJaWl9ERUJVR19OT1NDT1BFIiwiaXNzIjoidXJuOnJvYWQ6aGVsbG9fd29ybGQ6ZGV2IiwiYXVkIjoicm9hZC1kZXYiLCJleHAiOjE3ODc3ODY4MzksImlhdCI6MTc4Nzc4MzIzOSwic2NvcGUiOiJzZXNzaW9uLm1lLnJlYWQgcm9hZC5hZG1pbi5ydyB0b2RvLnJ3IiwiZW52IjoiZGV2LXNjYWZmb2xkIn0.tDwMAv5IqfxQmZ5rEQZVKS5iF-ADrhkZQ-ogGSaaL-buyQHfnz_tx1AS35hKkYkZbcHiDgyQCILW70KrYO9bb8YUhphM33cWDSoj3h_PXEQexh1bFoC5H-HYpT3lEUCgdZP4oPL0JukEiBroZ4OzeJkDPTtboNoZwwsjVxg7TheAKmxx0TEq5h4-lOKLn4XbpXJHIUbCJ8AMMQNtplOrcDcozjMhWhp5kfe2x-0-SnGjyYNleUlNpcQVTZ5mJkiSzI9BjnoKKTjLHOnXzWbkbcXZy6esTdhWBQHsoJSNXET8lL3Lz2nKJd499yI2NDZqxA_N9XuDlLlShcu-Xj2qRQ
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.143
+Elapsed: 00:00:00.161
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.266
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

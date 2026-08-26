@@ -269,8 +269,11 @@ Four consequences, all good:
   does not cause a framework change; it exercises one.
 
 `jwt_scaffold_config.scope_name` becomes the **fallback** for a principal holding no such
-permissions, and should be empty rather than a privilege list. An empty scope is the correct token
-for a principal entitled to nothing.
+permissions, and should be `NULL` rather than a privilege list — **not** an empty string. `NULL` is
+the correct token claim for a principal entitled to nothing, and it is also the only value Oracle
+can actually store: `''` is `NULL` for `VARCHAR2`, so a column left `NOT NULL` refuses it outright
+(`ORA-01407`, found deploying phase 4). The column had to become nullable; see
+`db/tables/jwt_scaffold_config.create.sql`.
 
 ### 4.3 Consequence worth stating plainly
 

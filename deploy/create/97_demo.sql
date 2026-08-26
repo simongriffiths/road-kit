@@ -139,16 +139,36 @@ prompt --- ORDS module and scope ---
 @api/modules/todos/module.create.sql
 @api/modules/todos/privileges.create.sql
 
--- The scope the ORDS privilege above requires must be one the scaffold actually mints, or every
--- request to /todos/* is a 401 before any PL/SQL runs.
---
--- Appended HERE rather than added to deploy/create/80_standalone.sql.tmpl, deliberately: rule 1 of
--- spec patch 08 is that the demo may never cause a framework change, and the scaffold's issued
--- scope list is framework surface. This is also what a real adopter has to do, so the demo
--- demonstrating it is the point rather than a workaround.
---
--- ORDER MATTERS: 80_standalone.sql rewrites scope_name wholesale on every deploy, so this append
--- must run after it -- 97_ > 80_ -- and must re-apply each time. Idempotent by construction.
+-- todo.rw as a ROAD_PERMISSIONS row, UNRESERVED -- unlike road.admin.rw and session.me.read in
+-- 95_data.sql, this one is the demo's to compose, not the framework's. Added spec-patch-09 phase 4,
+-- replacing the SCOPE_NAME append this block used to do (see below for why that stopped working).
+-- This is also exactly what a real adopter has to do for their own ORDS-gate permission, so the
+-- demo demonstrating it is the point rather than a workaround -- unchanged from why the append it
+-- replaces existed in the first place.
+insert into road_permissions (permission_name, description, is_reserved)
+select 'todo.rw', 'Reach the ORDS todo endpoints (the URL-level gate; todo.list/create/... above '
+                   || 'decide what is allowed once there).', 'N'
+  from dual
+ where not exists (select 1 from road_permissions where permission_name = 'todo.rw');
+
+insert into road_role_permissions (role_name, permission_name)
+select 'user', 'todo.rw' from dual
+ where not exists (select 1 from road_role_permissions
+                    where role_name = 'user' and permission_name = 'todo.rw');
+
+insert into road_role_permissions (role_name, permission_name)
+select 'todo_admin', 'todo.rw' from dual
+ where not exists (select 1 from road_role_permissions
+                    where role_name = 'todo_admin' and permission_name = 'todo.rw');
+
+commit;
+
+-- SUPERSEDED BY THE ABOVE, and now DEAD CODE rather than merely redundant -- kept for the
+-- record rather than deleted. spec-patch-09 phase 4 made SCOPE_NAME nullable and set it to NULL
+-- (deploy/create/80_standalone.sql.tmpl), and this statement's WHERE clause is
+-- `scope_name not like '%todo.rw%'` -- NULL NOT LIKE anything is NULL, not TRUE, so the UPDATE
+-- can never match again and this block will not run. Left in place rather than deleted so a reader
+-- mid-adoption sees what changed and why, rather than a silent gap where an append used to be.
 update jwt_scaffold_config
    set scope_name = scope_name || ' todo.rw',
        updated_at = systimestamp

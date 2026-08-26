@@ -5,12 +5,13 @@ whenever sqlerror exit sql.sqlcode rollback
 -- (ords-security-configuration-v1.md section 6), so this string must stay in step with SCOPE_NAME in
 -- JWT_SCAFFOLD_CONFIG, rendered from deploy/create/80_standalone.sql.tmpl.
 --
--- Note what this gate can and cannot do today. The scaffold issues IDENTICAL scopes to every user,
--- so every signed-in caller carries road.admin.rw and ORDS admits them all. The real gate is
--- road_admin_api's require_permission on road.role.grant / road.role.define, which reads
--- database-held roles. That is spec-patch-06 section 8.4 exactly: the ORDS privilege is currently
--- decorative and the permission check is what holds. It becomes meaningful once road-kit is the
--- issuer and can mint per-principal scopes.
+-- Closes spec-patch-06 section 8.4, as of spec-patch-09 phase 4: the scaffold now derives each
+-- token's scope from the principal's own ROAD_ROLE_PERMISSIONS (jwt_scaffold_auth_api.
+-- effective_ords_scope), so this gate actually discriminates. A principal must hold the matching
+-- ROAD_PERMISSIONS row -- named road.admin.rw, seeded in 95_data.sql, attached to road.system_admin
+-- and road.user_admin -- to reach anything under /api/v1/admin/* at all. road_admin_api's own
+-- require_permission on road.role.grant / road.role.define is still the finer-grained control
+-- underneath; this is what decides whether a request reaches PL/SQL in the first place.
 
 begin
   ords.delete_privilege(p_name => 'road.admin.rw');

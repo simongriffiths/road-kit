@@ -1,0 +1,74 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_233014_demo_suite_20653
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/demo_suite.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/demo_suite.sql
+[INFO] SCRIPT_SHA256=e01b20b49ad8a3201c4995dc4de4d99c6ee4f3559f57fc5aa4738118194eeeda
+[INFO] GIT_COMMIT=45b1b78
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_233014
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_233014_demo_suite_20653.log
+
+[INTENT]
+Purpose: Run demo_todo_api_test on its own, with a commit ahead of it.
+Approach: commit; then run_all.
+Reason: known road-kit artifact -- ORA-12841 ("cannot alter the session parallel DML state
+  within a transaction") when this suite runs immediately after other suites in the same
+  uncommitted session (road-kit lessons doc). Not a phase-4 regression; confirming that here.
+Expected objects: none created.
+Risk: None. Test suite only.
+Prior history checked: 20260826_2 phase4 deploy runs hit this same ORA-12841 today.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 23:30:14 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+
+Commit complete.
+
+Elapsed: 00:00:00.038
+PASS other_owner_not_found
+PASS list_all_not_list
+PASS own_owner_ok
+PASS other_owner_needs_all
+PASS owner_from_session
+PASS owner_body_refused
+PASS stale_token_conflicts
+PASS fresh_token_updates
+PASS update_needs_token
+PASS update_not_deleted
+PASS delete_soft_idempotent
+PASS deleted_hidden
+PASS purge_needs_permission
+PASS purge_cross_owner
+demo_todo_api_test: 14 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.759
+Elapsed: 00:00:00.778
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.044
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

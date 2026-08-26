@@ -119,6 +119,32 @@ select 'road.role.compose',
   from dual
  where not exists (select 1 from road_permissions where permission_name = 'road.role.compose');
 
+-- The two ORDS-gate permissions, spec-patch-09 section 4.2. Distinct from the five road.role.* /
+-- road.permission.* permissions above: those gate individual operations inside road_admin_api,
+-- these two gate the URL space at ORDS before any PL/SQL runs. A principal needs the coarse one
+-- to REACH the endpoint and the fine one to be ALLOWED what they asked -- both, not either.
+--
+-- Reserved for the same reason the other five are: every permission road-kit ships is the
+-- framework's own authority. Named identically to the ORDS privileges they correspond to
+-- (api/modules/admin/privileges.create.sql, api/modules/session/privileges.create.sql) -- that
+-- equality is not a convention, it is the join issue_token performs against
+-- USER_ORDS_PRIVILEGES.NAME to derive a token's scope.
+insert into road_permissions (permission_name, description, is_reserved)
+select 'road.admin.rw',
+       'Reach the ORDS role-administration endpoints. Distinct from road.role.define/grant/revoke/'
+       || 'compose, which decide what is allowed once there.',
+       'Y'
+  from dual
+ where not exists (select 1 from road_permissions where permission_name = 'road.admin.rw');
+
+insert into road_permissions (permission_name, description, is_reserved)
+select 'session.me.read',
+       'Reach the ORDS /session/me/ endpoint. Held by the default role so every authenticated '
+       || 'principal can read its own identity.',
+       'Y'
+  from dual
+ where not exists (select 1 from road_permissions where permission_name = 'session.me.read');
+
 prompt --- mark existing permissions reserved (patch 07 migration) ---
 
 -- Fixes up a schema that already had these rows before is_reserved existed -- the insert guards
@@ -130,7 +156,7 @@ update road_permissions
    set is_reserved = 'Y'
  where permission_name in (
          'road.role.define', 'road.permission.define', 'road.role.grant', 'road.role.revoke',
-         'road.role.compose'
+         'road.role.compose', 'road.admin.rw', 'session.me.read'
        )
    and is_reserved = 'N';
 
@@ -179,6 +205,31 @@ insert into road_role_permissions (role_name, permission_name)
 select 'road.user_admin', 'road.role.revoke' from dual
  where not exists (select 1 from road_role_permissions
                     where role_name = 'road.user_admin' and permission_name = 'road.role.revoke');
+
+-- road.admin.rw is the coarse ORDS gate over /api/v1/admin/*, which is where every road.role.*
+-- endpoint lives -- including the ones road.user_admin holds. Without this grant, road.user_admin
+-- authenticates fine and is refused by ORDS before road_admin_api.require_permission ever runs:
+-- correct fine-grained authority, blocked by a missing coarse one. Found while wiring per-principal
+-- scope derivation (spec-patch-09 section 4) -- under the old fixed scope list every principal
+-- carried road.admin.rw regardless, so this gap could not have been observed until now.
+insert into road_role_permissions (role_name, permission_name)
+select 'road.system_admin', 'road.admin.rw' from dual
+ where not exists (select 1 from road_role_permissions
+                    where role_name = 'road.system_admin' and permission_name = 'road.admin.rw');
+
+insert into road_role_permissions (role_name, permission_name)
+select 'road.user_admin', 'road.admin.rw' from dual
+ where not exists (select 1 from road_role_permissions
+                    where role_name = 'road.user_admin' and permission_name = 'road.admin.rw');
+
+-- session.me.read on 'user': every principal that holds the default role can read its own session.
+-- The bootstrap administrator below is granted 'user' in addition to road.system_admin for exactly
+-- this reason -- being an administrator does not imply holding this, since rule 2 forbids road.*
+-- roles inheriting application-shaped permissions, and reading your own identity is one.
+insert into road_role_permissions (role_name, permission_name)
+select 'user', 'session.me.read' from dual
+ where not exists (select 1 from road_role_permissions
+                    where role_name = 'user' and permission_name = 'session.me.read');
 
 prompt --- bootstrap administrator ---
 

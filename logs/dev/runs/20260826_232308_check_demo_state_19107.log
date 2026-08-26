@@ -1,0 +1,86 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_232308_check_demo_state_19107
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/check_demo_state.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/check_demo_state.sql
+[INFO] SCRIPT_SHA256=f7965ff9cc051f33b2b4464026375bf21022e278710460e85cd29ede3d8b03d1
+[INFO] GIT_COMMIT=45b1b78
+[INFO] GIT_DIRTY=false
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_232308
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_232308_check_demo_state_19107.log
+
+[INTENT]
+Purpose: Establish whether the demo app (97_demo.sql) is currently deployed to road_kit_dev, and
+  whether todo.rw exists as an ORDS privilege and/or a ROAD_PERMISSIONS row.
+Approach: Read-only queries against USER_ORDS_PRIVILEGES, ROAD_PERMISSIONS, ROAD_ROLES.
+Reason: Phase 4 derives token scope from ROAD_PERMISSIONS intersected with ORDS privilege names.
+  todo.rw is registered as an ORDS privilege but (as of phase 3) is not a ROAD_PERMISSIONS row --
+  need to confirm that gap actually exists before deciding whether the demo needs a fix.
+Expected objects: none created.
+Risk: None. Read-only.
+Prior history checked: no prior query of this shape.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 23:23:08 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+=== ORDS privileges on this schema ===
+
+[1mNAME[m               
+__________________ 
+road.admin.rw      
+session.me.read    
+todo.rw            
+
+3 rows selected. 
+
+Elapsed: 00:00:00.376
+=== is todo.rw a ROAD_PERMISSIONS row ===
+
+[1mPERMISSION_NAME[m    [1mIS_RESERVED[m    
+__________________ ______________ 
+todo.create        N              
+todo.delete        N              
+todo.get           N              
+todo.list          N              
+todo.list_all      N              
+todo.purge         Y              
+todo.update        N              
+
+7 rows selected. 
+
+Elapsed: 00:00:00.046
+=== todo_admin role exists ===
+
+[1mROLE_NAME[m     
+_____________ 
+todo_admin    
+
+1 row selected. 
+
+Elapsed: 00:00:00.040
+Elapsed: 00:00:00.057
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.117
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

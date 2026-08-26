@@ -1,0 +1,412 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_232937_deploy_phase4_20457
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/deploy_phase4.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/deploy_phase4.sql
+[INFO] SCRIPT_SHA256=4f75e59c8ca81a46f5bee26dcb8bd054d435f850634692956b133b9d545c38f2
+[INFO] GIT_COMMIT=45b1b78
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_232937
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_232937_deploy_phase4_20457.log
+
+[INTENT]
+Purpose: Deploy phase 4 of spec-patch-09: two new framework permission rows and their role
+  grants, the rewritten JWT_SCAFFOLD_AUTH_API (per-principal scope derivation), the demo app's
+  todo.rw permission fix, and an empty JWT_SCAFFOLD_CONFIG.SCOPE_NAME. Then run every affected
+  test suite.
+Approach: Re-run 95_data.sql (idempotent, NOT EXISTS-guarded), recompile jwt_scaffold_auth_api
+  and its test, re-run 97_demo.sql's permission block, set scope_name empty directly (in place
+  of a full render-auth-config.sh + 80_standalone re-run, which also touches JWT profile
+  registration and is not needed to prove this change), then run every scaffold and framework
+  suite.
+Reason: spec-patch-09 phase 4. This closes spec-patch-06 section 8.4 and found a real gap
+  (road.user_admin had no path to road.admin.rw) while being built, so the regression suite for
+  every other framework package is not optional here.
+Expected objects: ROAD_PERMISSIONS (2 new rows), ROAD_ROLE_PERMISSIONS (grants),
+  JWT_SCAFFOLD_AUTH_API (body), JWT_SCAFFOLD_AUTH_API_TEST (body)
+Risk: Medium. This is the login path and the demo app's ORDS gate together.
+Prior history checked: 20260826_2317* deployed phase 3.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 23:29:37 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+=== deploy seed data ===
+
+Session altered.
+
+Elapsed: 00:00:00.044
+--- road_config --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.043
+
+0 rows inserted.
+
+Elapsed: 00:00:00.039
+
+0 rows inserted.
+
+Elapsed: 00:00:00.041
+--- road_roles --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.040
+
+0 rows inserted.
+
+Elapsed: 00:00:00.043
+
+0 rows inserted.
+
+Elapsed: 00:00:00.044
+--- road_permissions --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.045
+
+0 rows inserted.
+
+Elapsed: 00:00:00.045
+
+0 rows inserted.
+
+Elapsed: 00:00:00.043
+
+0 rows inserted.
+
+Elapsed: 00:00:00.042
+
+0 rows inserted.
+
+Elapsed: 00:00:00.041
+
+0 rows inserted.
+
+Elapsed: 00:00:00.045
+
+0 rows inserted.
+
+Elapsed: 00:00:00.047
+--- mark existing permissions reserved (patch 07 migration) --
+
+0 rows updated.
+
+Elapsed: 00:00:00.132
+--- road_role_permissions --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.123
+
+0 rows inserted.
+
+Elapsed: 00:00:00.045
+
+0 rows inserted.
+
+Elapsed: 00:00:00.044
+
+0 rows inserted.
+
+Elapsed: 00:00:00.043
+
+0 rows inserted.
+
+Elapsed: 00:00:00.043
+
+0 rows inserted.
+
+Elapsed: 00:00:00.045
+
+0 rows inserted.
+
+Elapsed: 00:00:00.044
+
+0 rows inserted.
+
+Elapsed: 00:00:00.041
+
+0 rows inserted.
+
+Elapsed: 00:00:00.043
+
+0 rows inserted.
+
+Elapsed: 00:00:00.043
+--- bootstrap administrator --
+[INFO] 1 principal(s) already hold road.system_admin - no grant made
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.045
+
+Commit complete.
+
+Elapsed: 00:00:00.041
+--- application permission grants --
+--- seeded state --
+
+[1mROLE_NAME[m            [1mIS_RESERVED[m    
+____________________ ______________ 
+road.system_admin    Y              
+road.user_admin      Y              
+todo_admin           N              
+user                 N              
+
+4 rows selected. 
+
+Elapsed: 00:00:00.257
+
+[1mROLE_NAME[m            [1mPERMISSION_NAME[m           
+____________________ _________________________ 
+road.system_admin    road.admin.rw             
+road.system_admin    road.permission.define    
+road.system_admin    road.role.compose         
+road.system_admin    road.role.define          
+road.system_admin    road.role.grant           
+road.system_admin    road.role.revoke          
+road.user_admin      road.admin.rw             
+road.user_admin      road.role.grant           
+road.user_admin      road.role.revoke          
+todo_admin           todo.list_all             
+todo_admin           todo.purge                
+todo_admin           todo.rw                   
+user                 session.me.read           
+user                 todo.create               
+
+[1mROLE_NAME[m    [1mPERMISSION_NAME[m    
+____________ __________________ 
+user         todo.delete        
+user         todo.get           
+user         todo.list          
+user         todo.rw            
+user         todo.update        
+
+19 rows selected. 
+
+Elapsed: 00:00:00.042
+
+[1mCONFIG_KEY[m                   [1mCONFIG_VALUE[m    
+____________________________ _______________ 
+auto_provision_principals    N               
+bootstrap_admin_subject      ADMIN           
+default_principal_role       user            
+
+3 rows selected. 
+
+Elapsed: 00:00:00.041
+Elapsed: 00:00:00.061
+
+Package Body JWT_SCAFFOLD_AUTH_API compiled
+
+Elapsed: 00:00:00.153
+Elapsed: 00:00:00.172
+
+Package Body JWT_SCAFFOLD_AUTH_API_TEST compiled
+
+Elapsed: 00:00:00.176
+Elapsed: 00:00:00.195
+=== demo permission fix (todo.rw seed + grants) ===
+
+0 rows inserted.
+
+Elapsed: 00:00:00.045
+
+0 rows inserted.
+
+Elapsed: 00:00:00.043
+
+0 rows inserted.
+
+Elapsed: 00:00:00.042
+
+Commit complete.
+
+Elapsed: 00:00:00.046
+=== empty the scaffold's fallback scope (matches the re-rendered template) ===
+
+1 row updated.
+
+Elapsed: 00:00:00.048
+
+Commit complete.
+
+Elapsed: 00:00:00.041
+=== compile errors, if any ===
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.047
+=== invalid objects anywhere in the schema ===
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.056
+=== new permission rows ===
+
+[1mPERMISSION_NAME[m    [1mIS_RESERVED[m    
+__________________ ______________ 
+road.admin.rw      Y              
+session.me.read    Y              
+todo.rw            N              
+
+3 rows selected. 
+
+Elapsed: 00:00:00.042
+=== role grants ===
+
+[1mROLE_NAME[m            [1mPERMISSION_NAME[m    
+____________________ __________________ 
+road.system_admin    road.admin.rw      
+road.user_admin      road.admin.rw      
+todo_admin           todo.rw            
+user                 session.me.read    
+user                 todo.rw            
+
+5 rows selected. 
+
+Elapsed: 00:00:00.039
+=== crypto suite ===
+PASS test_rfc_vector_one_iteration
+PASS test_rfc_vector_two_iterations
+PASS test_rfc_vector_many_iterations
+PASS test_rfc_vector_two_blocks
+PASS test_deterministic
+PASS test_salt_changes_digest
+PASS test_iterations_change_digest
+PASS test_guards
+PASS test_random_salt
+PASS test_default_cost_not_weakened
+jwt_scaffold_crypto_test: 10 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.200
+=== login + scope suite ===
+PASS test_valid_credentials_issue_a_token
+PASS test_wrong_password_refused
+PASS test_unknown_subject_refused
+PASS test_principal_without_credential_refused
+PASS test_suspended_principal_refused
+PASS test_retired_principal_refused
+PASS test_username_is_case_insensitive
+PASS test_missing_fields_are_400
+PASS test_row_iterations_are_honoured
+PASS test_admin_scope_includes_admin_rw
+PASS test_user_admin_scope_includes_admin_rw
+PASS test_plain_user_scope_excludes_admin_rw
+PASS test_no_roles_yields_no_scope_claim
+PASS test_operation_only_permission_excluded_from_scope
+PASS test_no_credential_constants_remain
+jwt_scaffold_auth_api_test: 15 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.450
+=== error_api ===
+PASS test_handle_known_validation
+PASS test_handle_known_agenda_locked
+PASS test_handle_known_not_found
+PASS test_handle_known_conflict
+PASS test_handle_known_forbidden
+PASS test_handle_known_unmapped_escalates
+PASS test_handle_unknown
+error_api_test: 7 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.084
+=== road_ctx_pkg ===
+[PASS] road_ctx_pkg_test: 13 tests
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.193
+=== road_admin_api ===
+PASS test_user_admin_cannot_grant_reserved
+PASS test_system_admin_can_grant_reserved
+PASS test_granted_by_ignores_request_body
+PASS test_grant_is_idempotent
+PASS test_define_role_rejects_road_namespace
+PASS test_user_admin_cannot_define_roles
+PASS test_unauthenticated_denied
+PASS test_grant_all_app_permissions_is_explicit
+PASS test_get_principals_requires_permission
+PASS test_get_principals_search
+PASS test_get_principals_paging
+PASS test_attach_reserved_permission_refused
+PASS test_attach_to_reserved_role_refused
+PASS test_composition_takes_effect_on_next_request
+PASS test_attached_by_ignores_request_body
+PASS test_attach_detach_idempotent
+PASS test_compose_denied_without_permission
+PASS test_assertion_permits_ordinary_session_attach
+PASS test_assertion_refuses_reserved_session_attach
+PASS test_assertion_refuses_flip_under_session_attach
+PASS test_assertion_permits_reserved_deploy_attach
+PASS test_cannot_revoke_last_system_admin
+road_admin_api_test: 22 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.532
+=== road_audit_api ===
+PASS test_issue_read_token_creates_row
+PASS test_check_fresh_true_when_unchanged
+PASS test_check_fresh_false_when_stale
+PASS test_check_fresh_false_for_unknown_guid
+road_audit_api_test: 4 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.050
+=== demo_todo_api ===
+Rollback
+begin demo_todo_api_test.run_all; end;
+*
+ERROR at line 1:
+ORA-12841: Cannot alter the session parallel DML state within a transaction
+ORA-06512: at "ROAD_KIT_DEV.DEMO_TODO_API_TEST", line 474
+ORA-06512: at "ROAD_KIT_DEV.DEMO_TODO_API_TEST", line 37
+ORA-06512: at "ROAD_KIT_DEV.DEMO_TODO_API_TEST", line 449
+ORA-06512: at line 1
+
+https://docs.oracle.com/error-help/db/ora-12841/
+
+
+More Details :
+https://docs.oracle.com/error-help/db/ora-12841/
+https://docs.oracle.com/error-help/db/ora-06512/
+Elapsed: 00:00:00.163
+Elapsed: 00:00:00.183
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=FAILURE
+SQLCL_EXIT=41
+
+[INFO] SQLCL_EXIT=41
+[INFO] END

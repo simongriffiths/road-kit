@@ -44,12 +44,20 @@ using (
   select 1 as config_id,
          '@@ROAD_ISSUER@@' as issuer,
          'road-dev' as audience,
-         -- road.admin.rw added by the spec patch 06 backport, for the role administration
-         -- endpoints. Note what it does not do: the scaffold issues this same list to every user,
-         -- so every signed-in caller reaches /admin/* at the ORDS layer and is then denied -- or
-         -- not -- by road_admin_api's require_permission against database-held roles. The
-         -- permission check is the control; this is routing.
-         'session.me.read road.admin.rw' as scope_name,
+         -- NULL, DELIBERATELY, since spec-patch-09 phase 4 -- and the column had to become
+         -- nullable to hold it (db/tables/jwt_scaffold_config.create.sql; ORA-01407 otherwise,
+         -- since Oracle stores '' as NULL and a NOT NULL column refuses it). This used to be a
+         -- fixed list issued identically to every user, which is what made the ORDS privilege gate
+         -- mere routing rather than authorisation (spec-patch-06 section 8.4). A real login now
+         -- gets its scope from jwt_scaffold_auth_api.effective_ords_scope, derived per principal
+         -- from ROAD_ROLE_PERMISSIONS intersected with USER_ORDS_PRIVILEGES.NAME.
+         --
+         -- This column survives as issue_token's fallback for a call with no p_scope override --
+         -- bin/get-test-token.sh's default form, and the conformance suite's negative cases. It
+         -- must stay NULL: any other value here is silently handed to any principal who holds no
+         -- ORDS-gate permission at all, because issue_token's own NVL falls back to this column
+         -- exactly when a principal is entitled to nothing.
+         null as scope_name,
          60 as ttl_minutes,
          '@@ROAD_JWK_URL@@' as jwk_url
     from dual

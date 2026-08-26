@@ -1,0 +1,60 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_232700_debug_no_scope_19564
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/debug_no_scope.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/debug_no_scope.sql
+[INFO] SCRIPT_SHA256=f5dc00c5295c4b97ace69abceaa8df6acd471451fea1cd7f29bff281c455bd0d
+[INFO] GIT_COMMIT=45b1b78
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_232700
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_232700_debug_no_scope_19564.log
+
+[INTENT]
+Purpose: Diagnose why test_no_roles_yields_no_scope_claim failed -- expected an absent scope
+  claim for a principal holding no role.
+Approach: Reproduce the exact fixture (principal + credential, no role) and inspect the raw
+  token's payload directly, plus the intermediate effective_ords_scope and issue_token calls.
+Reason: spec-patch-09 phase 4 -- need to know whether the payload has "scope":null or the
+  claim is truly absent, and whether jwt_scaffold_config.scope_name is really empty.
+Expected objects: none created (rolled back).
+Risk: None. Rolled back at the end.
+Prior history checked: this run's failure, logs/dev/runs latest.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 23:27:01 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+Rollback
+  returning principal_id into l_id;
+            *
+ERROR at line 13:
+ORA-06550: line 13, column 13:
+PL/SQL: ORA-03049: SQL keyword 'PRINCIPAL_ID' is not syntactically valid following '...returning '
+ORA-06550: line 11, column 3:
+PL/SQL: SQL Statement ignored
+
+https://docs.oracle.com/error-help/db/ora-06550/
+
+
+More Details :
+https://docs.oracle.com/error-help/db/ora-06550/
+Elapsed: 00:00:00.108
+Elapsed: 00:00:00.211
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=FAILURE
+SQLCL_EXIT=150
+
+[INFO] SQLCL_EXIT=150
+[INFO] END

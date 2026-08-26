@@ -1,0 +1,57 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_232924_migrate_scope_nullable_20286
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/migrate_scope_nullable.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/migrate_scope_nullable.sql
+[INFO] SCRIPT_SHA256=945d8e93c03b6d1aca78b6f8f982effa69b2067c15b72ea0166613c1d94b8128
+[INFO] GIT_COMMIT=45b1b78
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_232924
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_232924_migrate_scope_nullable_20286.log
+
+[INTENT]
+Purpose: Relax JWT_SCAFFOLD_CONFIG.SCOPE_NAME from NOT NULL to nullable on the already-deployed
+  road_kit_dev schema, matching the corrected db/tables/jwt_scaffold_config.create.sql.
+Approach: One ALTER TABLE MODIFY. road-kit/road-cal are dev-only with no service to preserve
+  (Simon, 2026-08-26), so a manual by-hand ALTER against dev is the same weight as the
+  CREATE ANY CONTEXT retrofit patch 06 needed -- not a scripted migration, because there is no
+  live estate a migration script would ever need to run against again.
+Reason: ORA-01407 deploying spec-patch-09 phase 4 -- the column was NOT NULL and the design
+  needs it to hold NULL for a permission-less principal.
+Expected objects: JWT_SCAFFOLD_CONFIG.SCOPE_NAME (nullable)
+Risk: Low. Relaxing a constraint, not tightening one; cannot fail against existing data.
+Prior history checked: this run's own predecessor failed with ORA-01407.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 23:29:24 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+
+Table JWT_SCAFFOLD_CONFIG altered.
+
+Elapsed: 00:00:00.085
+Elapsed: 00:00:00.103
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.288
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

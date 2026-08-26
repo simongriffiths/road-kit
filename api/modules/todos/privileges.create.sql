@@ -6,10 +6,11 @@ whenever sqlerror exit sql.sqlcode rollback
 -- todo.rw to jwt_scaffold_config.scope_name -- see the comment there for why that append lives in
 -- the demo's deploy script and not in 80_standalone.sql.tmpl.
 --
--- Same caveat as road.admin.rw: the scaffold issues an IDENTICAL scope list to every user, so
--- every signed-in caller reaches /todos/* at the ORDS layer and is then admitted -- or not -- by
--- demo_todo_api's require_permission against database-held roles. The permission check is the
--- control; this is routing.
+-- Since spec-patch-09 phase 4, this gate discriminates: a login's scope is derived per principal
+-- (jwt_scaffold_auth_api.effective_ords_scope), and reaching /todos/* at ORDS requires the
+-- principal to hold the todo.rw ROAD_PERMISSIONS row seeded and attached below. demo_todo_api's own
+-- require_permission on the finer todo.* permissions is still the control underneath, deciding what
+-- is allowed once a request arrives -- this decides whether it arrives at all.
 
 begin
   ords.delete_privilege(p_name => 'todo.rw');

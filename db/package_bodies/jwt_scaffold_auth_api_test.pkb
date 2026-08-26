@@ -240,6 +240,110 @@ create or replace package body jwt_scaffold_auth_api_test as
     assert_eq('non-default iteration count verifies', '200', to_char(l_status));
   end test_row_iterations_are_honoured;
 
+  -- Decodes the scope claim the same way sub_of decodes sub, so these tests assert what the
+  -- TOKEN carries, not what a helper function returned.
+  function scope_of(p_token in varchar2) return varchar2 is
+    l_payload_b64 varchar2(32767);
+    l_padded      varchar2(32767);
+  begin
+    l_payload_b64 := regexp_substr(p_token, '[^.]+', 1, 2);
+    l_payload_b64 := replace(replace(l_payload_b64, '-', '+'), '_', '/');
+    l_padded := l_payload_b64 || rpad('=', mod(4 - mod(length(l_payload_b64), 4), 4), '=');
+    return json_value(
+      utl_raw.cast_to_varchar2(utl_encode.base64_decode(utl_raw.cast_to_raw(l_padded))),
+      '$.scope'
+    );
+  end scope_of;
+
+  -- A principal holding ONLY road.system_admin -- no 'user' role, unlike a real bootstrap
+  -- administrator, which the build's own 95_data.sql always grants both -- gets road.admin.rw in
+  -- scope. Proves the join reaches ROAD_PERMISSIONS through ROAD_ROLE_PERMISSIONS rather than
+  -- stopping at role membership.
+  procedure test_admin_scope_includes_admin_rw is
+    l_status number;
+    l_error  varchar2(4000);
+    l_token  varchar2(32767);
+    l_id     number;
+  begin
+    l_id := make_principal();
+    insert into road_principal_roles (principal_id, role_name) values (l_id, 'road.system_admin');
+
+    attempt(c_test_subject, c_test_password, l_status, l_error, l_token);
+    assert_eq('http status', '200', to_char(l_status));
+    assert_true('scope contains road.admin.rw',
+                instr(scope_of(l_token), 'road.admin.rw') > 0);
+  end test_admin_scope_includes_admin_rw;
+
+  -- The regression this whole phase exists to prevent: road.user_admin holds road.role.grant and
+  -- road.role.revoke, neither of which is an ORDS privilege name, so without an explicit
+  -- road.admin.rw grant on that role its scope would be empty and every one of its calls would be
+  -- refused by ORDS before require_permission ever saw them. Found in 95_data.sql while wiring this
+  -- phase; this test is what stops it regressing silently.
+  procedure test_user_admin_scope_includes_admin_rw is
+    l_status number;
+    l_error  varchar2(4000);
+    l_token  varchar2(32767);
+    l_id     number;
+  begin
+    l_id := make_principal();
+    insert into road_principal_roles (principal_id, role_name) values (l_id, 'road.user_admin');
+
+    attempt(c_test_subject, c_test_password, l_status, l_error, l_token);
+    assert_true('road.user_admin reaches the admin URL space',
+                instr(scope_of(l_token), 'road.admin.rw') > 0);
+  end test_user_admin_scope_includes_admin_rw;
+
+  -- 'user' holds session.me.read and (once the demo is deployed) todo.rw, but never
+  -- road.admin.rw -- an ordinary principal must not reach the admin URL space regardless of what
+  -- demo permissions get added around it.
+  procedure test_plain_user_scope_excludes_admin_rw is
+    l_status number;
+    l_error  varchar2(4000);
+    l_token  varchar2(32767);
+    l_id     number;
+  begin
+    l_id := make_principal();
+    insert into road_principal_roles (principal_id, role_name) values (l_id, 'user');
+
+    attempt(c_test_subject, c_test_password, l_status, l_error, l_token);
+    assert_true('scope contains session.me.read',
+                instr(scope_of(l_token), 'session.me.read') > 0);
+    assert_eq('scope excludes road.admin.rw', '0',
+              to_char(instr(nvl(scope_of(l_token), ' '), 'road.admin.rw')));
+  end test_plain_user_scope_excludes_admin_rw;
+
+  -- A principal holding no role at all -- possible the instant after road_admin_api.grant_role
+  -- creates one, before anything is attached -- must get an empty scope, not the old fixed list and
+  -- not an error. json_object's default null handling OMITS the key entirely for a NULL value
+  -- (there is no explicit NULL ON NULL), so this checks the claim is absent, not merely blank.
+  procedure test_no_roles_yields_no_scope_claim is
+    l_status number;
+    l_error  varchar2(4000);
+    l_token  varchar2(32767);
+  begin
+    if make_principal() is null then null; end if;
+    attempt(c_test_subject, c_test_password, l_status, l_error, l_token);
+    assert_eq('http status', '200', to_char(l_status));
+    assert_true('scope claim is absent', scope_of(l_token) is null);
+  end test_no_roles_yields_no_scope_claim;
+
+  -- A fine-grained permission that is NOT also an ORDS privilege name must not leak into scope.
+  -- road.role.define is real, attached to a real role, and gates an operation inside
+  -- road_admin_api -- exactly the shape effective_ords_scope's join is supposed to filter out.
+  procedure test_operation_only_permission_excluded_from_scope is
+    l_status number;
+    l_error  varchar2(4000);
+    l_token  varchar2(32767);
+    l_id     number;
+  begin
+    l_id := make_principal();
+    insert into road_principal_roles (principal_id, role_name) values (l_id, 'road.system_admin');
+
+    attempt(c_test_subject, c_test_password, l_status, l_error, l_token);
+    assert_eq('road.role.define never appears in a scope claim', '0',
+              to_char(instr(nvl(scope_of(l_token), ' '), 'road.role.define')));
+  end test_operation_only_permission_excluded_from_scope;
+
   procedure test_no_credential_constants_remain is
     l_hits number;
   begin
@@ -274,6 +378,11 @@ create or replace package body jwt_scaffold_auth_api_test as
         when 'case'         then test_username_is_case_insensitive;
         when 'missing'      then test_missing_fields_are_400;
         when 'row_iters'    then test_row_iterations_are_honoured;
+        when 'admin_scope'  then test_admin_scope_includes_admin_rw;
+        when 'ua_scope'     then test_user_admin_scope_includes_admin_rw;
+        when 'user_scope'   then test_plain_user_scope_excludes_admin_rw;
+        when 'no_scope'     then test_no_roles_yields_no_scope_claim;
+        when 'op_excluded'  then test_operation_only_permission_excluded_from_scope;
         when 'no_constants' then test_no_credential_constants_remain;
       end case;
       rollback to savepoint before_test;
@@ -295,6 +404,11 @@ create or replace package body jwt_scaffold_auth_api_test as
     run('test_username_is_case_insensitive', 'case');
     run('test_missing_fields_are_400', 'missing');
     run('test_row_iterations_are_honoured', 'row_iters');
+    run('test_admin_scope_includes_admin_rw', 'admin_scope');
+    run('test_user_admin_scope_includes_admin_rw', 'ua_scope');
+    run('test_plain_user_scope_excludes_admin_rw', 'user_scope');
+    run('test_no_roles_yields_no_scope_claim', 'no_scope');
+    run('test_operation_only_permission_excluded_from_scope', 'op_excluded');
     run('test_no_credential_constants_remain', 'no_constants');
 
     dbms_output.put_line('jwt_scaffold_auth_api_test: ' || l_pass || ' passed, ' || l_fail || ' failed');

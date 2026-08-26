@@ -3,7 +3,7 @@
 **Design:** `planning/spec-patch-09-provider-profiles-and-credentials.md`. Read it first; this file
 sequences the work and records what each phase actually cost.
 
-**Status: phases 1-3 complete. Phases 4-7 not started.**
+**Status: phases 1-4 complete. Phases 5-7 not started.**
 
 ---
 
@@ -190,17 +190,83 @@ The suites do not need them — every test builds and rolls back its own fixture
 
 ---
 
-## Phase 4 — Per-principal scope
+## Phase 4 — Per-principal scope — **COMPLETE 2026-08-26**
 
-Design: spec patch §4. Seed the ORDS privilege names as permissions, attach them to roles, and
-derive the scope in `issue_token` from the principal's effective permissions intersected with
-`USER_ORDS_PRIVILEGES.NAME`, excluding `oracle.%`. Empty the `scope_name` fallback.
+Deployed to `road_kit_dev` and green. Design: spec patch §4. **Closes spec-patch-06 §8.4.**
 
-`todo.rw` belongs to the demo application and its seed belongs in `97_demo.sql`, which `00_full.sql`
-does not invoke — Rule 1.
+| Suite | Result |
+|---|---|
+| `jwt_scaffold_crypto_test` | 10 passed, 0 failed |
+| **`jwt_scaffold_auth_api_test`** (5 new scope tests) | **15 passed, 0 failed** |
+| `error_api_test` | 7 passed, 0 failed |
+| `road_ctx_pkg_test` | 13 tests passed |
+| `road_admin_api_test` | 22 passed, 0 failed |
+| `road_audit_api_test` | 4 passed, 0 failed |
+| `demo_todo_api_test` (run separately — see below) | 14 passed, 0 failed |
+| Invalid objects | none |
+| **Real login, real principals** | `ADMIN` → `road.admin.rw session.me.read todo.rw`; `USER1` → `session.me.read todo.rw` |
 
-**Verify:** an administrator's token carries `road.admin.rw` and an ordinary principal's does not.
-This is the phase that closes spec-patch-06 §8.4.
+Runs `20260826_23*` (four deploy iterations — see the two defects below), `demo_suite`,
+`real_admin_roles`, `real_login`.
+
+**`jwt_scaffold_auth_api.effective_ords_scope`** joins `ROAD_PRINCIPAL_ROLES` → `ROAD_ROLE_PERMISSIONS`
+— deliberately the identical join `road_ctx_pkg.begin_request` uses to populate session context, so
+a token's scope and a session's effective permissions can never disagree — intersected with
+`USER_ORDS_PRIVILEGES.NAME` excluding `oracle.%`, so an operation-level permission
+(`road.role.grant`, `todo.create`) never leaks into a scope claim; only the coarse URL-gate names do.
+
+**A regression was found and fixed before it could ship: `road.user_admin` had no path to
+`road.admin.rw`.** `road.user_admin` holds `road.role.grant` and `road.role.revoke`, both of which
+live under `/api/v1/admin/*`, gated by the single coarse `road.admin.rw` privilege — but nothing had
+ever attached that coarse permission to that role, because under the old fixed scope list every
+principal carried it regardless. Once scope became per-principal, `road.user_admin`'s calls would
+have authenticated correctly and then been refused by ORDS before `require_permission` ever ran —
+correct fine-grained authority, blocked by a missing coarse one, and invisible until this phase made
+scope derivation real. `test_user_admin_scope_includes_admin_rw` is the regression guard.
+
+**Two new framework permissions, seeded in `95_data.sql`, both reserved:** `road.admin.rw` →
+`road.system_admin` and `road.user_admin`; `session.me.read` → `user`. Named identically to their
+ORDS privileges, which is not a convention — it is the join.
+
+**The demo app needed a matching fix, found by checking `road_kit_dev`'s actual deployed state
+before assuming.** `todo.rw` was a real `USER_ORDS_PRIVILEGES` row but not a `ROAD_PERMISSIONS` row
+— the demo's old mechanism was appending `todo.rw` directly onto `jwt_scaffold_config.scope_name`,
+which every real login would have stopped reading the moment this phase landed. Without the fix,
+phase 4 would have silently locked every scaffold principal out of `/todos/*`. Fixed in `97_demo.sql`:
+`todo.rw` seeded as an *unreserved* permission (the demo's to compose, not the framework's), attached
+to `user` and `todo_admin`, matching how the five fine-grained `todo.*` permissions are already
+attached. `Rule 1` holds — the fix is in the demo's own deploy script, not the framework's.
+
+**Two defects found deploying this, both Oracle-specific and both now documented in the code that
+tripped on them:**
+
+- **`scope_name != ''` is never true.** `''` is `NULL` in Oracle, so `x != NULL` evaluates to
+  `UNKNOWN` for every row and a `WHERE` clause built on it silently matches nothing — the `UPDATE`
+  ran clean, reported success, and left the row unchanged. `IS NOT NULL` is the correct test, used
+  now everywhere this pattern appears.
+- **`JWT_SCAFFOLD_CONFIG.SCOPE_NAME` was `NOT NULL`**, so the fix above — set it to `NULL` for a
+  permission-less principal — failed with `ORA-01407` the first time it was tried honestly. The
+  column is now nullable (`db/tables/jwt_scaffold_config.create.sql`); the already-deployed
+  `road_kit_dev` schema was migrated by hand with one `ALTER TABLE ... MODIFY (scope_name null)`,
+  the same weight as the `CREATE ANY CONTEXT` retrofit patch 06 needed — a manual step against a
+  dev-only schema with no service to preserve, not a scripted migration nobody will ever run again.
+
+**`demo_todo_api_test` needs its own commit ahead of it, unrelated to this phase.** Running it
+immediately after the other suites in the same uncommitted session raises `ORA-12841`
+("cannot alter the session parallel DML state within a transaction") — a known road-kit artifact,
+already in the lessons doc. Run it separately with a leading `commit;`; 14/14 clean.
+
+**`bin/get-test-token.sh`'s default form and the conformance suite's negative cases are unaffected**
+— they call `issue_token` directly with `p_scope` supplied or defaulted from the now-`NULL` config,
+neither of which touches `effective_ords_scope`.
+
+**Two comments elsewhere corrected to match reality**, both had said the ORDS gate was
+*"decorative... becomes meaningful once road-kit is the issuer"*: `api/modules/admin/privileges.create.sql`
+and `api/modules/todos/privileges.create.sql`. It is meaningful now; both say so.
+
+**A side effect worth recording:** `ADMIN` and `USER1` in `road_kit_dev` now hold known dev
+passwords, set while verifying this phase end to end — closing the item phase 3 left open. Neither
+plaintext is recorded anywhere in this repository.
 
 ---
 

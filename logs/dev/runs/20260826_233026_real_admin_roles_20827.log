@@ -1,0 +1,53 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_233026_real_admin_roles_20827
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/real_admin_roles.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/real_admin_roles.sql
+[INFO] SCRIPT_SHA256=8fe3853aff79cde42a77bd2dd17d9b5ab3498a3532141909756be39f1dc11ea4
+[INFO] GIT_COMMIT=45b1b78
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_233026
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_233026_real_admin_roles_20827.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 23:30:26 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+
+   [1mPRINCIPAL_ID[m [1mSUBJECT[m    [1mROLE_NAME[m            
+_______________ __________ ____________________ 
+              1 ADMIN      road.system_admin    
+              1 ADMIN      user                 
+             19 USER1      user                 
+
+3 rows selected. 
+
+Elapsed: 00:00:00.438
+Elapsed: 00:00:00.456
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.040
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

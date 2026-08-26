@@ -1,0 +1,270 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_232808_deploy_phase4_20094
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/deploy_phase4.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/deploy_phase4.sql
+[INFO] SCRIPT_SHA256=25f7bbe65b3254e2ed8e44589a543eaeaebd1050dcc59178e9c6d1045ea9e2c5
+[INFO] GIT_COMMIT=45b1b78
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_232808
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_232808_deploy_phase4_20094.log
+
+[INTENT]
+Purpose: Deploy phase 4 of spec-patch-09: two new framework permission rows and their role
+  grants, the rewritten JWT_SCAFFOLD_AUTH_API (per-principal scope derivation), the demo app's
+  todo.rw permission fix, and an empty JWT_SCAFFOLD_CONFIG.SCOPE_NAME. Then run every affected
+  test suite.
+Approach: Re-run 95_data.sql (idempotent, NOT EXISTS-guarded), recompile jwt_scaffold_auth_api
+  and its test, re-run 97_demo.sql's permission block, set scope_name empty directly (in place
+  of a full render-auth-config.sh + 80_standalone re-run, which also touches JWT profile
+  registration and is not needed to prove this change), then run every scaffold and framework
+  suite.
+Reason: spec-patch-09 phase 4. This closes spec-patch-06 section 8.4 and found a real gap
+  (road.user_admin had no path to road.admin.rw) while being built, so the regression suite for
+  every other framework package is not optional here.
+Expected objects: ROAD_PERMISSIONS (2 new rows), ROAD_ROLE_PERMISSIONS (grants),
+  JWT_SCAFFOLD_AUTH_API (body), JWT_SCAFFOLD_AUTH_API_TEST (body)
+Risk: Medium. This is the login path and the demo app's ORDS gate together.
+Prior history checked: 20260826_2317* deployed phase 3.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 23:28:08 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+=== deploy seed data ===
+
+Session altered.
+
+Elapsed: 00:00:00.037
+--- road_config --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.035
+
+0 rows inserted.
+
+Elapsed: 00:00:00.034
+
+0 rows inserted.
+
+Elapsed: 00:00:00.034
+--- road_roles --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.120
+
+0 rows inserted.
+
+Elapsed: 00:00:00.038
+
+0 rows inserted.
+
+Elapsed: 00:00:00.035
+--- road_permissions --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.039
+
+0 rows inserted.
+
+Elapsed: 00:00:00.035
+
+0 rows inserted.
+
+Elapsed: 00:00:00.036
+
+0 rows inserted.
+
+Elapsed: 00:00:00.034
+
+0 rows inserted.
+
+Elapsed: 00:00:00.122
+
+0 rows inserted.
+
+Elapsed: 00:00:00.036
+
+0 rows inserted.
+
+Elapsed: 00:00:00.036
+--- mark existing permissions reserved (patch 07 migration) --
+
+0 rows updated.
+
+Elapsed: 00:00:00.156
+--- road_role_permissions --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.040
+
+0 rows inserted.
+
+Elapsed: 00:00:00.037
+
+0 rows inserted.
+
+Elapsed: 00:00:00.037
+
+0 rows inserted.
+
+Elapsed: 00:00:00.043
+
+0 rows inserted.
+
+Elapsed: 00:00:00.037
+
+0 rows inserted.
+
+Elapsed: 00:00:00.036
+
+0 rows inserted.
+
+Elapsed: 00:00:00.124
+
+0 rows inserted.
+
+Elapsed: 00:00:00.036
+
+0 rows inserted.
+
+Elapsed: 00:00:00.036
+
+0 rows inserted.
+
+Elapsed: 00:00:00.038
+--- bootstrap administrator --
+[INFO] 1 principal(s) already hold road.system_admin - no grant made
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.047
+
+Commit complete.
+
+Elapsed: 00:00:00.033
+--- application permission grants --
+--- seeded state --
+
+[1mROLE_NAME[m            [1mIS_RESERVED[m    
+____________________ ______________ 
+road.system_admin    Y              
+road.user_admin      Y              
+todo_admin           N              
+user                 N              
+
+4 rows selected. 
+
+Elapsed: 00:00:00.247
+
+[1mROLE_NAME[m            [1mPERMISSION_NAME[m           
+____________________ _________________________ 
+road.system_admin    road.admin.rw             
+road.system_admin    road.permission.define    
+road.system_admin    road.role.compose         
+road.system_admin    road.role.define          
+road.system_admin    road.role.grant           
+road.system_admin    road.role.revoke          
+road.user_admin      road.admin.rw             
+road.user_admin      road.role.grant           
+road.user_admin      road.role.revoke          
+todo_admin           todo.list_all             
+todo_admin           todo.purge                
+todo_admin           todo.rw                   
+user                 session.me.read           
+user                 todo.create               
+
+[1mROLE_NAME[m    [1mPERMISSION_NAME[m    
+____________ __________________ 
+user         todo.delete        
+user         todo.get           
+user         todo.list          
+user         todo.rw            
+user         todo.update        
+
+19 rows selected. 
+
+Elapsed: 00:00:00.036
+
+[1mCONFIG_KEY[m                   [1mCONFIG_VALUE[m    
+____________________________ _______________ 
+auto_provision_principals    N               
+bootstrap_admin_subject      ADMIN           
+default_principal_role       user            
+
+3 rows selected. 
+
+Elapsed: 00:00:00.035
+Elapsed: 00:00:00.051
+
+Package Body JWT_SCAFFOLD_AUTH_API compiled
+
+Elapsed: 00:00:00.092
+Elapsed: 00:00:00.111
+
+Package Body JWT_SCAFFOLD_AUTH_API_TEST compiled
+
+Elapsed: 00:00:00.089
+Elapsed: 00:00:00.105
+=== demo permission fix (todo.rw seed + grants) ===
+
+0 rows inserted.
+
+Elapsed: 00:00:00.035
+
+0 rows inserted.
+
+Elapsed: 00:00:00.121
+
+0 rows inserted.
+
+Elapsed: 00:00:00.035
+
+Commit complete.
+
+Elapsed: 00:00:00.035
+=== empty the scaffold's fallback scope (matches the re-rendered template) ===
+
+Error starting at line : 52 File @ /private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/deploy_phase4.sql
+In command -
+update jwt_scaffold_config
+   set scope_name = '',
+       updated_at = systimestamp
+ where config_id = 1
+   and scope_name is not null
+Error at Command Line : 53 Column : 8 File @ /private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/deploy_phase4.sql
+Error report -
+SQL Error: ORA-01407: cannot update ("ROAD_KIT_DEV"."JWT_SCAFFOLD_CONFIG"."SCOPE_NAME") to NULL
+
+https://docs.oracle.com/error-help/db/ora-01407/01407. 00000 -  "cannot update (%s) to NULL"
+*Cause:    An attempt was made to update a table column
+           "USER"."TABLE"."COLUMN" with a NULL value.
+
+More Details :
+https://docs.oracle.com/error-help/db/ora-01407/
+Rollback
+Elapsed: 00:00:00.158
+Elapsed: 00:00:00.174
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=FAILURE
+SQLCL_EXIT=127
+
+[INFO] SQLCL_EXIT=127
+[INFO] END
