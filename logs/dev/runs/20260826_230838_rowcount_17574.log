@@ -1,0 +1,65 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_230838_rowcount_17574
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/rowcount.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/rowcount.sql
+[INFO] SCRIPT_SHA256=82b9bcde7a3add45f0bbbf1962eb31092ff475aad59e3e3db42c82cb9b3e12b4
+[INFO] GIT_COMMIT=eae6ac2
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_230838
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_230838_rowcount_17574.log
+
+[INTENT]
+Purpose: Confirm setting a password twice updates one row rather than creating a second.
+Approach: Count rows and show the digest. Read-only.
+Reason: spec-patch-09 phase 2 -- the script MERGEs on principal_id; this proves the matched
+  branch is taken on a re-set.
+Expected objects: none created.
+Risk: None. Read-only.
+Prior history checked: 20260826_230727 and the run immediately prior to this one.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 23:08:39 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+
+   [1mCREDENTIAL_ROWS[m 
+__________________ 
+                 1 
+
+1 row selected. 
+
+Elapsed: 00:00:00.419
+
+[1mHASH_NOW[m                                                            
+___________________________________________________________________ 
+F4080EBCC77E1817AA9F0C3D0B25B4E63A67820FEEDE53C61CE5523757638F03    
+
+1 row selected. 
+
+Elapsed: 00:00:00.054
+Elapsed: 00:00:00.073
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.042
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

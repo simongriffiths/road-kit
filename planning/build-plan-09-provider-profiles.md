@@ -3,7 +3,7 @@
 **Design:** `planning/spec-patch-09-provider-profiles-and-credentials.md`. Read it first; this file
 sequences the work and records what each phase actually cost.
 
-**Status: phase 1 complete. Phases 2-7 not started.**
+**Status: phases 1-2 complete. Phases 3-7 not started.**
 
 ---
 
@@ -65,20 +65,60 @@ the same commit as road-cal's adoption**, per the rule in that header, and not b
 
 ---
 
-## Phase 2 — `jwt_scaffold_credentials` and the password-setting script
+## Phase 2 — `jwt_scaffold_credentials` and the password-setting script — **COMPLETE 2026-08-26**
 
-Design: spec patch §3.1, §3.2, §3.4.
+Deployed to `road_kit_dev` and green. Design: spec patch §3.1, §3.2, §3.4.
 
-1. The table, keyed on `principal_id`, `on delete cascade` from `road_principals`. Add to
-   `10_tables.sql` and the drop chain.
-2. `bin/set-principal-password.sh` — derives salt and digest with python3's `hashlib.pbkdf2_hmac`,
-   prompts via `read -rs`, writes generated SQL outside the repository, sends hex only.
-3. **The cross-implementation test.** Two PBKDF2 implementations now exist and must agree. Pin them
-   with a fixed `(password, salt, iterations)` triple whose expected digest is asserted in PL/SQL,
-   and have the shell script verify the same triple.
+| Check | Result |
+|---|---|
+| `JWT_SCAFFOLD_CREDENTIALS` + `..._UPDATED_AT_TRG` | created |
+| Constraints: PK, FK cascade, iterations floor, algorithm whitelist | all present |
+| `bin/set-principal-password.sh --self-test` | PASS, matches `jwt_scaffold_crypto_test.c_v1_c1` |
+| Password set for `ADMIN` | row written, 16-byte salt, 32-byte digest, 10,000 iterations |
+| `road_principals.credentials_changed_at` | SET |
+| **Stored digest recomputed outside the DB from the password that produced it** | **matches** |
+| **Plaintext present anywhere under `logs/` or `.codex/`** | **none** |
+| Re-set the same principal | still exactly 1 row, digest changed — MERGE takes the matched branch |
+| Unknown subject | `ORA-20001` naming the subject and issuer, exit 33 |
+| Mismatched / empty password, iterations below floor, missing args | each refused before any database call |
 
-**Verify:** a password set by the script verifies through `jwt_scaffold_crypto` in the database, and
-the plaintext appears in no log under `logs/`.
+Runs `20260826_230727` (set) and the readback and row-count runs following it.
+
+**The leak check is the phase's real assertion.** A random password was generated, piped in, and
+then searched for across `logs/` and `.codex/` — both tracked in git. It appears in neither. Worth
+re-running whenever this script changes, because nothing else in the suite would notice its loss.
+
+**Doing that check corrected the design's own rationale.** §3.4 claimed `run-sql.sh` "logs the
+script it runs". It does not: it logs INFO headers, a `SCRIPT_SHA256`, the INTENT block and SQLcl's
+output, with `set echo off`. The generated SQL body appears nowhere in the log — grepping the set
+run for `hextoraw` returns zero lines. The real hazard is `--log-level debug`, which sets
+`set echo on` and echoes every statement into a tracked log; a plaintext literal would be committed
+the first time anyone debugged this script. Narrower than claimed, still worth designing against,
+and §3.4 now says so accurately.
+
+**A related claim was also wrong and is corrected in §3.4.** The 2026-08-18 history rewrite was
+caused by credentials in *source* — a committed fallback in `bin/get-test-token.sh` and salt/hash
+constants in `jwt_scaffold_auth_api.pkb` — not by anything in `logs/`.
+
+**One caution the scan taught:** a three-character search string matches SHA-256 hex by chance.
+`bbb` "hit" two logs, both inside `SCRIPT_SHA256` values. Use a high-entropy password for the check,
+as the run did, and read the hits rather than trusting the exit code.
+
+**Verification had to happen outside the database, which is the point.** The obvious check — ask
+PL/SQL to derive from the password and compare — would send the plaintext to SQLcl and into a
+tracked log, defeating the design. So the salt, digest and iteration count are read back as hex and
+recomputed in python instead. Agreement between the two PBKDF2 implementations is established
+separately, by both sides matching the same published vector: `--self-test` here,
+`test_rfc_vector_one_iteration` there.
+
+**`credentials_changed_at` was already there.** `road_principals` has carried the column since
+patch 06 and nothing had ever written it; `road_admin_api.pks` line 69 calls it "credential-store
+surface, not role administration". This is the credential store, so it writes it.
+
+**The dev `ADMIN` principal now has a credential whose plaintext is not recorded anywhere** — it was
+generated randomly to keep it out of this transcript. The row is inert until phase 3 rewires
+`check_credentials`; login still uses the compiled-in constants. Phase 3 should set a fresh password
+it knows.
 
 ---
 

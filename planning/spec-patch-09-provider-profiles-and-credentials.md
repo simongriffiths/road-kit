@@ -182,9 +182,24 @@ still applies and the profile stays marked dev-only.
 
 ### 3.4 Setting a password without leaking it
 
-**`logs/` is tracked in git and `bin/run-sql.sh` logs the script it runs.** A plaintext password
-reaching SQLcl is a plaintext password committed to the repository. This is not hypothetical: it is
-how the scaffold password leaked, and why both repositories' histories were rewritten on 2026-08-18.
+**`logs/` is tracked in git, and `--log-level debug` echoes every statement into it.**
+
+Stated precisely, because an earlier draft of this section overstated it and the overstatement was
+caught during phase 2: `bin/run-sql.sh` does *not* write the script body to its log. It records the
+INFO headers, a `SCRIPT_SHA256`, the extracted INTENT block and SQLcl's output, with `set echo off`.
+A literal in the SQL is not normally logged at all.
+
+`--log-level debug` sets `set echo on`, and then every executed statement is echoed into a log under
+`logs/`, which is tracked. So a plaintext password in generated SQL would be committed the first
+time somebody debugged the thing that writes it — which is precisely when they would. A latent trap,
+not a certainty, and a bad one, because it fires when attention is on the failure rather than on
+what is landing in the repository.
+
+**The 2026-08-18 history rewrite was not caused by this.** That password was in *source*: a
+committed fallback in `bin/get-test-token.sh`, and salt/hash constants in
+`jwt_scaffold_auth_api.pkb`. Different mechanism, same lesson — a credential that has to live
+somewhere in the tree ends up in the tree's history. This patch removes the reason for it to live
+there at all.
 
 **So the plaintext never reaches the database.** `bin/set-principal-password.sh` derives salt and
 digest locally using python3's `hashlib.pbkdf2_hmac` — standard library, no new dependency — and the

@@ -1,0 +1,58 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_230744_readback_16676
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/readback.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/readback.sql
+[INFO] SCRIPT_SHA256=0a502cd04213605e8f1ca2a2bb7c12795129385af19458af855df032d99c3765
+[INFO] GIT_COMMIT=eae6ac2
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_230744
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_230744_readback_16676.log
+
+[INTENT]
+Purpose: Read back the credential row just written, as hex, so the derivation can be checked
+  outside the database against the password that produced it.
+Approach: Select salt, hash, iterations, algorithm and credentials_changed_at. Read-only.
+Reason: spec-patch-09 phase 2 verification. The check cannot be done IN the database without
+  sending the plaintext to SQLcl, which section 3.4 forbids -- so the bytes come out instead.
+Expected objects: none created.
+Risk: None. Read-only.
+Prior history checked: 20260826_230727 wrote this row.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 23:07:45 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+
+[1mSALT_HEX[m                            [1mHASH_HEX[m                                                               [1mITERATIONS[m [1mALGORITHM[m             [1mSUBJECT[m    [1mCRED_CHANGED[m    
+___________________________________ ___________________________________________________________________ _____________ _____________________ __________ _______________ 
+5E8E1AD8FB7D5973D7C78563E72A7508    315008E3E7C3AD604A54790DD41E1D25482ED163790E9873ED8B3C3E24C3FF34            10000 PBKDF2-HMAC-SHA256    ADMIN      SET             
+
+1 row selected. 
+
+Elapsed: 00:00:00.429
+Elapsed: 00:00:00.448
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.039
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

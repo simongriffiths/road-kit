@@ -5,9 +5,13 @@ dist/
 .playwright-browsers/
 test-results/
 playwright-report/
-.codex/
 config/connections.conf
 config/local.env
+
+# logs/ and .codex/ (run history + db-history.sqlite index) are deliberately tracked, not
+# ignored -- cross-machine visibility into prior SQL runs/failures outweighs repo bloat while
+# this project is in active development. Matches road-cal; road-kit ignored .codex/ until
+# 2026-08-26, which silently kept its run history local-only.
 
 # Rendered by bin/render-auth-config.sh from 80_standalone.sql.tmpl - carries the
 # environment-specific JWKS URL, so it is per-machine/per-env, not source.
