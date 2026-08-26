@@ -1,0 +1,117 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_231709_deploy_phase3_18445
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/deploy_phase3.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/deploy_phase3.sql
+[INFO] SCRIPT_SHA256=16631c70c5839e8d4da6fc7c66946b6de264d899a14695db707977207e9db310
+[INFO] GIT_COMMIT=69688f0
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_231709
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_231709_deploy_phase3_18445.log
+
+[INTENT]
+Purpose: Deploy the rewritten JWT_SCAFFOLD_AUTH_API (credentials from the table, not from
+  constants) and its new test package, then run both scaffold suites.
+Approach: Compile spec and body for the auth api and its test, check USER_ERRORS, run
+  jwt_scaffold_crypto_test and jwt_scaffold_auth_api_test.
+Reason: spec-patch-09 phase 3. This is the change that removes the six credential constants from
+  the package body, so it must be proved by a login that works against a stored row.
+Expected objects: JWT_SCAFFOLD_AUTH_API (body), JWT_SCAFFOLD_AUTH_API_TEST (spec + body)
+Risk: Medium. This is the login path. A failure here means no scaffold login at all.
+Prior history checked: 20260826_225726 deployed jwt_scaffold_crypto; 20260826_230647 the table.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 23:17:10 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+
+Package JWT_SCAFFOLD_AUTH_API compiled
+
+Elapsed: 00:00:00.214
+Elapsed: 00:00:00.232
+
+Package JWT_SCAFFOLD_AUTH_API_TEST compiled
+
+Elapsed: 00:00:00.123
+Elapsed: 00:00:00.141
+
+Package Body JWT_SCAFFOLD_AUTH_API compiled
+
+Elapsed: 00:00:00.234
+Elapsed: 00:00:00.251
+
+Package Body JWT_SCAFFOLD_AUTH_API_TEST compiled
+
+Elapsed: 00:00:00.156
+Elapsed: 00:00:00.172
+=== compile errors, if any ===
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.322
+=== invalid objects anywhere in the schema ===
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.077
+=== crypto suite ===
+PASS test_rfc_vector_one_iteration
+PASS test_rfc_vector_two_iterations
+PASS test_rfc_vector_many_iterations
+PASS test_rfc_vector_two_blocks
+PASS test_deterministic
+PASS test_salt_changes_digest
+PASS test_iterations_change_digest
+PASS test_guards
+PASS test_random_salt
+PASS test_default_cost_not_weakened
+jwt_scaffold_crypto_test: 10 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.200
+=== login suite ===
+PASS test_valid_credentials_issue_a_token
+PASS test_wrong_password_refused
+PASS test_unknown_subject_refused
+PASS test_principal_without_credential_refused
+PASS test_suspended_principal_refused
+PASS test_retired_principal_refused
+PASS test_username_is_case_insensitive
+PASS test_missing_fields_are_400
+PASS test_row_iterations_are_honoured
+PASS test_no_credential_constants_remain
+jwt_scaffold_auth_api_test: 10 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.466
+Elapsed: 00:00:00.484
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.035
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

@@ -1,0 +1,134 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_231731_phase3_verify_18618
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/phase3_verify.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/phase3_verify.sql
+[INFO] SCRIPT_SHA256=05ab2df29de948fb4acb52b682ac6588921f9b801e416ee8bffb30a385071f10
+[INFO] GIT_COMMIT=69688f0
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_231731
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_231731_phase3_verify_18618.log
+
+[INTENT]
+Purpose: Confirm phase 3 broke nothing else -- no invalid objects, no leaked test fixture, and
+  every other framework suite still green.
+Approach: Query USER_OBJECTS and ROAD_PRINCIPALS, then run the four pre-existing test suites.
+Reason: JWT_SCAFFOLD_AUTH_API is a shared-surface package; a regression run is cheaper than
+  discovering the breakage at phase 6.
+Expected objects: none created. The suites roll back their own fixtures.
+Risk: Low. Test suites only.
+Prior history checked: 20260826_231* deployed phase 3.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 23:17:31 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+=== invalid objects ===
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.285
+=== did any test fixture survive its rollback ===
+
+   [1mLEAKED_FIXTURES[m 
+__________________ 
+                 0 
+
+1 row selected. 
+
+Elapsed: 00:00:00.146
+
+   [1mCREDENTIAL_ROWS[m 
+__________________ 
+                 1 
+
+1 row selected. 
+
+Elapsed: 00:00:00.132
+=== error_api ===
+PASS test_handle_known_validation
+PASS test_handle_known_agenda_locked
+PASS test_handle_known_not_found
+PASS test_handle_known_conflict
+PASS test_handle_known_forbidden
+PASS test_handle_known_unmapped_escalates
+PASS test_handle_unknown
+error_api_test: 7 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.191
+=== road_ctx_pkg ===
+[PASS] road_ctx_pkg_test: 13 tests
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:01.194
+=== road_admin_api ===
+PASS test_user_admin_cannot_grant_reserved
+PASS test_system_admin_can_grant_reserved
+PASS test_granted_by_ignores_request_body
+PASS test_grant_is_idempotent
+PASS test_define_role_rejects_road_namespace
+PASS test_user_admin_cannot_define_roles
+PASS test_unauthenticated_denied
+PASS test_grant_all_app_permissions_is_explicit
+PASS test_get_principals_requires_permission
+PASS test_get_principals_search
+PASS test_get_principals_paging
+PASS test_attach_reserved_permission_refused
+PASS test_attach_to_reserved_role_refused
+PASS test_composition_takes_effect_on_next_request
+PASS test_attached_by_ignores_request_body
+PASS test_attach_detach_idempotent
+PASS test_compose_denied_without_permission
+PASS test_assertion_permits_ordinary_session_attach
+PASS test_assertion_refuses_reserved_session_attach
+PASS test_assertion_refuses_flip_under_session_attach
+PASS test_assertion_permits_reserved_deploy_attach
+PASS test_cannot_revoke_last_system_admin
+road_admin_api_test: 22 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:01.368
+=== road_audit_api ===
+PASS test_issue_read_token_creates_row
+PASS test_check_fresh_true_when_unchanged
+PASS test_check_fresh_false_when_stale
+PASS test_check_fresh_false_for_unknown_guid
+road_audit_api_test: 4 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.155
+Elapsed: 00:00:00.174
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.041
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

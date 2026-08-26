@@ -17,6 +17,7 @@ prompt === deploy package specs ===
 @db/package_specs/jwt_scaffold_crypto.pks
 @db/package_specs/jwt_scaffold_crypto_test.pks
 @db/package_specs/jwt_scaffold_auth_api.pks
+@db/package_specs/jwt_scaffold_auth_api_test.pks
 @db/package_specs/session_api.pks
 @db/package_specs/error_api.pks
 @db/package_specs/error_api_test.pks

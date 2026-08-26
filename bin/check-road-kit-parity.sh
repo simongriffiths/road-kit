@@ -71,7 +71,12 @@ SHARED_FILES=(
   db/package_specs/road_audit_api.pks         db/package_bodies/road_audit_api.pkb
   db/package_specs/road_audit_api_test.pks    db/package_bodies/road_audit_api_test.pkb
   bin/get-test-token.sh                       bin/run-endpoint-tests.sh
-  bin/check-handler-coverage.sh               bin/rotate-scaffold-credential.sh
+  bin/check-handler-coverage.sh
+  # bin/rotate-scaffold-credential.sh was removed from the shared surface on 2026-08-26.
+  # spec-patch-09 phase 3 deleted it here -- it rewrote password constants in a package body
+  # that no longer has any. road-cal still holds the file until it adopts the patch, so this
+  # is a deliberate current divergence, which is what an unlisted file means. Delete the
+  # file there in the adoption commit; do not re-add this line.
   bin/check-road-kit-parity.sh
   admin/grant-schema-privileges.sql
   test/endpoint/auth-conformance.endpoint.sh

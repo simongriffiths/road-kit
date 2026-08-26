@@ -1,0 +1,131 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_231639_deploy_phase3_18257
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/deploy_phase3.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/deploy_phase3.sql
+[INFO] SCRIPT_SHA256=16631c70c5839e8d4da6fc7c66946b6de264d899a14695db707977207e9db310
+[INFO] GIT_COMMIT=69688f0
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_231639
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_231639_deploy_phase3_18257.log
+
+[INTENT]
+Purpose: Deploy the rewritten JWT_SCAFFOLD_AUTH_API (credentials from the table, not from
+  constants) and its new test package, then run both scaffold suites.
+Approach: Compile spec and body for the auth api and its test, check USER_ERRORS, run
+  jwt_scaffold_crypto_test and jwt_scaffold_auth_api_test.
+Reason: spec-patch-09 phase 3. This is the change that removes the six credential constants from
+  the package body, so it must be proved by a login that works against a stored row.
+Expected objects: JWT_SCAFFOLD_AUTH_API (body), JWT_SCAFFOLD_AUTH_API_TEST (spec + body)
+Risk: Medium. This is the login path. A failure here means no scaffold login at all.
+Prior history checked: 20260826_225726 deployed jwt_scaffold_crypto; 20260826_230647 the table.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 23:16:40 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+
+Package JWT_SCAFFOLD_AUTH_API compiled
+
+Elapsed: 00:00:00.083
+Elapsed: 00:00:00.103
+
+Package JWT_SCAFFOLD_AUTH_API_TEST compiled
+
+Elapsed: 00:00:00.081
+Elapsed: 00:00:00.098
+
+Package Body JWT_SCAFFOLD_AUTH_API compiled
+
+Elapsed: 00:00:00.225
+Elapsed: 00:00:00.243
+
+Package Body JWT_SCAFFOLD_AUTH_API_TEST compiled
+
+
+Errors for PACKAGE BODY JWT_SCAFFOLD_AUTH_API_TEST:
+
+LINE/COL ERROR
+-------- -----------------------------------------------------------------
+50/5     PL/SQL: SQL Statement ignored
+51/13    PL/SQL: ORA-03066: invalid PL/SQL expression
+51/13    PLS-00231: function 'CURRENT_ISSUER' may not be used in SQL
+74/5     PL/SQL: Statement ignored
+74/81    PLS-00684: invalid data type for the JSON return value
+Elapsed: 00:00:00.461
+Elapsed: 00:00:00.479
+=== compile errors, if any ===
+
+[1mNAME[m                          [1mTYPE[m               [1mLINE[m    [1mPOSITION[m [1mTEXT[m                                                           
+_____________________________ _______________ _______ ___________ ______________________________________________________________ 
+JWT_SCAFFOLD_AUTH_API_TEST    PACKAGE BODY         51          13 PLS-00231: function 'CURRENT_ISSUER' may not be used in SQL    
+JWT_SCAFFOLD_AUTH_API_TEST    PACKAGE BODY         51          13 PL/SQL: ORA-03066: invalid PL/SQL expression                   
+JWT_SCAFFOLD_AUTH_API_TEST    PACKAGE BODY         50           5 PL/SQL: SQL Statement ignored                                  
+JWT_SCAFFOLD_AUTH_API_TEST    PACKAGE BODY         74          81 PLS-00684: invalid data type for the JSON return value         
+JWT_SCAFFOLD_AUTH_API_TEST    PACKAGE BODY         74           5 PL/SQL: Statement ignored                                      
+
+5 rows selected. 
+
+Elapsed: 00:00:00.316
+=== invalid objects anywhere in the schema ===
+
+[1mOBJECT_NAME[m                   [1mOBJECT_TYPE[m     
+_____________________________ _______________ 
+JWT_SCAFFOLD_AUTH_API_TEST    PACKAGE BODY    
+
+1 row selected. 
+
+Elapsed: 00:00:00.130
+=== crypto suite ===
+PASS test_rfc_vector_one_iteration
+PASS test_rfc_vector_two_iterations
+PASS test_rfc_vector_many_iterations
+PASS test_rfc_vector_two_blocks
+PASS test_deterministic
+PASS test_salt_changes_digest
+PASS test_iterations_change_digest
+PASS test_guards
+PASS test_random_salt
+PASS test_default_cost_not_weakened
+jwt_scaffold_crypto_test: 10 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.208
+=== login suite ===
+Rollback
+begin
+*
+ERROR at line 1:
+ORA-04063: package body "ROAD_KIT_DEV.JWT_SCAFFOLD_AUTH_API_TEST" has errors
+ORA-06508: PL/SQL: could not find program unit being called: "ROAD_KIT_DEV.JWT_SCAFFOLD_AUTH_API_TEST"
+ORA-06512: at line 2
+
+https://docs.oracle.com/error-help/db/ora-04063/
+
+
+More Details :
+https://docs.oracle.com/error-help/db/ora-04063/
+https://docs.oracle.com/error-help/db/ora-06508/
+https://docs.oracle.com/error-help/db/ora-06512/
+Elapsed: 00:00:00.105
+Elapsed: 00:00:00.129
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=FAILURE
+SQLCL_EXIT=223
+
+[INFO] SQLCL_EXIT=223
+[INFO] END

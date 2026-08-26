@@ -19,6 +19,7 @@ prompt === deploy package bodies ===
 @db/package_bodies/jwt_scaffold_crypto.pkb
 @db/package_bodies/jwt_scaffold_crypto_test.pkb
 @db/package_bodies/jwt_scaffold_auth_api.pkb
+@db/package_bodies/jwt_scaffold_auth_api_test.pkb
 @db/package_bodies/session_api.pkb
 @db/package_bodies/error_api.pkb
 @db/package_bodies/error_api_test.pkb

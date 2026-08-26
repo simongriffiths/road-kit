@@ -3,7 +3,7 @@
 **Design:** `planning/spec-patch-09-provider-profiles-and-credentials.md`. Read it first; this file
 sequences the work and records what each phase actually cost.
 
-**Status: phases 1-2 complete. Phases 3-7 not started.**
+**Status: phases 1-3 complete. Phases 4-7 not started.**
 
 ---
 
@@ -122,15 +122,71 @@ it knows.
 
 ---
 
-## Phase 3 — `check_credentials` reads the table
+## Phase 3 — the login path reads the table — **COMPLETE 2026-08-26**
 
-Delete the six constants from `jwt_scaffold_auth_api`'s body and the `if/elsif` chain. Resolve
-`(issuer from the JWT profile, subject = upper(trim(username)))` to a principal, then verify against
-`jwt_scaffold_credentials` using that row's own `iterations` and `algorithm`. Delete
-`bin/rotate-scaffold-credential.sh`. Set passwords for the existing dev principals.
+Deployed to `road_kit_dev` and green.
 
-**Verify:** login succeeds for a principal with a credential row, fails for one without, and fails
-for a wrong password. No password material remains in any package body.
+| Suite | Result |
+|---|---|
+| **`jwt_scaffold_auth_api_test`** (new) | **10 passed, 0 failed** |
+| `jwt_scaffold_crypto_test` | 10 passed, 0 failed |
+| `error_api_test` | 7 passed, 0 failed |
+| `road_ctx_pkg_test` | 13 tests passed |
+| `road_admin_api_test` | 22 passed, 0 failed |
+| `road_audit_api_test` | 4 passed, 0 failed |
+| Invalid objects in the schema | none |
+| Test fixtures surviving rollback | none |
+
+Run `20260826_231731_phase3_verify` and the deploy immediately before it.
+
+**The six constants are gone**, along with the `if/elsif` chain that used them.
+`check_credentials` is replaced by `resolve_principal`, which returns a `principal_id` rather than a
+boolean — the caller needs the identity, not just the verdict, because the token's `sub` must come
+from `ROAD_PRINCIPALS` and because phase 4 derives the scope from that principal.
+
+**`test_no_credential_constants_remain` is the regression guard.** It queries `USER_SOURCE` for long
+`hextoraw` literals and for the old constant names. Reintroducing a hardcoded digest fails the suite
+rather than quietly working.
+
+**Three things this made possible that the constants could not express:**
+
+- **A principal with no password.** Normal for anyone created through the admin screens, and normal
+  under `external_oidc`. The old code had no way to represent it.
+- **`SUSPENDED` and `RETIRED` are now enforced.** `ROAD_PRINCIPALS.STATUS` has carried those values
+  since patch 06 with nothing checking them. A correct password no longer admits a suspended
+  principal.
+- **Per-row iteration counts verify.** A credential written at 2,500 iterations verifies at 2,500
+  while the default is 10,000, which is what makes raising the cost safe for existing rows.
+
+**Every failure returns the same thing.** Unknown subject, no credential, suspended, wrong password
+and wrong algorithm are indistinguishable to the caller — `resolve_principal` returns NULL and the
+endpoint returns one `invalid_credentials`. The login endpoint must not become an oracle for which
+usernames exist.
+
+**`password_digest` was deleted too.** It was the old single-round SHA-256 helper, unreferenced once
+the constants went, and a weak primitive sitting beside a strong one is an invitation.
+
+**Two compile errors worth knowing, both in the test package, both fixed:**
+
+- **PLS-00231** — a package-private function may not be called inside a SQL statement.
+  `current_issuer` had to be assigned to a local before the `INSERT` could use it.
+- **PLS-00684** — `JSON_OBJECT ... RETURNING CLOB` is not a valid PL/SQL expression. It needs
+  `SELECT ... INTO`.
+
+**`bin/rotate-scaffold-credential.sh` is deleted, and removed from the parity array.** road-cal still
+holds the file until it adopts, so that is a deliberate current divergence — which is what an
+unlisted file means. A comment in the array says so and says not to re-add the line.
+
+**Not done: setting passwords for the dev principals.** `ADMIN` holds the random credential phase 2
+wrote, whose plaintext is recorded nowhere; `USER1` has none. Choosing real dev passwords is Simon's,
+not something to generate and print into a transcript:
+
+```bash
+bin/set-principal-password.sh --env dev --subject ADMIN
+bin/set-principal-password.sh --env dev --subject USER1
+```
+
+The suites do not need them — every test builds and rolls back its own fixture.
 
 ---
 

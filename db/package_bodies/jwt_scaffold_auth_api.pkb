@@ -1,15 +1,11 @@
 create or replace package body jwt_scaffold_auth_api as
-  c_admin_username constant varchar2(30) := 'ADMIN';
-  c_admin_salt     constant raw(16)      := hextoraw('81DAE563DC239D38FEBF76FAD3885104');
-  c_admin_hash     constant raw(32)      := hextoraw('5C104866B778B69DBC36E06B3230FF5BCBBBC76E5E3FAE85CF1C503499960B69');
-
-  c_user1_username constant varchar2(30) := 'USER1';
-  c_user1_salt     constant raw(16)      := hextoraw('A244EF5B579898203EC68A3F1B40E3B6');
-  c_user1_hash     constant raw(32)      := hextoraw('9C1DB83A7656BE02AEAE6F1ED10759AC15266CDB8ABE85099A5EE1C31154BCF8');
-
-  c_user2_username constant varchar2(30) := 'USER2';
-  c_user2_salt     constant raw(16)      := hextoraw('C7FFDC97A465A438E3BB68C0E597CFC5');
-  c_user2_hash     constant raw(32)      := hextoraw('B96BF0DBAC303473AEB14507EA73F6795DDE1ADD502760E9FD4A83488F35C3DB');
+  -- NO CREDENTIAL CONSTANTS HERE, DELIBERATELY, AND NONE MAY BE ADDED.
+  --
+  -- Until spec-patch-09 phase 3 this package body carried three usernames, three salts and three
+  -- SHA-256 digests as constants. That made changing a password a code change, so a credential
+  -- lived in version control by construction -- and is why both repositories' histories had to be
+  -- rewritten on 2026-08-18. Credentials are now rows in JWT_SCAFFOLD_CREDENTIALS, written by
+  -- bin/set-principal-password.sh, which derives them outside the database.
 
   type t_config is record (
     issuer           jwt_scaffold_config.issuer%type,
@@ -42,17 +38,6 @@ create or replace package body jwt_scaffold_auth_api as
     return l_config;
   end get_config;
 
-  function password_digest(
-    p_password in varchar2,
-    p_salt     in raw
-  ) return raw is
-  begin
-    return dbms_crypto.hash(
-      src => utl_i18n.string_to_raw(nvl(p_password, ''), 'AL32UTF8') || p_salt,
-      typ => dbms_crypto.hash_sh256
-    );
-  end password_digest;
-
   function base64url_from_raw(p_raw in raw) return varchar2 is
     l_b64 varchar2(32767);
   begin
@@ -79,26 +64,97 @@ create or replace package body jwt_scaffold_auth_api as
     );
   end epoch_seconds_now;
 
-  function check_credentials(
+  -- Resolves a username and password to a principal, or returns NULL.
+  --
+  -- Returns the PRINCIPAL_ID rather than a boolean because the caller needs the identity, not just
+  -- the verdict: the token's sub must be the subject as ROAD_PRINCIPALS holds it, not as the caller
+  -- typed it, and spec-patch-09 section 4 will derive the scope from this principal's permissions.
+  --
+  -- EVERY FAILURE RETURNS NULL, with no indication of which one it was. Whether the subject exists,
+  -- whether it has a credential, whether the principal is suspended and whether the password is
+  -- wrong are indistinguishable to the caller by design -- the login endpoint must not become an
+  -- oracle for which usernames are real.
+  function resolve_principal(
     p_username in varchar2,
     p_password in varchar2
-  ) return boolean is
-    l_username varchar2(30) := upper(trim(p_username));
-    l_digest   raw(32);
+  ) return number is
+    l_username     varchar2(255 char) := upper(trim(p_username));
+    l_issuer       varchar2(512 char);
+    l_principal_id number;
+    l_status       road_principals.status%type;
+    l_salt         jwt_scaffold_credentials.salt%type;
+    l_stored       jwt_scaffold_credentials.password_hash%type;
+    l_iterations   jwt_scaffold_credentials.iterations%type;
+    l_algorithm    jwt_scaffold_credentials.algorithm%type;
+    l_derived      raw(32);
+    l_profiles     number;
   begin
-    if l_username = c_admin_username then
-      l_digest := password_digest(p_password, c_admin_salt);
-      return l_digest = c_admin_hash;
-    elsif l_username = c_user1_username then
-      l_digest := password_digest(p_password, c_user1_salt);
-      return l_digest = c_user1_hash;
-    elsif l_username = c_user2_username then
-      l_digest := password_digest(p_password, c_user2_salt);
-      return l_digest = c_user2_hash;
+    if l_username is null or p_password is null then
+      return null;
     end if;
 
-    return false;
-  end check_credentials;
+    -- The issuer comes from the schema's registered JWT profile rather than from configuration,
+    -- for the same reason 95_data.sql seeds the bootstrap administrator that way: it is by
+    -- construction the issuer this token will carry, so the principal matched here is the principal
+    -- road_ctx_pkg.begin_request will find when the token comes back.
+    select count(*) into l_profiles from user_ords_jwt_profile;
+    if l_profiles != 1 then
+      return null;
+    end if;
+    select issuer into l_issuer from user_ords_jwt_profile;
+
+    begin
+      select principal_id, status
+        into l_principal_id, l_status
+        from road_principals
+       where issuer = l_issuer
+         and subject = l_username;
+    exception
+      when no_data_found then
+        return null;
+    end;
+
+    -- ROAD_PRINCIPALS.STATUS has carried SUSPENDED and RETIRED since patch 06 and nothing had ever
+    -- enforced them. A credential is not an entitlement to sign in.
+    if l_status != 'ACTIVE' then
+      return null;
+    end if;
+
+    begin
+      select salt, password_hash, iterations, algorithm
+        into l_salt, l_stored, l_iterations, l_algorithm
+        from jwt_scaffold_credentials
+       where principal_id = l_principal_id;
+    exception
+      when no_data_found then
+        -- A principal with no password. Normal under external_oidc, and normal here for anyone
+        -- created through the admin screens before a password was set for them.
+        return null;
+    end;
+
+    -- Verified with the parameters the row was WRITTEN with, not with today's defaults, so raising
+    -- the cost later does not invalidate existing rows.
+    if l_algorithm != jwt_scaffold_crypto.c_algorithm then
+      return null;
+    end if;
+
+    l_derived := jwt_scaffold_crypto.pbkdf2_sha256(
+      p_password   => p_password,
+      p_salt       => l_salt,
+      p_iterations => l_iterations,
+      p_dk_len     => utl_raw.length(l_stored)
+    );
+
+    -- Not a constant-time comparison. PL/SQL offers no primitive for one, and the scaffold is
+    -- development-only per authentication-spec-v1.md section 11.5; the timing signal on a digest
+    -- comparison is not the weakest thing about a profile that is its own identity provider.
+    -- Recorded so it is a known limit rather than an oversight.
+    if l_derived = l_stored then
+      return l_principal_id;
+    end if;
+
+    return null;
+  end resolve_principal;
 
   function issue_token(
     p_username    in varchar2,
@@ -198,10 +254,11 @@ create or replace package body jwt_scaffold_auth_api as
     p_error_description out varchar2,
     p_http_status       out number
   ) is
-    l_payload  json_object_t;
-    l_username varchar2(255);
-    l_password varchar2(255);
-    l_config   t_config;
+    l_payload      json_object_t;
+    l_username     varchar2(255);
+    l_password     varchar2(255);
+    l_config       t_config;
+    l_principal_id number;
   begin
     p_access_token := null;
     p_token_type := null;
@@ -222,7 +279,9 @@ create or replace package body jwt_scaffold_auth_api as
       return;
     end if;
 
-    if not check_credentials(l_username, l_password) then
+    l_principal_id := resolve_principal(l_username, l_password);
+
+    if l_principal_id is null then
       p_error := 'invalid_credentials';
       p_error_description := 'invalid username or password';
       p_http_status := 401;
@@ -230,6 +289,11 @@ create or replace package body jwt_scaffold_auth_api as
     end if;
 
     l_config := get_config;
+
+    -- Mint against the subject as ROAD_PRINCIPALS holds it, not as the caller typed it. They are
+    -- the same today because resolve_principal matches on the uppercased form, but the token's sub
+    -- must come from the identity record so that it stays true if that ever stops being so.
+    select subject into l_username from road_principals where principal_id = l_principal_id;
 
     p_access_token := issue_token(l_username, l_config.scope_name);
     p_token_type := 'Bearer';
