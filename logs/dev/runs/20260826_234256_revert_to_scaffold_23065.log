@@ -1,0 +1,280 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_234256_revert_to_scaffold_23065
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/revert_to_scaffold.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/revert_to_scaffold.sql
+[INFO] SCRIPT_SHA256=7ae398ef7acdc55771604a201e420aa278ecab96dda5361b424265c2163d37c4
+[INFO] GIT_COMMIT=edd17b9
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_234256
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_234256_revert_to_scaffold_23065.log
+
+[INTENT]
+Purpose: Revert road_kit_dev from the external_oidc mechanism test back to the scaffold
+  profile, restoring normal working state, and prove the round trip -- auth module
+  re-created, profile back to the scaffold's own issuer, login working again.
+Approach: Run 80_standalone.generated.sql and 90_rest.sql (now re-rendered for the scaffold
+  profile), then the full auth+scope suite.
+Reason: spec-patch-09 phase 5 verification. road_kit_dev needs to stay usable for continued
+  work; this is the last step of proving the switch works in both directions.
+Expected objects: JWT profile back to urn:road:hello_world:dev; auth module recreated.
+Risk: Low. Reverting to the state that was live before this test began.
+Prior history checked: 20260826_2339-234x, this session's own external_oidc test.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 23:42:57 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+=== deploy standalone objects ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.099
+
+1 row merged.
+
+Elapsed: 00:00:00.146
+
+Commit complete.
+
+Elapsed: 00:00:00.043
+=== register ORDS JWT profile from the seeded config ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.042
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.040
+Elapsed: 00:00:00.061
+=== deploy ords modules ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.058
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.043
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.042
+Elapsed: 00:00:00.060
+=== public health endpoint requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.075
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.061
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.040
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.053
+Elapsed: 00:00:00.090
+=== public jwt auth scaffold requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.074
+Elapsed: 00:00:00.170
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.055
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.045
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.065
+Elapsed: 00:00:00.082
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.042
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.043
+Elapsed: 00:00:00.061
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.125
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.041
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.044
+Elapsed: 00:00:00.062
+=== public ui delivery requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.075
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.043
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.038
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.077
+Elapsed: 00:00:00.094
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.046
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.048
+Elapsed: 00:00:00.067
+Elapsed: 00:00:00.085
+=== profile restored ===
+
+[1mISSUER[m                      [1mAUDIENCE[m    [1mJWK_URL[m                                                                                                                 
+___________________________ ___________ _______________________________________________________________________________________________________________________ 
+urn:road:hello_world:dev    road-dev    https://GEB0D0F36A9A4B0-QUORATEDB.adb.uk-cardiff-1.oraclecloudapps.com/ords/hello_api/jwt-auth/.well-known/jwks.json    
+
+1 row selected. 
+
+Elapsed: 00:00:00.076
+=== auth module restored ===
+
+[1mNAME[m              [1mURI_PREFIX[m    
+_________________ _____________ 
+hello_api.auth    /jwt-auth/    
+
+1 row selected. 
+
+Elapsed: 00:00:00.044
+=== every affected suite ===
+PASS test_rfc_vector_one_iteration
+PASS test_rfc_vector_two_iterations
+PASS test_rfc_vector_many_iterations
+PASS test_rfc_vector_two_blocks
+PASS test_deterministic
+PASS test_salt_changes_digest
+PASS test_iterations_change_digest
+PASS test_guards
+PASS test_random_salt
+PASS test_default_cost_not_weakened
+jwt_scaffold_crypto_test: 10 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.171
+PASS test_valid_credentials_issue_a_token
+PASS test_wrong_password_refused
+PASS test_unknown_subject_refused
+PASS test_principal_without_credential_refused
+PASS test_suspended_principal_refused
+PASS test_retired_principal_refused
+PASS test_username_is_case_insensitive
+PASS test_missing_fields_are_400
+PASS test_row_iterations_are_honoured
+PASS test_admin_scope_includes_admin_rw
+PASS test_user_admin_scope_includes_admin_rw
+PASS test_plain_user_scope_excludes_admin_rw
+PASS test_no_roles_yields_no_scope_claim
+PASS test_operation_only_permission_excluded_from_scope
+PASS test_no_credential_constants_remain
+jwt_scaffold_auth_api_test: 15 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.368
+PASS test_handle_known_validation
+PASS test_handle_known_agenda_locked
+PASS test_handle_known_not_found
+PASS test_handle_known_conflict
+PASS test_handle_known_forbidden
+PASS test_handle_known_unmapped_escalates
+PASS test_handle_unknown
+error_api_test: 7 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.102
+[PASS] road_ctx_pkg_test: 13 tests
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.363
+PASS test_user_admin_cannot_grant_reserved
+PASS test_system_admin_can_grant_reserved
+PASS test_granted_by_ignores_request_body
+PASS test_grant_is_idempotent
+PASS test_define_role_rejects_road_namespace
+PASS test_user_admin_cannot_define_roles
+PASS test_unauthenticated_denied
+PASS test_grant_all_app_permissions_is_explicit
+PASS test_get_principals_requires_permission
+PASS test_get_principals_search
+PASS test_get_principals_paging
+PASS test_attach_reserved_permission_refused
+PASS test_attach_to_reserved_role_refused
+PASS test_composition_takes_effect_on_next_request
+PASS test_attached_by_ignores_request_body
+PASS test_attach_detach_idempotent
+PASS test_compose_denied_without_permission
+PASS test_assertion_permits_ordinary_session_attach
+PASS test_assertion_refuses_reserved_session_attach
+PASS test_assertion_refuses_flip_under_session_attach
+PASS test_assertion_permits_reserved_deploy_attach
+PASS test_cannot_revoke_last_system_admin
+road_admin_api_test: 22 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.540
+PASS test_issue_read_token_creates_row
+PASS test_check_fresh_true_when_unchanged
+PASS test_check_fresh_false_when_stale
+PASS test_check_fresh_false_for_unknown_guid
+road_audit_api_test: 4 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.046
+Elapsed: 00:00:00.065
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.043
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

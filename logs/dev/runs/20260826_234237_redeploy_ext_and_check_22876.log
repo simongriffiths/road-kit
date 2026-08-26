@@ -1,0 +1,130 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_234237_redeploy_ext_and_check_22876
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/redeploy_ext_and_check.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/redeploy_ext_and_check.sql
+[INFO] SCRIPT_SHA256=59f51b68ef81524c0d5812babe6a0dde41ff26c6185b30f3c129d1a3bc30bb8e
+[INFO] GIT_COMMIT=edd17b9
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_234237
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_234237_redeploy_ext_and_check_22876.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 23:42:37 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+=== deploy ords modules ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.336
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.041
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.041
+Elapsed: 00:00:00.057
+=== public health endpoint requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.062
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.127
+Elapsed: 00:00:00.141
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.051
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.034
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.058
+Elapsed: 00:00:00.072
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.035
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.038
+Elapsed: 00:00:00.052
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.048
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.113
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.040
+Elapsed: 00:00:00.057
+=== public ui delivery requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.063
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.037
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.033
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.076
+Elapsed: 00:00:00.091
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.120
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.037
+Elapsed: 00:00:00.052
+Elapsed: 00:00:00.067
+=== auth module presence now ===
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.036
+Elapsed: 00:00:00.050
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.031
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

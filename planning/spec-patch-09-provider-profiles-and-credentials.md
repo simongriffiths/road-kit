@@ -82,14 +82,33 @@ AUTH_PROFILE=external_oidc               # production
 
 Do not invent shorter names. The spec's §8 table is the registry.
 
-### 2.2 What reads it
+### 2.2 What reads it — **corrected against the built mechanism, 2026-08-26**
 
-Two things, which is what makes it "relatively simple":
+One consumer, `bin/render-auth-config.sh`, producing two artifacts. The design originally said
+`00_full.sql` itself would include or skip the scaffold-only objects; building phase 5 showed that
+claim was both too broad and, on its own, insufficient — see below.
 
-| Consumer | Behaviour |
+| Artifact | Behaviour |
 |---|---|
-| `bin/render-auth-config.sh` | Renders `80_standalone.generated.sql` from one of two template bodies: a JWT profile pointing at this schema's own JWKS endpoint, or at an external provider's issuer, audience and JWKS URL |
-| `deploy/create/00_full.sql` | Includes or skips the scaffold-only objects in §3.1 |
+| `deploy/create/80_standalone.generated.sql` | The JWT profile registration, rendered from one of two template bodies: `80_standalone.sql.tmpl` (scaffold, points at this schema's own JWKS endpoint) or `80_standalone.external_oidc.sql.tmpl` (points at the external provider's issuer, audience and JWKS URL) |
+| `deploy/create/90_rest_auth.generated.sql` | Whether the scaffold's **public login endpoint** — `api/modules/auth/`, `/jwt-auth/login` and its JWKS document — deploys at all |
+
+**Too broad, corrected:** only the ORDS module in the second row needs to be conditional. The
+scaffold's tables and packages (`jwt_scaffold_config`, `jwt_scaffold_credentials`,
+`jwt_scaffold_auth_api`, `jwt_scaffold_crypto`) stay deployed under both profiles, unconditionally.
+See §2.3a for why that is safe rather than a shortcut.
+
+**Insufficient on its own, found deploying against `road_kit_dev`:** simply not including
+`api/modules/auth/module.create.sql`'s `@`-include stops the module being *created*, which is
+correct for a fresh deploy — but a schema *switching* from the scaffold profile to `external_oidc`
+already has that module registered from a prior deploy, and omitting the create script does nothing
+to remove it. Confirmed the hard way: the first version of `90_rest_auth.generated.sql` rendered
+under `external_oidc` was an empty no-op, redeployed `90_rest.sql`, and `/jwt-auth/` was still
+there — a `SELECT` against `USER_ORDS_MODULES` proved it, not an assumption. The fix is that the
+`external_oidc` rendering of `90_rest_auth.generated.sql` **actively calls
+`ords.delete_module`**, guarded the same way every other `delete_module` call in this codebase is,
+so a *switch* removes what a fresh deploy would simply never have created. Re-verified after the
+fix: zero rows.
 
 **Nothing else branches.** Not `road_ctx_pkg`, not `road_admin_api`, not `error_api`, not any ORDS
 privilege, not any `require_permission` call, not the React app beyond its login control.
@@ -103,6 +122,36 @@ Repointing the profile repoints identity; everything above it is untouched.
 This is not new. It is exactly the property road-blogger demonstrated by adopting Auth0 without
 modifying anything in the `ROAD_*` surface, and the reason its build required no framework change.
 This patch spends that property deliberately rather than rediscovering it a third time.
+
+### 2.3a Why the scaffold's packages and tables stay deployed under `external_oidc`
+
+Only the ORDS module is conditional (§2.2). `jwt_scaffold_auth_api` remains compiled, and
+`jwt_scaffold_config` / `jwt_scaffold_credentials` remain in the schema, whichever profile is
+selected. This is a deliberate narrowing of what an earlier draft of this section implied ("includes
+or skips the scaffold-only objects" — plural, broad), made because the actual security property
+does not require the wider skip.
+
+**The registered ORDS JWT profile is the real trust boundary, and only one is ever registered at a
+time.** `ords_security.create_jwt_profile` is called once per profile choice; whichever issuer that
+call names is the *only* issuer ORDS will accept. `jwt_scaffold_auth_api.issue_token` can still be
+called directly in PL/SQL under `external_oidc` — confirmed against `road_kit_dev`, deploying this
+phase, calling it with a wrong password and getting a normal `401` back — but any token it mints
+carries the scaffold's own issuer, which is not the issuer registered with ORDS under this profile.
+ORDS rejects it exactly as it would reject a token from any other unrecognised source. A compiled,
+reachable-in-PL/SQL, *unreachable-over-HTTP* package poses no exploitable risk this design needs to
+close.
+
+**The public HTTP endpoint is a different kind of residue and is the one thing removed.**
+`/jwt-auth/login` and its JWKS document are reachable by anyone, unauthenticated, by construction —
+that is what a login endpoint is. Leaving one live that mints tokens ORDS will not honour is not a
+vulnerability in the sense above, but it is unnecessary attack surface, a false signal to anyone
+auditing the deployed API surface, and confusing. §2.2 is where it is removed, and removed actively
+on a *switch*, not merely uncreated on a fresh deploy.
+
+**What this buys:** the conditional-deploy mechanism stays to one file
+(`90_rest_auth.generated.sql`) instead of five (tables, triggers, package specs, package bodies,
+ORDS modules), verified completely rather than partially, instead of touching every chain file for
+a security property that does not need it.
 
 ### 2.4 The rule that keeps the switch honest
 
@@ -345,10 +394,14 @@ Ordering only; detail belongs in a build plan.
 
 ## 8. Open questions
 
-1. **Where does `AUTH_PROFILE` live for a per-environment override?** `road.config` is committed and
-   shared across environments, and dev differing from prod is the entire point. Probably
-   `config/connections.conf` or an environment variable — a `sql-runner` question, not an
-   authentication one.
+1. **~~Where does `AUTH_PROFILE` live for a per-environment override?~~ Answered, phase 5,
+   2026-08-26: an environment variable, no default.** Matches `ROAD_ORDS_HOST` exactly, which
+   `bin/render-auth-config.sh` already required this way and for the identical reason — that
+   script's own comment on `ROAD_ORDS_HOST` says a plausible-but-wrong value is how a defect
+   survives unnoticed. Silently defaulting `AUTH_PROFILE` to the scaffold would be a worse version
+   of the same mistake: a forgotten setting would deploy the *development* identity provider to an
+   environment meant to run production's. `road.config` was the wrong place regardless — it is
+   committed and shared across environments, and dev differing from prod is the entire point.
 2. **`road_config.auto_provision_principals` ships `'Y'`.** Under the scaffold it is now unreachable
    through login: no credential row, no token. It stays reachable under `external_oidc`, where
    road-cal's superseded Auth0 analysis showed it enrols any authenticated stranger behind a shared

@@ -13,7 +13,10 @@ config/local.env
 # this project is in active development. Matches road-cal; road-kit ignored .codex/ until
 # 2026-08-26, which silently kept its run history local-only.
 
-# Rendered by bin/render-auth-config.sh from 80_standalone.sql.tmpl - carries the
-# environment-specific JWKS URL, so it is per-machine/per-env, not source.
+# Rendered by bin/render-auth-config.sh - carries environment-specific values (a JWKS URL, or an
+# Auth0 tenant's issuer/audience under AUTH_PROFILE=external_oidc), so per-machine/per-env, not
+# source. 90_rest_auth.generated.sql is the same idea, one file: whether the scaffold's public
+# login endpoint deploys at all (spec-patch-09 section 2).
 deploy/create/80_standalone.generated.sql
+deploy/create/90_rest_auth.generated.sql
 scratch/

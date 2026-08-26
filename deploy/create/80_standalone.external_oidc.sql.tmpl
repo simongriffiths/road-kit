@@ -1,0 +1,84 @@
+whenever oserror exit failure rollback
+whenever sqlerror exit sql.sqlcode rollback
+
+-- INTENT:
+-- Purpose: Register ORDS's trust in an external OIDC provider (the external_oidc profile,
+--   authentication-spec-v1.md section 9) directly from rendered issuer/audience/jwk_url values.
+--   Writes nothing to JWT_SCAFFOLD_CONFIG -- that table belongs to the OTHER profile.
+-- Approach: delete_jwt_profile + create_jwt_profile from the three ROAD_AUTH0_* placeholders
+--   bin/render-auth-config.sh substitutes. No MERGE, no config row: there is nothing here for a
+--   later step to seed a key into, unlike the scaffold's JWT_SCAFFOLD_CONFIG.
+-- Reason: spec-patch-09 section 2. This is the second of the two template bodies
+--   render-auth-config.sh chooses between on AUTH_PROFILE -- the scaffold's twin is
+--   80_standalone.sql.tmpl. Rendered from road-blogger's proven Auth0 registration
+--   (build-plan-01-auth0-adoption.md phase 1), which is the worked example this was adapted from.
+-- Expected objects:
+--   ORDS JWT profile (schema-level, one per schema) -- registered against the external provider
+-- Risk: Medium. Re-registering the JWT profile invalidates nothing already issued, but a wrong
+--   jwk_url or issuer produces tokens that fail validation with a generic ORDS 401 and no useful
+--   diagnostic -- identical failure mode to the scaffold's own template, for the same reason.
+-- Prior history checked: Search db-history for prior 80_standalone runs in this environment.
+-- END INTENT
+
+-- GENERATED FILE - DO NOT EDIT.
+-- Rendered from deploy/create/80_standalone.external_oidc.sql.tmpl by bin/render-auth-config.sh.
+-- Edits here are lost on the next render. Change the template instead.
+
+prompt === deploy standalone objects (external_oidc profile) ===
+
+begin
+  ords.enable_schema(
+    p_enabled             => true,
+    p_schema              => user,
+    p_url_mapping_type    => 'BASE_PATH',
+    p_url_mapping_pattern => '@@ROAD_API_BASE_PATH@@',
+    p_auto_rest_auth      => false
+  );
+exception
+  when others then
+    null;
+end;
+/
+
+prompt === register ORDS JWT profile against the external provider ===
+
+begin
+  ords_security.delete_jwt_profile;
+exception
+  when others then
+    null;
+end;
+/
+
+begin
+  ords_security.create_jwt_profile(
+    -- Identifiers. Compared as text, never fetched. A trailing slash on the issuer, if the
+    -- provider's own value has one (Auth0's does), is part of the value and must match exactly.
+    p_issuer          => '@@ROAD_AUTH0_ISSUER@@',
+    p_audience        => '@@ROAD_AUTH0_AUDIENCE@@',
+
+    -- A locator, unlike the two above: ORDS fetches this over the network, from the database, at
+    -- validation time, to get the public key that verifies the signature.
+    p_jwk_url         => '@@ROAD_AUTH0_JWK_URL@@',
+
+    p_description     => 'ROAD external_oidc profile (authentication-spec-v1.md section 9)',
+
+    -- Clock tolerance between the provider and this database.
+    p_allowed_skew    => 30,
+
+    -- Maximum token age from iat. Must be at least the provider's own access-token lifetime, or
+    -- valid unexpired tokens are refused once they pass this age. Auth0's default is 86400 seconds
+    -- (road-blogger, confirmed 2026-08-21); shorten both together, never one alone.
+    p_allowed_age     => 86400,
+
+    -- NULL means scope-based: ORDS looks for the required privilege name in the token's scope or
+    -- scp claim. Confirmed against road-blogger's real Auth0 tenant that RBAC populates scope,
+    -- filtered per user by role. Set this to a claim name only if switching to role-based
+    -- authorisation, which would be a different design.
+    p_role_claim_name => null
+  );
+  commit;
+end;
+/
+
+prompt === external_oidc JWT profile registered ===

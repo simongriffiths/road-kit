@@ -1,0 +1,68 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_234146_check_module_22666
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/check_module.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/check_module.sql
+[INFO] SCRIPT_SHA256=cb174d6e2dac650f41e67576580ca2e0c13d48713451ce99298118c0f1e95e4f
+[INFO] GIT_COMMIT=edd17b9
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_234146
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_234146_check_module_22666.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 23:41:46 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+=== auth module gone ===
+
+[1mNAME[m              [1mURI_PREFIX[m    
+_________________ _____________ 
+hello_api.auth    /jwt-auth/    
+
+1 row selected. 
+
+Elapsed: 00:00:00.279
+=== scaffold config untouched by external template ===
+
+[1mSCOPE_NAME[m    [1mUPDATED_AT[m                          
+_____________ ___________________________________ 
+              26-AUG-26 22.39.44.148446000 GMT    
+
+1 row selected. 
+
+Elapsed: 00:00:00.152
+=== PL/SQL scaffold call still reachable directly ===
+PL/SQL call still reachable: status=401 error=invalid_credentials
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.142
+Elapsed: 00:00:00.158
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.037
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

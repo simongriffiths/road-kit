@@ -1,0 +1,73 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_234134_check_state_22490
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/check_state.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/check_state.sql
+[INFO] SCRIPT_SHA256=0e02908073c142fff3527b09ef295c727b5d77a4cdeb916c620efdfc9932b08f
+[INFO] GIT_COMMIT=edd17b9
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_234134
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_234134_check_state_22490.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 23:41:34 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+=== profile now ===
+
+[1mISSUER[m                                                       [1mAUDIENCE[m                                        [1mJWK_URL[m                                                                           
+____________________________________________________________ _______________________________________________ _________________________________________________________________________________ 
+https://road-kit-phase5-mechanism-test.example.auth0.com/    https://api.road-kit-phase5-test.example.com    https://road-kit-phase5-mechanism-test.example.auth0.com/.well-known/jwks.json    
+
+1 row selected. 
+
+Elapsed: 00:00:00.256
+=== ords modules columns ===
+
+[1mCOLUMN_NAME[m        
+__________________ 
+ID                 
+NAME               
+URI_PREFIX         
+ITEMS_PER_PAGE     
+STATUS             
+COMMENTS           
+PRE_HOOK           
+SCHEMA_ID          
+CREATED_BY         
+CREATED_ON         
+UPDATED_BY         
+UPDATED_ON         
+ORIGINS_ALLOWED    
+
+13 rows selected. 
+
+Elapsed: 00:00:00.457
+Elapsed: 00:00:00.473
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.039
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

@@ -3,7 +3,7 @@
 **Design:** `planning/spec-patch-09-provider-profiles-and-credentials.md`. Read it first; this file
 sequences the work and records what each phase actually cost.
 
-**Status: phases 1-4 complete. Phases 5-7 not started.**
+**Status: phases 1-5 complete. Phases 6-7 not started.**
 
 ---
 
@@ -270,13 +270,85 @@ plaintext is recorded anywhere in this repository.
 
 ---
 
-## Phase 5 — The switch
+## Phase 5 — The switch — **COMPLETE 2026-08-26**
 
-Design: spec patch §2. `AUTH_PROFILE`, two template bodies in `render-auth-config.sh`, conditional
-inclusion of the scaffold objects in `00_full.sql`.
+Deployed and mechanically proven against `road_kit_dev`, both directions. Design: spec patch §2,
+corrected against what building it actually required — see §2.2 and §2.3a of the patch, and the
+summary below.
 
-Open question 1 in the patch — where the value lives for a per-environment override — has to be
-answered before this phase, not during it.
+**`AUTH_PROFILE`** is an environment variable, no default — answers open question 1 (§8). Two
+recognised values, taken character-for-character from `authentication-spec-v1.md` §8:
+`ords_local_jwt_scaffold`, `external_oidc`.
+
+**`bin/render-auth-config.sh`** now branches on it, producing two artifacts instead of one:
+
+| Artifact | Under `ords_local_jwt_scaffold` | Under `external_oidc` |
+|---|---|---|
+| `80_standalone.generated.sql` | Scaffold JWT profile, from `80_standalone.sql.tmpl` | External provider's JWT profile, from the new `80_standalone.external_oidc.sql.tmpl`, requiring `ROAD_AUTH0_DOMAIN` + `ROAD_AUTH0_AUDIENCE` |
+| `90_rest_auth.generated.sql` | The two real `@`-includes for `api/modules/auth/` | An explicit `ords.delete_module` call (see below) — not merely empty |
+
+**The design's own scope was too broad, and phase 5 corrected it while building.** The spec
+originally said `00_full.sql` would include or skip "the scaffold-only objects" — tables, packages,
+triggers, the ORDS module, all of it. Only the ORDS module actually needs to be conditional:
+`jwt_scaffold_auth_api` stays deployed and directly callable via PL/SQL under `external_oidc`
+(confirmed — called it with a wrong password against `road_kit_dev`, got a normal `401`), because
+the registered JWT profile is the real trust boundary and only one is ever registered. Anything the
+scaffold mints carries the scaffold's own issuer, which is not the issuer ORDS is validating against
+under this profile, so it is refused exactly as any other unrecognised token would be. The public
+HTTP endpoint is a different kind of residue — reachable by anyone, unauthenticated, by design — and
+is the one thing genuinely removed. This took the conditional mechanism from five chain files down
+to one, verified completely rather than five files verified partially.
+
+**A second, sharper defect was found and fixed the same way — by checking, not assuming.** Simply
+omitting the auth module's `@`-include stops it being *created* on a fresh deploy, but does nothing
+to a module already registered from a *prior* scaffold deploy. The first version of this mechanism
+rendered an empty no-op fragment under `external_oidc`, redeployed `90_rest.sql` against
+`road_kit_dev` — which had the scaffold module from every earlier phase — and a `SELECT` against
+`USER_ORDS_MODULES` showed `/jwt-auth/` still there. "Not recreating" and "removing" are different
+operations, and only the second is correct for a schema that is *switching*, not deploying fresh.
+Fixed: the `external_oidc` fragment now actively calls `ords.delete_module`, guarded the same way
+every other `delete_module` call in this codebase is. Re-verified: zero rows.
+
+**A third, smaller defect: the template's own prose tripped the leftover-placeholder check.** The
+new template's INTENT comment described "the three `@@ROAD_AUTH0_*@@` placeholders" in prose, using
+the literal `@@...@@` syntax as a shorthand — which the render script's own
+`if [[ "${CONTENT}" == *"@@ROAD_"* ]]` catch-all then flagged as an unsubstituted placeholder,
+because it does not distinguish a real template slot from a comment describing one. Fixed by not
+writing the syntax in prose. A related but separate bug in the *diagnostic* that reports which
+placeholder was left — `grep -o '@@ROAD_[A-Z_]*@@'` — could never have named the real three anyway,
+since `AUTH0` contains a digit and the character class didn't include one; fixed to `[A-Z0-9_]*`.
+
+**Full mechanical proof, both directions, against `road_kit_dev`:**
+
+1. Rendered under `ords_local_jwt_scaffold` with the real `ROAD_ORDS_HOST` — reproduced the
+   already-registered issuer, audience and JWKS URL exactly. Redeployed; all 15 login+scope tests
+   still passed. A pure regression check: the new indirection changed nothing for the profile
+   already in use.
+2. Rendered under `external_oidc` with placeholder (non-functional — no live Auth0 tenant exists
+   for road-kit yet; that is phase 6's job) values. Deployed: the JWT profile switched to the fake
+   issuer/audience/JWKS URL, `jwt_scaffold_config` was untouched (the external template never writes
+   it), and the auth module was confirmed gone by direct query, not assumption.
+3. Reverted to `ords_local_jwt_scaffold` with the real host. Full round trip confirmed: profile back
+   to `urn:road:hello_world:dev`, auth module back at `/jwt-auth/`, and **every affected suite green
+   again** — crypto 10, login+scope 15, error_api 7, road_ctx_pkg 13, road_admin_api 22,
+   road_audit_api 4, demo_todo_api 14 (run separately, `commit;` first, per the known ORA-12841
+   artifact), zero invalid objects. `road_kit_dev` is left in the same working state phase 4 left
+   it in.
+
+**`bin/ensure-auth-key.sh` now refuses cleanly under `external_oidc`** rather than falling into a
+misleading "no `JWT_SCAFFOLD_CONFIG` row" error whose own suggested fix (render and run
+`80_standalone.generated.sql`) would never actually create one under that profile. Checked first,
+before argument parsing: `exit 0` with a one-line explanation.
+
+**Not done, correctly deferred to phase 6:** a live Auth0 tenant. Everything proven here used
+placeholder values sufficient to prove the *mechanism*; proving the *provider* — a real Auth0 API,
+real roles, a real sign-in — is phase 6's job, and needs the shared SPA application and the console
+work road-cal's superseded `auth0-manual-setup.md` already designed.
+
+**Spec patch corrections, both made while building rather than left for phase 6 to discover:** §2.2
+narrowed to match the mechanism actually built (one conditional file, not five, with the reasoning
+in the new §2.3a); §8 open question 1 answered — an environment variable, no default, for the same
+reason `ROAD_ORDS_HOST` already is one.
 
 ---
 

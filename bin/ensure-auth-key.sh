@@ -35,6 +35,17 @@ and stores it only in JWT_SCAFFOLD_CONFIG. Safe to run on every deploy.
 EOF
 }
 
+# Scaffold-only, checked up front: this script has nothing to do under external_oidc, where no
+# JWT_SCAFFOLD_CONFIG row is ever written (deploy/create/80_standalone.external_oidc.sql.tmpl does
+# not touch that table at all) and no local signing key is ever used. Refusing here, rather than
+# falling through to the "no row" error path below, matters because that path's own suggested fix
+# -- render and run 80_standalone.generated.sql -- would not create one under this profile, and an
+# operator following it would loop.
+if [[ "${AUTH_PROFILE:-}" == "external_oidc" ]]; then
+  echo "[INFO] AUTH_PROFILE=external_oidc - this script is scaffold-only and has nothing to do" >&2
+  exit 0
+fi
+
 ENV_NAME=""
 ROTATE="false"
 

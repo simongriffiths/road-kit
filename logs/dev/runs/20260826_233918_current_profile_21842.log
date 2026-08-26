@@ -1,0 +1,58 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_233918_current_profile_21842
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/current_profile.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/current_profile.sql
+[INFO] SCRIPT_SHA256=6d2bb6d803d3a252a261c1ebdfc200baef8cc504dd92ecb6c65b574b62bba711
+[INFO] GIT_COMMIT=edd17b9
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_233918
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_233918_current_profile_21842.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 23:39:19 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+
+[1mISSUER[m                      [1mAUDIENCE[m    [1mJWK_URL[m                                                                                                                 
+___________________________ ___________ _______________________________________________________________________________________________________________________ 
+urn:road:hello_world:dev    road-dev    https://GEB0D0F36A9A4B0-QUORATEDB.adb.uk-cardiff-1.oraclecloudapps.com/ords/hello_api/jwt-auth/.well-known/jwks.json    
+
+1 row selected. 
+
+Elapsed: 00:00:00.391
+
+[1mSCOPE_NAME[m    
+_____________ 
+
+1 row selected. 
+
+Elapsed: 00:00:00.132
+Elapsed: 00:00:00.224
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.041
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END
