@@ -7,7 +7,7 @@ whenever sqlerror exit sql.sqlcode rollback
 -- Reason: Bodies are deployed separately from specs so implementation can be
 --   redeployed without touching the public contract.
 -- Expected objects:
---   UI_ASSETS_API, HEALTH_API, JWT_SCAFFOLD_AUTH_API, SESSION_API (bodies)
+--   UI_ASSETS_API, HEALTH_API, JWT_SCAFFOLD_CRYPTO, JWT_SCAFFOLD_AUTH_API, SESSION_API (bodies)
 -- Risk: Low. Review USER_ERRORS after running - a body can fail to compile without
 --   failing the script.
 -- Prior history checked: Search db-history failures for these package names.
@@ -16,6 +16,8 @@ whenever sqlerror exit sql.sqlcode rollback
 prompt === deploy package bodies ===
 @db/package_bodies/ui_assets_api.pkb
 @db/package_bodies/health_api.pkb
+@db/package_bodies/jwt_scaffold_crypto.pkb
+@db/package_bodies/jwt_scaffold_crypto_test.pkb
 @db/package_bodies/jwt_scaffold_auth_api.pkb
 @db/package_bodies/session_api.pkb
 @db/package_bodies/error_api.pkb

@@ -6,7 +6,7 @@ whenever sqlerror exit sql.sqlcode rollback
 -- Approach: Invoke each .pks under db/package_specs/ in dependency order.
 -- Reason: Specs compile before bodies so dependent bodies resolve on first pass.
 -- Expected objects:
---   UI_ASSETS_API, HEALTH_API, JWT_SCAFFOLD_AUTH_API, SESSION_API (specs)
+--   UI_ASSETS_API, HEALTH_API, JWT_SCAFFOLD_CRYPTO, JWT_SCAFFOLD_AUTH_API, SESSION_API (specs)
 -- Risk: Low. Recompiling a spec invalidates dependent bodies until 70_package_bodies runs.
 -- Prior history checked: Check db-history for recent USER_ERRORS on these packages.
 -- END INTENT
@@ -14,6 +14,8 @@ whenever sqlerror exit sql.sqlcode rollback
 prompt === deploy package specs ===
 @db/package_specs/ui_assets_api.pks
 @db/package_specs/health_api.pks
+@db/package_specs/jwt_scaffold_crypto.pks
+@db/package_specs/jwt_scaffold_crypto_test.pks
 @db/package_specs/jwt_scaffold_auth_api.pks
 @db/package_specs/session_api.pks
 @db/package_specs/error_api.pks

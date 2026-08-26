@@ -1,0 +1,104 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_225726_deploy_crypto_15157
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/deploy_crypto.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/deploy_crypto.sql
+[INFO] SCRIPT_SHA256=0d235f1551467d84bf41d224b64edf5b72d4b90d2cf48cb5a778322fc52c52b9
+[INFO] GIT_COMMIT=10c4be0
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_225726
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_225726_deploy_crypto_15157.log
+
+[INTENT]
+Purpose: Deploy JWT_SCAFFOLD_CRYPTO and its test package, then run the suite.
+Approach: Compile spec and body for both packages, check USER_ERRORS, run run_all.
+Reason: spec-patch-09 phase 1. The package is standalone and provable before anything depends
+  on it, so it is deployed and tested on its own rather than through 00_full.
+Expected objects: JWT_SCAFFOLD_CRYPTO, JWT_SCAFFOLD_CRYPTO_TEST (spec + body)
+Risk: Low. Two new packages; nothing existing references them yet.
+Prior history checked: no prior deploy of these packages in db-history - they are new.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 22:57:27 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+
+Package JWT_SCAFFOLD_CRYPTO compiled
+
+Elapsed: 00:00:00.228
+Elapsed: 00:00:00.250
+
+Package JWT_SCAFFOLD_CRYPTO_TEST compiled
+
+Elapsed: 00:00:00.083
+Elapsed: 00:00:00.101
+
+Package Body JWT_SCAFFOLD_CRYPTO compiled
+
+Elapsed: 00:00:00.097
+Elapsed: 00:00:00.116
+
+Package Body JWT_SCAFFOLD_CRYPTO_TEST compiled
+
+Elapsed: 00:00:00.121
+Elapsed: 00:00:00.139
+=== compile errors, if any ===
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.338
+=== object status ===
+
+[1mOBJECT_NAME[m                 [1mOBJECT_TYPE[m     [1mSTATUS[m    
+___________________________ _______________ _________ 
+JWT_SCAFFOLD_CRYPTO         PACKAGE         VALID     
+JWT_SCAFFOLD_CRYPTO         PACKAGE BODY    VALID     
+JWT_SCAFFOLD_CRYPTO_TEST    PACKAGE         VALID     
+JWT_SCAFFOLD_CRYPTO_TEST    PACKAGE BODY    VALID     
+
+4 rows selected. 
+
+Elapsed: 00:00:00.091
+=== run the suite ===
+PASS test_rfc_vector_one_iteration
+PASS test_rfc_vector_two_iterations
+PASS test_rfc_vector_many_iterations
+PASS test_rfc_vector_two_blocks
+PASS test_deterministic
+PASS test_salt_changes_digest
+PASS test_iterations_change_digest
+PASS test_guards
+PASS test_random_salt
+PASS test_default_cost_not_weakened
+jwt_scaffold_crypto_test: 10 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.204
+Elapsed: 00:00:00.223
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.045
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

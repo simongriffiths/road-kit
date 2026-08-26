@@ -1,0 +1,56 @@
+[INFO] START
+
+[INFO] RUN_ID=20260826_225756_time_default_15342
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/time_default.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon-Projects-road-cal/c05e5282-bfde-4954-bf23-9c41b7416321/scratchpad/time_default.sql
+[INFO] SCRIPT_SHA256=e6a9b20a520d5f63bf6c0ba133d14e5eeb758ebfee51954d16e6f37c237c58c2
+[INFO] GIT_COMMIT=10c4be0
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260826_225756
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260826_225756_time_default_15342.log
+
+[INTENT]
+Purpose: Confirm the configured default cost (10,000 iterations) behaves as measured during
+  design, now that it runs through the package rather than an anonymous block.
+Approach: One timed call to jwt_scaffold_crypto.pbkdf2_sha256 at its defaults.
+Reason: The 80ms figure is quoted in the package comment and the spec patch; it should be a
+  measurement of the shipped code, not of a probe that resembled it.
+Expected objects: none created.
+Risk: None. One function call.
+Prior history checked: 20260826_225726 deployed this package.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Wed Aug 26 22:57:56 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+default cost (10000 iterations): 80 ms
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.375
+Elapsed: 00:00:00.393
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.039
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

@@ -5,7 +5,8 @@ whenever sqlerror exit sql.sqlcode rollback
 -- Purpose: Drop the framework package specifications (and, by dependency, their bodies).
 -- Approach: Explicit drop statements guarded so a missing object is not an error.
 -- Reason: Part of the full teardown; also used to force a clean recompile.
--- Expected objects: REMOVED - UI_ASSETS_API, HEALTH_API, JWT_SCAFFOLD_AUTH_API, SESSION_API
+-- Expected objects: REMOVED - UI_ASSETS_API, HEALTH_API, JWT_SCAFFOLD_CRYPTO,
+--   JWT_SCAFFOLD_AUTH_API, SESSION_API
 -- Risk: Medium. No data loss, but the API is non-functional until the create chain reruns.
 -- Prior history checked: Not usually needed - safe to rerun.
 -- END INTENT
@@ -104,7 +105,27 @@ end;
 /
 
 begin
+  execute immediate 'drop package jwt_scaffold_crypto_test';
+exception
+  when others then
+    if sqlcode != -4043 then
+      raise;
+    end if;
+end;
+/
+
+begin
   execute immediate 'drop package jwt_scaffold_auth_api';
+exception
+  when others then
+    if sqlcode != -4043 then
+      raise;
+    end if;
+end;
+/
+
+begin
+  execute immediate 'drop package jwt_scaffold_crypto';
 exception
   when others then
     if sqlcode != -4043 then
