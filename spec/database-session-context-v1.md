@@ -12,7 +12,8 @@
 `SYS_CONTEXT` namespace, `DBMS_SESSION.SET_CONTEXT` call, ORDS pre-hook, or `DBMS_RLS` policy.
 Identity is passed as a `p_current_user` parameter and reaches only the `/session` endpoint.
 
-The working implementation of this contract is **Quorate**, at `Quorate/db/02_schema_ddl.sql`:
+The working implementation of this contract is **quorate-zero**, at its `db/02_schema_ddl.sql`
+(checked out at `~/Projects/Quorate`; the repository was renamed from `quorate` on 28 August 2026):
 
 - `CREATE OR REPLACE CONTEXT QT_CTX USING QT_SESSION_PKG` — the namespace is **secured to one
   package**, so application code cannot spoof identity.
@@ -159,7 +160,7 @@ Where ORDS exposes reliable request or authentication metadata to PL/SQL, ROAD m
 
 **Constraint, confirmed on ADB (added 2026-08-17).** ORDS supplies the validated JWT `sub` as the
 `:current_user` implicit bind automatically. It does **not** automatically fire a schema-level
-pre-hook: per Quorate's finding (`Quorate/db/02_schema_ddl.sql` §9), ORDS 26.1 on ADB does not expose
+pre-hook: per quorate-zero's finding (its `db/02_schema_ddl.sql` §9), ORDS 26.1 on ADB does not expose
 a PL/SQL API for pre-hook registration because `ORDS_METADATA` is locked.
 
 The pre-hook must therefore be **called explicitly at the top of every protected handler**:

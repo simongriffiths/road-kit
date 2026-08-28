@@ -12,7 +12,7 @@ dead end and caused a full design cycle to be repeated. The real lineage is belo
 
 | Artefact | Location | Contains | Does **not** contain |
 |---|---|---|---|
-| **Quorate** | `~/Projects/Quorate` (private) | Auth0 + ORDS JWT profile, ORDS pre-hook, secured application context, VPD policies, user table keyed on `auth0_sub` | — |
+| **quorate-zero** | `~/Projects/Quorate` (private) | Auth0 + ORDS JWT profile, ORDS pre-hook, secured application context, VPD policies, user table keyed on `auth0_sub` | — |
 | **auth0-ords-adb-companion** | `~/Projects/auth0-ords-adb-companion` (public) | ORDS JWT profile + privileges, **machine-to-machine only** | end-user identity, session context, VPD |
 | **OATH_Demo** | `~/Projects/OATH_Demo` | blog/tutorial material, the companion repo, and the `ords-authentication` skill (ORDS API reference) | session context, VPD, principals |
 | **road-kit** | `~/Projects/road-kit` | companion-derived JWT validation + a local JWT scaffold added for dev login | session context, VPD, principals |
@@ -25,9 +25,15 @@ or row-level security. road-kit inherited it faithfully — the second half was 
 user-facing login that a machine-to-machine reference lacked.
 
 **Consequence for readers of this spec:** sections 9–11 describe the *target* model, much of which
-is implemented in Quorate and not in road-kit. **Copy from Quorate**, specifically
-`Quorate/db/02_schema_ddl.sql`, not from the companion repo. See
+is implemented in quorate-zero and not in road-kit. **Copy from quorate-zero**, specifically its
+`db/02_schema_ddl.sql`, not from the companion repo. See
 `planning/identity-and-session-context-design.md`.
+
+*Renamed 28 August 2026.* The repository formerly called `quorate` is now **`quorate-zero`**
+(`simongriffiths/quorate-zero`), still checked out at `~/Projects/Quorate`. It is a retired
+first attempt, kept as the working reference for this contract; the Quorate product is being
+rebuilt on a road-kit fork. The name was freed deliberately, and this section is renamed with it
+so the citation does not become the dead end the note above warns about.
 
 The `ords-authentication` skill (`skills/ords-authentication/`) is the authoritative reference for
 ORDS privileges, roles, OAuth flows and JWT profile configuration.
