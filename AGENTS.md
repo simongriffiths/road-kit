@@ -1,3 +1,9 @@
+<!-- road-atlas -->
+> **Cross-repository state lives in `../road-atlas`.** Before starting, read its `INDEX.md` and any
+> open ledger entry naming this repository. Findings that change what another repo should do belong
+> there, not only here. This file still governs how you work inside this repository.
+<!-- /road-atlas -->
+
 Oracle database work must use bin/run-sql.sh.
 
 Before database work:
