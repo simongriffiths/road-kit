@@ -1,0 +1,60 @@
+[INFO] START
+
+[INFO] RUN_ID=20260829_125002_rk_cfg_77514
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/tmp/rk_cfg.sql
+[INFO] SCRIPT_PATH=/tmp/rk_cfg.sql
+[INFO] SCRIPT_SHA256=461979ef667b47fed872f45e4cc5cba820b704afbaffb633eb4a78176be11b79
+[INFO] GIT_COMMIT=8019bdd
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260829_125002
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260829_125002_rk_cfg_77514.log
+
+[INTENT]
+Purpose: Read the scaffold JWT profile configuration so the endpoint suite can be pointed at the
+         right ORDS host without guessing it.
+Approach: Select issuer, audience, JWKS URL and scope from JWT_SCAFFOLD_CONFIG.
+Reason: bin/run-endpoint-tests.sh cross-checks ROAD_ORDS_HOST against the registered profile, so
+         the host has to match what is actually registered.
+Expected objects: (none - read only)
+Risk: None. SELECT only; no key material is selected.
+Prior history checked: build plan 09 phase 5 rendered this profile on 2026-08-26.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sat Aug 29 12:50:03 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+
+Error starting at line : 17 File @ /private/tmp/rk_cfg.sql
+In command -
+select jwt_issuer, jwt_audience, jwks_url, scope_name from jwt_scaffold_config
+Error at Command Line : 17 Column : 34 File @ /private/tmp/rk_cfg.sql
+Error report -
+SQL Error: ORA-00904: "JWKS_URL": invalid identifier
+
+https://docs.oracle.com/error-help/db/ora-00904/00904. 00000 -  "%s: invalid identifier"
+*Cause:    The identifier or column name entered was invalid.
+*Action:   Ensure the following
+
+More Details :
+https://docs.oracle.com/error-help/db/ora-00904/
+Rollback
+Elapsed: 00:00:00.143
+Elapsed: 00:00:00.161
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=FAILURE
+SQLCL_EXIT=136
+
+[INFO] SQLCL_EXIT=136
+[INFO] END

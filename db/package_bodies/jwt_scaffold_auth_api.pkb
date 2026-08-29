@@ -64,42 +64,10 @@ create or replace package body jwt_scaffold_auth_api as
     );
   end epoch_seconds_now;
 
-  -- Derives a token's scope from the principal's OWN effective permissions, rather than issuing
-  -- the same fixed list to everyone. spec-patch-09 section 4.
-  --
-  -- The join is deliberately identical to road_ctx_pkg.begin_request's -- ROAD_PRINCIPAL_ROLES to
-  -- ROAD_ROLE_PERMISSIONS, DISTINCT, no hierarchy (rule 2) -- because a token's scope and a
-  -- session's effective permissions must agree; a different join here would let ORDS admit a
-  -- request require_permission would refuse, or the reverse.
-  --
-  -- INTERSECTED WITH USER_ORDS_PRIVILEGES.NAME, not just selected outright. Most of a principal's
-  -- permissions -- road.role.grant, todo.create -- gate an OPERATION inside a package and were
-  -- never meant to appear in a scope claim; only the small set that is ALSO the name of an ORDS
-  -- privilege (road.admin.rw, session.me.read, and an adopting application's own) belongs in the
-  -- token at all. Confirmed against this schema 2026-08-26: USER_ORDS_PRIVILEGES.NAME holds those
-  -- alongside ORDS's own oracle.dbtools.* and oracle.soda.* built-ins, which the EXCLUDE guards
-  -- against -- a principal must never be handed one of ORDS's own privileges by accident.
-  --
-  -- Returns NULL for a principal entitled to nothing, not an empty string, so the caller decides
-  -- how that becomes a scope claim.
-  function effective_ords_scope(p_principal_id in number) return varchar2 is
-    l_scope varchar2(4000);
-  begin
-    select listagg(perm.permission_name, ' ') within group (order by perm.permission_name)
-      into l_scope
-      from (
-        select distinct rp.permission_name
-          from road_principal_roles pr
-          join road_role_permissions rp
-            on rp.role_name = pr.role_name
-          join user_ords_privileges priv
-            on priv.name = rp.permission_name
-         where pr.principal_id = p_principal_id
-           and priv.name not like 'oracle.%'
-      ) perm;
-
-    return l_scope;
-  end effective_ords_scope;
+  -- The derivation moved to ROAD_CTX_PKG.EFFECTIVE_ORDS_SCOPE. An identical private copy lived
+  -- here, which was wrong in one specific way: this package is one authentication profile of two
+  -- and is not deployed at all under external_oidc, so anything else needing the same answer --
+  -- session/me does -- could not reach it. One copy, in the package both profiles share.
 
   -- Resolves a username and password to a principal, or returns NULL.
   --
@@ -342,7 +310,7 @@ create or replace package body jwt_scaffold_auth_api as
     -- that column must itself be NULL (deploy/create/80_standalone.sql.tmpl; the column had to
     -- become nullable to allow it -- see the table definition). If it ever holds a privilege list
     -- again, a permission-less principal silently regains the fixed scope this phase removed.
-    p_access_token := issue_token(l_username, effective_ords_scope(l_principal_id));
+    p_access_token := issue_token(l_username, road_ctx_pkg.effective_ords_scope(l_principal_id));
     p_token_type := 'Bearer';
     p_expires_in := l_config.ttl_minutes * 60;
     p_kid := l_config.kid;

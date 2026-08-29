@@ -62,11 +62,20 @@ create or replace package body session_api as
     return l_config.audience;
   end get_audience;
 
+  -- Reports the CALLER's effective scope, not JWT_SCAFFOLD_CONFIG.SCOPE_NAME.
+  --
+  -- It used to read that column. Build plan 09 phase 4 made token scope per-principal and set the
+  -- column null on purpose -- a permission-less principal must not inherit a fixed scope -- but
+  -- this function was not moved with it, so session/me reported null for everybody and the
+  -- endpoint suite's scope assertion failed on any schema built after that change. Found on the
+  -- first deploy of the Quorate fork, 28 August 2026; phase 6, the conformance pass, is the phase
+  -- that would otherwise have caught it.
+  --
+  -- Reads the established context, so it is correct under both authentication profiles and needs
+  -- no argument: the handler has already called begin_request.
   function get_scope return varchar2 is
-    l_config t_config;
   begin
-    l_config := get_config;
-    return l_config.scope_name;
+    return road_ctx_pkg.effective_ords_scope;
   end get_scope;
 end session_api;
 /

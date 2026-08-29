@@ -1,0 +1,47 @@
+[INFO] START
+
+[INFO] RUN_ID=20260829_125406_road_ctx_pkg.pkb_79883
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=db/package_bodies/road_ctx_pkg.pkb
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/db/package_bodies/road_ctx_pkg.pkb
+[INFO] SCRIPT_SHA256=f1205a90eb08bec0b3bd16f7b02117ea22ff90b362961f86c5abab366ba043dd
+[INFO] GIT_COMMIT=8019bdd
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260829_125406
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260829_125406_road_ctx_pkg.pkb_79883.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sat Aug 29 12:54:07 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+
+Package Body ROAD_CTX_PKG compiled
+
+Elapsed: 00:00:00.240
+Elapsed: 00:00:00.258
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.257
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

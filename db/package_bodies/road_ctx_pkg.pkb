@@ -281,5 +281,45 @@ create or replace package body road_ctx_pkg as
     end if;
   end require_permission;
 
+  -- Moved here from JWT_SCAFFOLD_AUTH_API, where an identical private copy lived. It had to move:
+  -- the scaffold is one authentication profile of two, and under external_oidc that package is not
+  -- deployed at all, so anything reporting scope from there reports nothing in production.
+  --
+  -- The join is deliberately the same one begin_request uses -- ROAD_PRINCIPAL_ROLES to
+  -- ROAD_ROLE_PERMISSIONS, DISTINCT, no hierarchy -- because a token's scope and a session's
+  -- effective permissions must agree; a different join would let ORDS admit a request
+  -- require_permission would refuse, or the reverse. Keeping one copy is how that stays true.
+  --
+  -- INTERSECTED WITH USER_ORDS_PRIVILEGES.NAME rather than selected outright. Most permissions --
+  -- road.role.grant, todo.create -- gate an operation inside a package and were never meant to
+  -- appear in a scope claim; only the few that are also ORDS privilege names belong in one. The
+  -- EXCLUDE guards against handing a principal one of ORDS's own oracle.* built-ins by accident.
+  --
+  -- USER_ORDS_PRIVILEGES resolves against the definer, which is the application schema, so this
+  -- must not become an invoker's-rights unit.
+  function effective_ords_scope(p_principal_id in number default null) return varchar2 is
+    l_scope        varchar2(4000);
+    l_principal_id number := nvl(p_principal_id, principal_id);
+  begin
+    if l_principal_id is null then
+      return null;
+    end if;
+
+    select listagg(perm.permission_name, ' ') within group (order by perm.permission_name)
+      into l_scope
+      from (
+        select distinct rp.permission_name
+          from road_principal_roles pr
+          join road_role_permissions rp
+            on rp.role_name = pr.role_name
+          join user_ords_privileges priv
+            on priv.name = rp.permission_name
+         where pr.principal_id = l_principal_id
+           and priv.name not like 'oracle.%'
+      ) perm;
+
+    return l_scope;
+  end effective_ords_scope;
+
 end road_ctx_pkg;
 /

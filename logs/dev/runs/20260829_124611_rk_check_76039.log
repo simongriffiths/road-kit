@@ -1,0 +1,64 @@
+[INFO] START
+
+[INFO] RUN_ID=20260829_124611_rk_check_76039
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/tmp/rk_check.sql
+[INFO] SCRIPT_PATH=/tmp/rk_check.sql
+[INFO] SCRIPT_SHA256=96bc62d7a69fff0c72dbf393b4b188b3c2347433923e5c8475b88ad52b194b5b
+[INFO] GIT_COMMIT=a3ef132
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260829_124611
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260829_124611_rk_check_76039.log
+
+[INTENT]
+Purpose: Establish whether road_kit_dev has any scaffold principal passwords set, which the
+         endpoint suite requires before it can run at all.
+Approach: Count rows in JWT_SCAFFOLD_CREDENTIALS and list the principals they belong to.
+Reason: bin/run-endpoint-tests.sh refuses without ROAD_TEST_PASSWORD. If no credential row
+         exists, no password can be correct, and the suite has never been runnable here.
+Expected objects: (none - read only)
+Risk: None. SELECT only, no password material is selected.
+Prior history checked: build plan 09 phase 2 introduced this table on 2026-08-26.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sat Aug 29 12:46:12 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+=== Scaffold credentials in this schema ===
+
+Error starting at line : 14 File @ /private/tmp/rk_check.sql
+In command -
+select c.principal_id, p.username, c.updated_at
+  from jwt_scaffold_credentials c
+  left join road_principals p on p.principal_id = c.principal_id
+ order by c.principal_id
+Error at Command Line : 14 Column : 24 File @ /private/tmp/rk_check.sql
+Error report -
+SQL Error: ORA-00904: "P"."USERNAME": invalid identifier
+
+https://docs.oracle.com/error-help/db/ora-00904/00904. 00000 -  "%s: invalid identifier"
+*Cause:    The identifier or column name entered was invalid.
+*Action:   Ensure the following
+
+More Details :
+https://docs.oracle.com/error-help/db/ora-00904/
+Rollback
+Elapsed: 00:00:00.283
+Elapsed: 00:00:00.302
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=FAILURE
+SQLCL_EXIT=136
+
+[INFO] SQLCL_EXIT=136
+[INFO] END

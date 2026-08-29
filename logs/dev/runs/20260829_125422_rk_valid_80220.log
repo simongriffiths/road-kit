@@ -1,0 +1,80 @@
+[INFO] START
+
+[INFO] RUN_ID=20260829_125422_rk_valid_80220
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/tmp/rk_valid.sql
+[INFO] SCRIPT_PATH=/tmp/rk_valid.sql
+[INFO] SCRIPT_SHA256=c410b7f273576e1d95be8e3ad356ca61964ef696483af0620d85d857498aa181
+[INFO] GIT_COMMIT=8019bdd
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260829_125422
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260829_125422_rk_valid_80220.log
+
+[INTENT]
+Purpose: Confirm nothing was invalidated by moving effective_ords_scope between packages.
+Approach: List any invalid objects, then run the two test suites that touch scope derivation.
+Reason: Moving a function out of one package and into another invalidates dependents; a clean
+        deploy of three files is not evidence that the schema as a whole still compiles.
+Expected objects: (none created - verification only)
+Risk: Low. Runs existing test packages, which use their own fixtures.
+Prior history checked: the three packages deployed clean on 2026-08-29 immediately before this.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sat Aug 29 12:54:23 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+=== Invalid objects ===
+
+Elapsed: 00:00:00.351
+=== jwt_scaffold_auth_api_test.run_all ===
+PASS test_valid_credentials_issue_a_token
+PASS test_wrong_password_refused
+PASS test_unknown_subject_refused
+PASS test_principal_without_credential_refused
+PASS test_suspended_principal_refused
+PASS test_retired_principal_refused
+PASS test_username_is_case_insensitive
+PASS test_missing_fields_are_400
+PASS test_row_iterations_are_honoured
+PASS test_admin_scope_includes_admin_rw
+PASS test_user_admin_scope_includes_admin_rw
+PASS test_plain_user_scope_excludes_admin_rw
+PASS test_no_roles_yields_no_scope_claim
+PASS test_operation_only_permission_excluded_from_scope
+PASS test_no_credential_constants_remain
+jwt_scaffold_auth_api_test: 15 passed, 0 failed
+
+Elapsed: 00:00:00.669
+=== road_ctx_pkg_test.run_all ===
+begin road_ctx_pkg_test.run_all; end;
+*
+ERROR at line 1:
+ORA-12839: cannot modify an object in parallel after modifying it
+ORA-06512: at "ROAD_KIT_DEV.ROAD_CTX_PKG_TEST", line 140
+ORA-06512: at "ROAD_KIT_DEV.ROAD_CTX_PKG_TEST", line 471
+ORA-12841: Cannot alter the session parallel DML state within a transaction
+ORA-06512: at "ROAD_KIT_DEV.ROAD_CTX_PKG_TEST", line 60
+ORA-06512: at "ROAD_KIT_DEV.ROAD_CTX_PKG_TEST", line 451
+ORA-06512: at line 1
+
+https://docs.oracle.com/error-help/db/ora-12839/
+
+Elapsed: 00:00:00.398
+Elapsed: 00:00:00.417
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=FAILURE
+SQLCL_EXIT=39
+
+[INFO] SQLCL_EXIT=39
+[INFO] END

@@ -1,0 +1,50 @@
+[INFO] START
+
+[INFO] RUN_ID=20260829_125439_rk_ctx_80393
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/tmp/rk_ctx.sql
+[INFO] SCRIPT_PATH=/tmp/rk_ctx.sql
+[INFO] SCRIPT_SHA256=de81eb63fc06f91918212fa19a4b83c0caf5c8cee6c3b484da4e448babbd5712
+[INFO] GIT_COMMIT=8019bdd
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260829_125439
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260829_125439_rk_ctx_80393.log
+
+[INTENT]
+Purpose: Run road_ctx_pkg_test on its own, after a commit, per the known ORA-12841 artifact.
+Approach: commit first, then run_all, nothing else in the script.
+Reason: build plan 09 records that these suites must run separately because the harness alters
+         session parallel DML state, which cannot happen inside an open transaction.
+Expected objects: (none created - verification only)
+Risk: Low. Existing test package with its own fixtures.
+Prior history checked: run 20260829 rk_valid hit exactly that artifact when run after another suite.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sat Aug 29 12:54:40 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+Elapsed: 00:00:00.037
+[PASS] road_ctx_pkg_test: 13 tests
+
+Elapsed: 00:00:01.255
+Elapsed: 00:00:01.277
+[INFO] USER_ERRORS_CHECK
+
+Elapsed: 00:00:00.040
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

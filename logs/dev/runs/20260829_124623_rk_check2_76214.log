@@ -1,0 +1,66 @@
+[INFO] START
+
+[INFO] RUN_ID=20260829_124623_rk_check2_76214
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/tmp/rk_check2.sql
+[INFO] SCRIPT_PATH=/tmp/rk_check2.sql
+[INFO] SCRIPT_SHA256=21611c209a7ca6e1d3e6550e15d58c0c42bd6ed45a576d746737537cb01ddf62
+[INFO] GIT_COMMIT=a3ef132
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260829_124623
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260829_124623_rk_check2_76214.log
+
+[INTENT]
+Purpose: Establish whether road_kit_dev has any scaffold principal passwords set.
+Approach: Count JWT_SCAFFOLD_CREDENTIALS rows and list ROAD_PRINCIPALS columns as they exist.
+Reason: The endpoint suite refuses to run without ROAD_TEST_PASSWORD; no credential row means
+         no password can be correct, so the suite has never been runnable in this schema.
+Expected objects: (none - read only)
+Risk: None. SELECT only; no password or hash material is selected.
+Prior history checked: the previous attempt guessed a column name that does not exist.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sat Aug 29 12:46:24 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+=== Credential row count ===
+
+   [1mCREDENTIAL_ROWS[m 
+__________________ 
+                 2 
+Elapsed: 00:00:00.424
+=== ROAD_PRINCIPALS columns ===
+
+[1mCOLUMN_NAME[m               
+_________________________ 
+PRINCIPAL_ID              
+ISSUER                    
+SUBJECT                   
+EMAIL                     
+DISPLAY_NAME              
+STATUS                    
+CREDENTIALS_CHANGED_AT    
+CREATED_AT                
+UPDATED_AT                
+Elapsed: 00:00:00.179
+Elapsed: 00:00:00.197
+[INFO] USER_ERRORS_CHECK
+
+Elapsed: 00:00:00.042
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

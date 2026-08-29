@@ -89,6 +89,27 @@ SHARED_FILES=(
   test/endpoint/auth-conformance.endpoint.sh
   planning/coding-standards-v1.md
   planning/ui-theme-standards-v1.md
+
+  # Added 2026-08-29 with the B-01 back-port, per the rule in this header: a file becomes shared in
+  # the same commit that lists it here. Every one of these is framework-shaped and was identical in
+  # both repositories while being watched by nothing.
+  #
+  # The spec-patch-09 switch surface:
+  bin/render-auth-config.sh                   bin/ensure-auth-key.sh
+  deploy/create/80_standalone.sql.tmpl        deploy/create/80_standalone.external_oidc.sql.tmpl
+  db/package_specs/jwt_scaffold_crypto.pks    db/package_bodies/jwt_scaffold_crypto.pkb
+  db/package_specs/jwt_scaffold_crypto_test.pks db/package_bodies/jwt_scaffold_crypto_test.pkb
+  db/package_specs/jwt_scaffold_auth_api_test.pks db/package_bodies/jwt_scaffold_auth_api_test.pkb
+  db/tables/jwt_scaffold_credentials.create.sql db/tables/jwt_scaffold_credentials.drop.sql
+  db/triggers/jwt_scaffold_credentials_updated_at.create.sql
+  db/triggers/jwt_scaffold_credentials_updated_at.drop.sql
+  #
+  # session_api reports the caller's scope, which is what made its absence here matter: road-kit's
+  # copy read a column phase 4 had deliberately set to null, and nothing compared the two.
+  db/package_specs/session_api.pks            db/package_bodies/session_api.pkb
+  #
+  # 80_standalone.generated.sql is deliberately NOT listed: it is rendered per repository from the
+  # templates above and carries each one's own host, so identical would be wrong.
 )
 
 DIVERGED=0

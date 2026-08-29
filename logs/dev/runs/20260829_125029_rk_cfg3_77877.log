@@ -1,0 +1,50 @@
+[INFO] START
+
+[INFO] RUN_ID=20260829_125029_rk_cfg3_77877
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/tmp/rk_cfg3.sql
+[INFO] SCRIPT_PATH=/tmp/rk_cfg3.sql
+[INFO] SCRIPT_SHA256=f311a3f19eade5fc8d673a3ce04fd73500d791f0291db8ce789ba1fa8598bd99
+[INFO] GIT_COMMIT=8019bdd
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20260829_125029
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260829_125029_rk_cfg3_77877.log
+
+[INTENT]
+Purpose: Read issuer, audience, scope and JWK URL from the scaffold profile.
+Approach: Select only the four non-secret columns; PRIVATE_KEY_B64 is deliberately not selected.
+Reason: The ORDS host the endpoint suite is pointed at must match the registered profile.
+Expected objects: (none - read only)
+Risk: None. SELECT only, and no key material leaves the database.
+Prior history checked: runs 20260829_125002 and _125x guessed column names; this uses the real ones.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sat Aug 29 12:50:30 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+
+[1mISSUER[m                      [1mAUDIENCE[m    [1mSCOPE_NAME[m    [1mJWK_URL[m                                                                                                                 
+___________________________ ___________ _____________ _______________________________________________________________________________________________________________________ 
+urn:road:hello_world:dev    road-dev                  https://GEB0D0F36A9A4B0-QUORATEDB.adb.uk-cardiff-1.oraclecloudapps.com/ords/hello_api/jwt-auth/.well-known/jwks.json    
+Elapsed: 00:00:00.464
+Elapsed: 00:00:00.485
+[INFO] USER_ERRORS_CHECK
+
+Elapsed: 00:00:00.046
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

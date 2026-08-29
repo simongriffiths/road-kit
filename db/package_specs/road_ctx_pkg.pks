@@ -72,5 +72,14 @@ create or replace package road_ctx_pkg as
   procedure require_role(p_role_name in varchar2);
   procedure require_permission(p_permission_name in varchar2);
 
+  -- The principal's effective scope: those of their permissions that are also the name of an ORDS
+  -- privilege. Lives here, not in a provider package, because it must give the same answer under
+  -- every authentication profile -- the scaffold mints a token from it, and session/me reports it.
+  --
+  -- Defaults to the principal established on this session, so a handler that has already called
+  -- begin_request need not pass anything. Returns null for a principal entitled to nothing, and
+  -- for an unauthenticated session.
+  function effective_ords_scope(p_principal_id in number default null) return varchar2;
+
 end road_ctx_pkg;
 /
