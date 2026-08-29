@@ -27,16 +27,23 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # The peer is derived, not hardcoded, because this file is itself on the shared list below and so
 # must behave correctly when run from EITHER repo. Hardcoding ../road-cal made it byte-identical
 # and wrong in one of the two.
+# A consumer has exactly one framework; the framework has several consumers. So anything that is
+# not road-kit compares against road-kit, and road-kit itself has no single correct peer and must
+# be told which consumer to compare against.
+#
+# This replaced a two-name case that knew only road-kit and road-cal. The file was copied to a
+# third repository without extending it, so it exited rather than comparing anything -- in quorate,
+# the repository that had diverged most. A check that silently does not run is worse than no check,
+# because its silence reads as agreement.
 case "$(basename "${PROJECT_ROOT}")" in
-  road-kit) PEER_DEFAULT="${PROJECT_ROOT}/../road-cal" ;;
-  road-cal) PEER_DEFAULT="${PROJECT_ROOT}/../road-kit" ;;
-  *)        PEER_DEFAULT="" ;;
+  road-kit) PEER_DEFAULT="" ;;
+  *)        PEER_DEFAULT="${PROJECT_ROOT}/../road-kit" ;;
 esac
 PEER="${ROAD_PEER_PATH:-${PEER_DEFAULT}}"
 
 if [[ -z "${PEER}" ]]; then
-  echo "[ERROR] Cannot infer the peer repository from $(basename "${PROJECT_ROOT}")" >&2
-  echo "[ERROR] Set ROAD_PEER_PATH to the other ROAD repository" >&2
+  echo "[ERROR] road-kit has more than one consumer, so there is no single peer to infer" >&2
+  echo "[ERROR] Set ROAD_PEER_PATH to the consumer you want to compare against" >&2
   exit 2
 fi
 
