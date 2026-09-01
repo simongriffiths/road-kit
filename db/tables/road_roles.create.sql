@@ -9,10 +9,21 @@
 --
 -- display_name is data, not code (section 4.4) -- it is what lets an application render "clerk" as
 -- Clerk or Clerc without either string appearing in a handler.
-create table road_roles (
-  role_name    varchar2(64 char) primary key,
-  display_name varchar2(255 char),
-  description  varchar2(4000 char),
-  is_reserved  varchar2(1 char) default 'N' not null,
-  constraint road_roles_reserved_ck check (is_reserved in ('Y','N'))
-);
+-- ORA-955-tolerant, matching this table's own drop.sql -- see road-atlas F-10.
+begin
+  execute immediate q'[
+    create table road_roles (
+      role_name    varchar2(64 char) primary key,
+      display_name varchar2(255 char),
+      description  varchar2(4000 char),
+      is_reserved  varchar2(1 char) default 'N' not null,
+      constraint road_roles_reserved_ck check (is_reserved in ('Y','N'))
+    )
+  ]';
+exception
+  when others then
+    if sqlcode != -955 then
+      raise;
+    end if;
+end;
+/

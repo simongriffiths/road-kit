@@ -69,16 +69,26 @@ begin
     p_method      => 'GET',
     p_source_type => ords.source_type_media,
     p_source      => q'[
-      with request_path as (
+      with trimmed_path as (
+        -- ORDS retries a wildcard-template GET with a trailing slash appended whenever the
+        -- first attempt's handler query returns zero rows (observed directly against this
+        -- schema, not documented) -- so a genuinely missing asset's second attempt arrives here
+        -- as e.g. 'assets/nope.js/'. Stripping the trailing slash before the extension check is
+        -- what makes that retry resolve to the SAME candidate path as the original request,
+        -- rather than falling through to the SPA branch and silently serving index.html for a
+        -- missing asset instead of a real 404. See road-atlas F-11.
+        select rtrim(:requested_path, '/') as requested_path from dual
+      ),
+      request_path as (
         select case
-                 when :requested_path is null or :requested_path = '' then 'index.html'
-                 when instr(:requested_path, '..') > 0 then '__invalid__'
-                 when instr(:requested_path, '//') > 0 then '__invalid__'
-                 when substr(:requested_path, 1, 1) = '/' then '__invalid__'
-                 when regexp_like(:requested_path, '\.[[:alnum:]]+$') then :requested_path
+                 when requested_path is null or requested_path = '' then 'index.html'
+                 when instr(requested_path, '..') > 0 then '__invalid__'
+                 when instr(requested_path, '//') > 0 then '__invalid__'
+                 when substr(requested_path, 1, 1) = '/' then '__invalid__'
+                 when regexp_like(requested_path, '\.[[:alnum:]]+$') then requested_path
                  else 'index.html'
                end as resolved_path
-          from dual
+          from trimmed_path
       )
       select a.content_type as "Content-Type",
              a.content as blob

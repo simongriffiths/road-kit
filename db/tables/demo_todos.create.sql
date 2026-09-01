@@ -16,18 +16,38 @@
 -- updated_at is trigger-maintained (coding-standards-v1.md section 5.5) and is exposed for display
 -- only. It is NOT the concurrency mechanism -- the opaque read_token from road_audit_api is
 -- (spec-patch-08 section 6.2). A client-supplied updated_at is rejected, never honoured.
-create table demo_todos (
-  todo_id            number generated always as identity,
-  owner_principal_id number not null references road_principals,
-  title              varchar2(200 char) not null,
-  notes              varchar2(4000 char),
-  due_at             timestamp with time zone,
-  status             varchar2(10 char) default 'OPEN' not null,
-  created_at         timestamp with time zone default systimestamp not null,
-  updated_at         timestamp with time zone default systimestamp not null,
-  constraint demo_todos_pk primary key (todo_id),
-  constraint demo_todos_status_ck check (status in ('OPEN', 'DONE', 'DELETED'))
-);
+-- ORA-955-tolerant, matching this table's own drop.sql -- see road-atlas F-10.
+begin
+  execute immediate q'[
+    create table demo_todos (
+      todo_id            number generated always as identity,
+      owner_principal_id number not null references road_principals,
+      title              varchar2(200 char) not null,
+      notes              varchar2(4000 char),
+      due_at             timestamp with time zone,
+      status             varchar2(10 char) default 'OPEN' not null,
+      created_at         timestamp with time zone default systimestamp not null,
+      updated_at         timestamp with time zone default systimestamp not null,
+      constraint demo_todos_pk primary key (todo_id),
+      constraint demo_todos_status_ck check (status in ('OPEN', 'DONE', 'DELETED'))
+    )
+  ]';
+exception
+  when others then
+    if sqlcode != -955 then
+      raise;
+    end if;
+end;
+/
 
 -- Every list query filters on both columns: the ownership scope and the status exclusion.
-create index demo_todos_owner_status on demo_todos (owner_principal_id, status);
+-- ORA-955-tolerant, matching this index's own drop.sql -- see road-atlas F-10.
+begin
+  execute immediate 'create index demo_todos_owner_status on demo_todos (owner_principal_id, status)';
+exception
+  when others then
+    if sqlcode != -955 then
+      raise;
+    end if;
+end;
+/

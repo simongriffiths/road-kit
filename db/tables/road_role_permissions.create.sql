@@ -8,10 +8,21 @@
 -- write null, meaning "seeded at deploy time". attach_permission always writes a real principal_id.
 -- The road_reserved_composition assertion reads this column to distinguish the two -- do not
 -- "simplify" it away as mere audit.
-create table road_role_permissions (
-  role_name       varchar2(64 char) not null references road_roles,
-  permission_name varchar2(64 char) not null references road_permissions,
-  attached_at     timestamp with time zone default systimestamp not null,
-  attached_by     number references road_principals,
-  constraint road_role_permissions_pk primary key (role_name, permission_name)
-);
+-- ORA-955-tolerant, matching this table's own drop.sql -- see road-atlas F-10.
+begin
+  execute immediate q'[
+    create table road_role_permissions (
+      role_name       varchar2(64 char) not null references road_roles,
+      permission_name varchar2(64 char) not null references road_permissions,
+      attached_at     timestamp with time zone default systimestamp not null,
+      attached_by     number references road_principals,
+      constraint road_role_permissions_pk primary key (role_name, permission_name)
+    )
+  ]';
+exception
+  when others then
+    if sqlcode != -955 then
+      raise;
+    end if;
+end;
+/

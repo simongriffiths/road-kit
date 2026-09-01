@@ -5,9 +5,20 @@
 -- an administrator's to change at runtime (spec-patch-07 rule 6). Read from this column, never
 -- inferred from the permission_name -- events.purge is reserved and does not start with road.,
 -- which is exactly the case a naming convention would get wrong (spec-patch-07 section 3.1).
-create table road_permissions (
-  permission_name varchar2(64 char) primary key,
-  description     varchar2(4000 char),
-  is_reserved     varchar2(1 char) default 'N' not null,
-  constraint road_permissions_reserved_ck check (is_reserved in ('Y','N'))
-);
+-- ORA-955-tolerant, matching this table's own drop.sql -- see road-atlas F-10.
+begin
+  execute immediate q'[
+    create table road_permissions (
+      permission_name varchar2(64 char) primary key,
+      description     varchar2(4000 char),
+      is_reserved     varchar2(1 char) default 'N' not null,
+      constraint road_permissions_reserved_ck check (is_reserved in ('Y','N'))
+    )
+  ]';
+exception
+  when others then
+    if sqlcode != -955 then
+      raise;
+    end if;
+end;
+/

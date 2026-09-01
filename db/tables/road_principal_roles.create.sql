@@ -4,10 +4,21 @@
 -- carries its own dimension.
 --
 -- granted_by is always taken from road_ctx.principal_id, never from a request body.
-create table road_principal_roles (
-  principal_id number not null references road_principals,
-  role_name    varchar2(64 char) not null references road_roles,
-  granted_at   timestamp with time zone default systimestamp not null,
-  granted_by   number references road_principals,
-  constraint road_principal_roles_pk primary key (principal_id, role_name)
-);
+-- ORA-955-tolerant, matching this table's own drop.sql -- see road-atlas F-10.
+begin
+  execute immediate q'[
+    create table road_principal_roles (
+      principal_id number not null references road_principals,
+      role_name    varchar2(64 char) not null references road_roles,
+      granted_at   timestamp with time zone default systimestamp not null,
+      granted_by   number references road_principals,
+      constraint road_principal_roles_pk primary key (principal_id, role_name)
+    )
+  ]';
+exception
+  when others then
+    if sqlcode != -955 then
+      raise;
+    end if;
+end;
+/
