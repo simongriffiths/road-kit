@@ -30,7 +30,7 @@
         "first_name": { "type": "string", "maxLength": 100 },
         "consent": { "const": true },
         "source_url": { "type": "string", "format": "uri" },
-        "website": { "type": "string", "description": "Honeypot field; a populated value is silently accepted without creating a subscriber." }
+        "website": { "type": "string", "description": "Honeypot field; a populated value is silently accepted without creating a subscriber.", "x-mcp-exclude": true }
       }
     }
   },
