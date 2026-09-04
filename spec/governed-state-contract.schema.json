@@ -1,0 +1,225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/simongriffiths/road-kit/blob/v0.1.0/spec/governed-state-contract.schema.json",
+  "title": "Governed State Contract",
+  "description": "A machine-readable definition of a governed business action. Consumers propose; the operational authority validates and decides.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "capability_id",
+    "title",
+    "action_resource",
+    "authority",
+    "request",
+    "preconditions",
+    "outcomes",
+    "audit",
+    "events"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "capability_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+      "description": "Stable identifier for the business capability."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable action name."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "action_resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "path", "intent"],
+      "properties": {
+        "method": {
+          "const": "POST",
+          "description": "Governed actions are proposed using POST."
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/[^?]*$",
+          "description": "Noun-based API resource path, without host or query string."
+        },
+        "intent": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The business intent the consumer is proposing."
+        }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operational_authority", "actor"],
+      "properties": {
+        "operational_authority": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actor": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["model", "required_permissions", "attribution_required"],
+          "properties": {
+            "model": { "enum": ["public", "authenticated", "delegated"] },
+            "required_permissions": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "uniqueItems": true
+            },
+            "attribution_required": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["idempotency", "body"],
+      "properties": {
+        "idempotency": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["strategy"],
+          "properties": {
+            "strategy": { "enum": ["idempotency_key", "natural_key"] },
+            "header": { "type": "string", "minLength": 1 },
+            "fields": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 1 },
+              "uniqueItems": true
+            }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "strategy": { "const": "idempotency_key" } } },
+              "then": { "required": ["header"] }
+            },
+            {
+              "if": { "properties": { "strategy": { "const": "natural_key" } } },
+              "then": { "required": ["fields"] }
+            }
+          ]
+        },
+        "body": {
+          "type": "object",
+          "description": "JSON Schema describing the proposed-action request body."
+        }
+      }
+    },
+    "preconditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["current_state_recheck", "rules"],
+      "properties": {
+        "current_state_recheck": {
+          "const": true,
+          "description": "The operational authority re-reads authoritative state at execution time."
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "description"],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              "description": { "type": "string", "minLength": 1 }
+            }
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "outcomes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["success", "rejections"],
+      "properties": {
+        "success": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "description"],
+          "properties": {
+            "status": { "type": "integer", "minimum": 200, "maximum": 299 },
+            "description": { "type": "string", "minLength": 1 }
+          }
+        },
+        "rejections": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["code", "status", "description", "retryable"],
+            "properties": {
+              "code": {
+                "type": "string",
+                "pattern": "^[A-Z][A-Z0-9_]*$"
+              },
+              "status": { "type": "integer", "minimum": 400, "maximum": 499 },
+              "description": { "type": "string", "minLength": 1 },
+              "retryable": { "type": "boolean" }
+            }
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transactional", "fields"],
+      "properties": {
+        "transactional": {
+          "const": true,
+          "description": "The decision audit is written in the same transaction as any state change."
+        },
+        "fields": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "events": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["emitted"],
+      "properties": {
+        "emitted": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "when"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "when": { "const": "after_commit" }
+            }
+          },
+          "uniqueItems": true
+        }
+      }
+    }
+  },
+  "patternProperties": {
+    "^x-": {}
+  }
+}

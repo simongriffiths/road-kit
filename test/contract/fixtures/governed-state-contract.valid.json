@@ -1,0 +1,64 @@
+{
+  "schema_version": "0.1.0",
+  "capability_id": "newsletter.subscription-request",
+  "title": "Request newsletter subscription",
+  "description": "Propose a double-opt-in newsletter subscription without disclosing whether an email address is active or suppressed.",
+  "action_resource": {
+    "method": "POST",
+    "path": "/subscribe",
+    "intent": "Request newsletter subscription"
+  },
+  "authority": {
+    "operational_authority": "Subscriber Lifecycle",
+    "actor": {
+      "model": "public",
+      "required_permissions": [],
+      "attribution_required": false
+    }
+  },
+  "request": {
+    "idempotency": {
+      "strategy": "natural_key",
+      "fields": ["email"]
+    },
+    "body": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["email", "consent", "source_url"],
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "first_name": { "type": "string", "maxLength": 100 },
+        "consent": { "const": true },
+        "source_url": { "type": "string", "format": "uri" },
+        "website": { "type": "string", "description": "Honeypot field; a populated value is silently accepted without creating a subscriber." }
+      }
+    }
+  },
+  "preconditions": {
+    "current_state_recheck": true,
+    "rules": [
+      { "id": "VALID_EMAIL", "description": "The submitted email address is valid after normalisation." },
+      { "id": "CONSENT_GIVEN", "description": "The reader has explicitly requested the newsletter." },
+      { "id": "NOT_SUPPRESSED", "description": "The address is not on the suppression list; the public response remains non-disclosing if it is." },
+      { "id": "SUBSCRIPTION_STATE_RECHECKED", "description": "Existing subscriber state is re-read before creating, reusing or confirming a pending request." }
+    ]
+  },
+  "outcomes": {
+    "success": {
+      "status": 200,
+      "description": "The request was accepted without disclosing whether a subscriber record was created, already existed, was suppressed or was rejected as automated traffic."
+    },
+    "rejections": [
+      { "code": "INVALID_EMAIL", "status": 400, "description": "The supplied email address is invalid.", "retryable": true }
+    ]
+  },
+  "audit": {
+    "transactional": true,
+    "fields": ["normalised_email", "consent_given", "signup_time", "signup_ip", "source_url", "decision", "resulting_state"]
+  },
+  "events": {
+    "emitted": [
+      { "name": "newsletter.confirmation-queued", "when": "after_commit" }
+    ]
+  }
+}
