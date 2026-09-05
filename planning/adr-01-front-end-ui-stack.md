@@ -119,21 +119,38 @@ of the original design that addressed the failure that actually occurs.
 Retrofit is intended everywhere. The order is not arbitrary — it follows deployment risk and what
 each repo is already about to do.
 
-1. **road-kit first.** It is the stack, and every app forks from it. A half-applied default in the
-   template is worse than a late one everywhere else — the same argument `ui-theme-standards-v1.md`
-   §7 made, and the one it got right.
-2. **quorate second, and it is the real test.** Its UI layer is being rebuilt regardless, it has
-   the most screens, and it is the only repo carrying an external accessibility obligation. Its
-   existing end-to-end checks (`e2e/diary.a11y.spec.ts`, `e2e/login.smoke.spec.ts`) are extended
-   across all screens **before** anything is deleted; they are what makes the rebuild routine
-   rather than reckless.
-3. **aida on rebuild — no retrofit.** It has no CSS today and is not yet realigned onto road-kit
+**The setup and the vocabulary are sequenced differently, and that is deliberate.**
+`ui-theme-standards-v1.md` §7 said the template adopts first, and for a set of shared CSS classes
+that was right. It is not right for a component vocabulary. road-kit is `hello_world`: no real
+table, no seven-column screen, no accessibility obligation. A component vocabulary designed there
+would be designed against nothing, which is the failure that produced tier 2 — nineteen classes that
+looked complete until real screens arrived and quorate quietly appended 238 lines.
+
+So:
+
+1. **road-kit takes the mechanical setup first, and only that.** Tailwind and shadcn installed, and
+   the theme preset resolving every shadcn variable to a `tokens.css` token. That is what forks, so
+   it goes first and it goes in the template. It is small.
+2. **quorate develops the component vocabulary, against real screens.** Its UI layer is being
+   rebuilt regardless, it has the most screens, and it is the only repo carrying an external
+   accessibility obligation — so it is the only place the hard components can honestly be settled.
+   The responsive data table is the clearest case: it cannot be solved in `hello_world`, because
+   `hello_world` has no table to solve it against.
+
+   Its existing end-to-end checks (`e2e/diary.a11y.spec.ts`, `e2e/login.smoke.spec.ts`) are extended
+   across all screens **before** anything is deleted; they are what makes the rebuild routine rather
+   than reckless.
+
+3. **What quorate proves is then backported to road-kit**, on road-atlas §5's test: would a second
+   application want it? A responsive table and a status badge, yes. Council publication rules, no.
+   Until a component has been through this loop it is quorate's, not the family's.
+4. **aida on rebuild — no retrofit.** It has no CSS today and is not yet realigned onto road-kit
    (`L-02`), so it starts clean. That makes it the cheapest honest test of whether the default is
    usable by an app that did not grow it.
-4. **road-cal is not a repo migration.** It is parked and being absorbed into quorate (`L-03`), so
+5. **road-cal is not a repo migration.** It is parked and being absorbed into quorate (`L-03`), so
    retrofitting it standalone is work with no consumer. Its calendar is extracted as a shadcn
    registry item instead — which is the open question below.
-5. **road-blogger last.** It is the largest job (462 lines, 33 bespoke dashboard classes, never
+6. **road-blogger last.** It is the largest job (462 lines, 33 bespoke dashboard classes, never
    adopted tier 2) and **it is the only live system** (`F-06`). It changes behind a pattern proven
    in three other repos, not before.
 
