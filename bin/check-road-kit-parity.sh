@@ -90,6 +90,14 @@ SHARED_FILES=(
   planning/coding-standards-v1.md
   planning/ui-theme-standards-v1.md
 
+  # Added 2026-09-06. The credential convention itself, because it failed by not travelling:
+  # road-cal's local.env carried ROAD_TEST_PASSWORD and quorate's example never named the variable,
+  # so quorate's local.env was written without it and three of its scripts could not run. The
+  # example is the only place the convention is written down, so it is the thing that has to be
+  # identical. config/local.env is NOT listed and never will be -- it is gitignored and per-machine,
+  # and identical would mean sharing a password.
+  config/local.env.example
+
   # Added 2026-08-29 with the B-01 back-port, per the rule in this header: a file becomes shared in
   # the same commit that lists it here. Every one of these is framework-shaped and was identical in
   # both repositories while being watched by nothing.
