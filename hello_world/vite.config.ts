@@ -1,5 +1,8 @@
+import path from 'node:path';
+
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -11,7 +14,11 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
-    plugins: [react()],
+    plugins: [react(), tailwindcss()],
+    // The @ alias is what the shadcn CLI writes into every component it adds.
+    resolve: {
+      alias: { '@': path.resolve(import.meta.dirname, './src') }
+    },
     base: `/ords/${uiBasePath}/ui/${appName}/`
   };
 });

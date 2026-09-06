@@ -1,0 +1,145 @@
+/* ROAD shadcn theme preset -- adr-01-front-end-ui-stack.md.
+ *
+ * SHARED, and road-kit is canonical. This is the mechanical half of ADR 01: Tailwind and shadcn
+ * wired up, with every shadcn variable resolving to a token from tokens.css. It carries NO
+ * component vocabulary. That is developed in quorate, against real screens, and back-ported here
+ * only once it has passed road-atlas section 5's test -- would a second application want it?
+ *
+ * THE ONE RULE: not one colour, radius or font-family literal below this comment. Every value is
+ * a tier-1 token or is derived from one. bin/check-theme-tokens.sh enforces it, and is what
+ * ui-theme-standards-v1.md section 6 specified as bin/check-theme-parity.sh and nobody ever wrote.
+ *
+ * Do not let `shadcn init` rewrite this file. Run bare, the CLI writes a :root of thirty oklch
+ * literals and imports a font, which is exactly what the ADR forbids. If you need to re-run it,
+ * let it write elsewhere and port the changes in by hand.
+ *
+ * Import order matters. tokens.css comes after Tailwind so the tokens win, and main.tsx loads
+ * styles.css after this file so hello_world's existing tier-2 screens keep their appearance
+ * during the transition. See "Tier 2" below.
+ */
+
+@import 'tailwindcss';
+@import 'shadcn/tailwind.css';
+@import 'tw-animate-css';
+@import './tokens.css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Tailwind's theme, expressed in ROAD tokens. `inline` means a utility such as bg-primary emits
+ * var(--primary) rather than a copied value, so a fork that edits tokens.css restyles everything
+ * without touching this file. */
+@theme inline {
+  --font-sans: var(--font-body);
+  --font-heading: var(--font-body);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* shadcn's variables, defined only in tier-1 tokens.
+ *
+ * --primary, --border and --font-mono are absent on purpose. tokens.css already defines all three
+ * under exactly the names shadcn wants, with the meaning shadcn wants, so they carry through
+ * untouched. Redefining them here would be circular; renaming either side would break the
+ * byte-identical tokens.css shared with road-cal, quorate and road-blogger. */
+:root {
+  --background: var(--bg);
+  --foreground: var(--ink);
+
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+
+  --primary-foreground: var(--surface);
+  --secondary: var(--divider);
+  --secondary-foreground: var(--ink);
+  --muted: var(--divider);
+  --muted-foreground: var(--ink-muted);
+  --accent: var(--divider);
+  --accent-foreground: var(--ink);
+  --destructive: var(--error-fg);
+
+  --input: var(--border-strong);
+  --ring: var(--primary);
+  --radius: var(--radius-panel);
+
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--surface);
+  --sidebar-accent: var(--divider);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--primary);
+}
+
+/* Tailwind's preflight sets `a { color: inherit; text-decoration: inherit }`, and styles.css never
+ * styled links because the browser default was doing the work. Adding Tailwind therefore turns
+ * every link into plain text -- no underline, no colour, no affordance at all. Screenshot-compared
+ * on hello_world's login screen, 2026-09-06.
+ *
+ * Restored here rather than in styles.css, which is byte-identical across four repositories.
+ * Underlined AND coloured, because an underline is what carries the link when colour is
+ * unavailable (WCAG 1.4.1), and the colour is --primary rather than the browser blue it replaces,
+ * which was never a token and never matched the palette. */
+@layer base {
+  a {
+    color: var(--primary);
+    text-decoration: underline;
+  }
+}
+
+/* Two gaps, left open deliberately rather than guessed at.
+ *
+ * NO CHART PALETTE. Upstream shadcn ships --chart-1..5 and tokens.css has no categorical colours.
+ * Deriving five of them mechanically from one brand green produces a bad palette, and a
+ * categorical palette is a design decision, not a mapping. Whoever needs charts -- road-blogger is
+ * the analytics system -- designs them, adds them to tokens.css as role-named tokens, and they
+ * arrive here for free. Until then a chart component will render unstyled, which is the honest
+ * failure.
+ *
+ * NO DARK MODE. tokens.css is a light palette only. The dark variant above is registered so
+ * `dark:` utilities compile, and no .dark block is shipped, so they never match. A dark palette
+ * means a second set of tier-1 tokens and belongs with ADR 01 consequence 6 -- which tokens differ
+ * between the consumer and administrative design directions -- not smuggled in under a setup task.
+ *
+ * TIER 2. styles.css is retired by ADR 01 but is still imported by main.tsx and still styles
+ * hello_world's three screens. Removing it means rewriting those screens in the component
+ * vocabulary, which is quorate's job, not road-kit's. It uses no bare `button` or `input`
+ * selectors, so it does not fight Tailwind's utilities; only *, body, code and h1-h3 overlap, and
+ * on those the current appearance is deliberately preserved.
+ */
