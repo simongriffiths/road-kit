@@ -27,15 +27,29 @@ prompt === composition guard assertions (spec patch 07) ===
 -- escalation this guards against is the PARENT table (road_permissions) being updated -- flipping
 -- an existing row's is_reserved to 'Y' out from under an already session-attached grant. A trigger
 -- on the child table would never fire for that case (spike-07-1 section 3.4, row 3).
-create assertion road_reserved_composition check (
-  not exists (
-    select 1
-      from road_role_permissions rp, road_permissions p
-     where p.permission_name = rp.permission_name
-       and p.is_reserved = 'Y'
-       and rp.attached_by is not null
-  )
-);
+--
+-- ORA-955-tolerant, matching this file's own drop.sql (-13650 there) -- see road-atlas F-10. That
+-- finding wrapped every table and index create and stopped there, so assertions kept the bare
+-- shape and this file alone still failed a second 00_full.sql run.
+begin
+  execute immediate q'[
+    create assertion road_reserved_composition check (
+      not exists (
+        select 1
+          from road_role_permissions rp, road_permissions p
+         where p.permission_name = rp.permission_name
+           and p.is_reserved = 'Y'
+           and rp.attached_by is not null
+      )
+    )
+  ]';
+exception
+  when others then
+    if sqlcode != -955 then
+      raise;
+    end if;
+end;
+/
 
 -- Reachability, the other direction. This assertion does NOT cover DELETE -- a `not exists`
 -- predicate cannot be violated by removing a row, so road_reserved_composition does not stop
@@ -44,6 +58,17 @@ create assertion road_reserved_composition check (
 -- not the role, because the invariant is "somebody can still grant roles", not "this particular
 -- role still exists" (spec-patch-07 section 5.3). Together with revoke_role's refusal to remove
 -- the last road.system_admin holder, administration stays reachable from both directions.
-create assertion road_admin_reachable check (
-  exists (select 1 from road_role_permissions where permission_name = 'road.role.grant')
-);
+-- ORA-955-tolerant, matching this file's own drop.sql (-13650 there) -- see road-atlas F-10.
+begin
+  execute immediate q'[
+    create assertion road_admin_reachable check (
+      exists (select 1 from road_role_permissions where permission_name = 'road.role.grant')
+    )
+  ]';
+exception
+  when others then
+    if sqlcode != -955 then
+      raise;
+    end if;
+end;
+/
