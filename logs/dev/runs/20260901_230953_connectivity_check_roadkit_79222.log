@@ -1,0 +1,70 @@
+[INFO] START
+
+[INFO] RUN_ID=20260901_230953_connectivity_check_roadkit_79222
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/private/tmp/claude-501/-Users-simon/6cfdc474-c8b2-4d07-9537-8247a37fc6ba/scratchpad/connectivity_check_roadkit.sql
+[INFO] SCRIPT_PATH=/private/tmp/claude-501/-Users-simon/6cfdc474-c8b2-4d07-9537-8247a37fc6ba/scratchpad/connectivity_check_roadkit.sql
+[INFO] SCRIPT_SHA256=5ea326eaa015064c90a196995136380edd0530d691a90f0c93f7a5b28afec881
+[INFO] GIT_COMMIT=8e2b05c
+[INFO] GIT_DIRTY=false
+[INFO] LOG_LEVEL=debug
+[INFO] TIMESTAMP=20260901_230953
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20260901_230953_connectivity_check_roadkit_79222.log
+
+[INTENT]
+Purpose: Verify the QuorateDB wallet (Projects/Wallets/Wallet_QuorateDB.zip, extracted to
+  Projects/Wallets/QuorateDB) restores connectivity for road-kit's road_kit_dev connection,
+  which resolves to the quoratedb_medium TNS alias -- a different wallet than aida_dev's.
+Approach: Trivial read-only SELECT, no schema objects touched.
+Reason: Unblocks live verification of the F-10/F-11 fixes already committed to road-kit.
+Expected objects: none created or modified.
+Risk: None -- read-only, no DDL/DML.
+Prior history checked: n/a, first live connectivity attempt with this wallet path.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Tue Sept 01 23:09:53 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+
+ROAD_KIT_DEV @ road_kit_dev > -- INTENT:
+ROAD_KIT_DEV @ road_kit_dev > -- Purpose: Verify the QuorateDB wallet (Projects/Wallets/Wallet_QuorateDB.zip, extracted to
+ROAD_KIT_DEV @ road_kit_dev > --   Projects/Wallets/QuorateDB) restores connectivity for road-kit's road_kit_dev connection,
+ROAD_KIT_DEV @ road_kit_dev > --   which resolves to the quoratedb_medium TNS alias -- a different wallet than aida_dev's.
+ROAD_KIT_DEV @ road_kit_dev > -- Approach: Trivial read-only SELECT, no schema objects touched.
+ROAD_KIT_DEV @ road_kit_dev > -- Reason: Unblocks live verification of the F-10/F-11 fixes already committed to road-kit.
+ROAD_KIT_DEV @ road_kit_dev > -- Expected objects: none created or modified.
+ROAD_KIT_DEV @ road_kit_dev > -- Risk: None -- read-only, no DDL/DML.
+ROAD_KIT_DEV @ road_kit_dev > -- Prior history checked: n/a, first live connectivity attempt with this wallet path.
+ROAD_KIT_DEV @ road_kit_dev > -- END INTENT
+ROAD_KIT_DEV @ road_kit_dev > 
+ROAD_KIT_DEV @ road_kit_dev > select 'connectivity_ok' as status, sys_context('userenv','current_schema') as schema_name, sysdate as db_time from dual;
+
+[1mSTATUS[m             [1mSCHEMA_NAME[m     [1mDB_TIME[m      
+__________________ _______________ ____________ 
+connectivity_ok    ROAD_KIT_DEV    01-SEP-26    
+
+1 row selected. 
+
+Elapsed: 00:00:00.284
+Elapsed: 00:00:00.303
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.141
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.3.2.0 - Production
+Version 23.26.3.2.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END
