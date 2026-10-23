@@ -1,8 +1,19 @@
 # Governed State Contracts Proof Plan
 
 **Version:** 1.0  
-**Status:** Proposed  
+**Status:** In progress. W1 and W2 released; W3 designed, not built; W4 not started (updated 23 October 2026)  
 **Scope:** road-kit engineering only
+
+## Progress
+
+| Stage | State | Evidence |
+| --- | --- | --- |
+| W1 — Canonical contract schema | Released 4 September 2026 | Tag `v0.1.0` (commit `44afcc6`); `planning/action-w1-contract-schema.md`; road-atlas `RK-10` |
+| W2 — Deterministic descriptor projection | Released 4 September 2026 | Tag `v0.2.0` (commit `69e0b32`); `planning/action-w2-mcp-descriptor-projection.md`; road-atlas `RK-11` |
+| W3 — Reference governed action | Designed 4–6 September 2026, not built | `planning/spec-patch-11-governed-completion-action.md`, `planning/build-plan-11-governed-completion-action.md`, `planning/build-plan-10-event-emission.md`; road-atlas `RK-12` |
+| W4 — End-to-end proof | Not started | — |
+
+The name is changing. On 29 September 2026 the contract became the Governed Surface Contract, with a governed state contract (proposals inward) and a governed publication contract (data outward). The W1 schema describes one governed action, which is part of the governed state contract. The schema file is renamed in a later release; the `v0.1.0` and `v0.2.0` tags are unchanged.
 
 ## Purpose
 
@@ -14,7 +25,7 @@ The plan builds evidence in stages: a canonical contract schema, deterministic c
 
 This plan owns road-kit source, tests, implementation decisions, and releases. It does not own blog copy, Hugo pages, editorial approval, or public publishing cadence.
 
-The current website-side action file, `working/June-restructure/action-road-kit-w1-contract-schema.md` in simongriffiths.io, is the proposed W1 implementation brief. Before W1 begins, copy or restate its approved content in a road-kit-local action file so this repository retains the execution record. Do not execute it until Simon gives technical sign-off.
+The current website-side action file, `working/June-restructure/action-road-kit-w1-contract-schema.md` in simongriffiths.io, was the proposed W1 implementation brief. Its approved content was restated in `planning/action-w1-contract-schema.md`, which is the execution record for W1.
 
 ## Working principles
 
@@ -56,4 +67,4 @@ The website may later link to that tag. It remains responsible for checking that
 
 ## Next action
 
-W1 is the next proposed technical action. It remains paused pending Simon's technical sign-off and a road-kit-local execution brief. No database, ORDS, deployment, or ROAD Blogger change is authorised by this plan.
+W3 is the next technical action. Its design is in `planning/spec-patch-11-governed-completion-action.md` and its build plans are 10 and 11, neither started. road-kit is on hold in road-atlas, so W3 waits for that hold to lift. A schema release renaming `spec/governed-state-contract.schema.json` to the Governed Surface Contract name is also pending; it is a new tagged release and does not alter `v0.1.0` or `v0.2.0`. No database, ORDS, deployment, or ROAD Blogger change is authorised by this plan.
