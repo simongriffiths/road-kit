@@ -19,3 +19,9 @@ Before database work:
 9. Avoid repeating previous failed approaches unless explaining why the new approach differs.
 
 The engineering history exists to provide experience, not merely audit records.
+
+## Pattern catalogue
+
+- Before building a capability, check `../road-atlas/patterns/INDEX.md` and the relevant `PATTERNS.md` for an existing pattern. Reuse or adapt it where it fits.
+- If a change adds, moves, renames or materially changes a reusable pattern, update this repo's `PATTERNS.md` in the same commit.
+- Never rename or delete a slug. Mark replaced patterns `superseded` and name the replacement.
