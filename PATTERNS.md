@@ -151,7 +151,7 @@ The rules for this file are in `road-atlas/patterns/SPEC.md`. Check it with
 - **Summary:** All database work goes through `run-sql.sh`. Each script states its intent in a header, and every run is recorded in a SQLite history that can be searched by task, object name or Oracle error before trying something again.
 - **Location:** `bin/run-sql.sh`, `bin/db-history-common.sh`, `bin/db-history-similar.sh`, `bin/db-history-failures.sh`, `skills/sql-runner/SKILL.md`, `skills/sql-runner/scripts/install-sql-runner.sh`
 - **Status:** in-use
-- **Notes:** The sql-runner repo is upstream. When its catalogue is written, decide which repo owns this slug and point the other at it.
+- **Notes:** This is an installed copy. The canonical entries are in sql-runner's catalogue: `sqlcl-audited-run`, `sql-intent-block`, `sqlite-run-history`, `run-history-search` and `sql-runner-installer`. Make changes in sql-runner and reinstall, because reinstalling overwrites local edits.
 
 ### Ordered deploy stages with rerunnable scripts
 - **Slug:** ordered-deploy-stages
