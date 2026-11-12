@@ -1,0 +1,202 @@
+The ROAD core: React, ORDS, PL/SQL and Oracle AI Database, with no middleware. Apps copy from here.
+
+The rules for this file are in `road-atlas/patterns/SPEC.md`. Check it with
+`../road-atlas/bin/check-patterns.sh .`
+
+## Database
+
+### Secured session context
+- **Slug:** road-session-context
+- **Summary:** Each ORDS handler calls `begin_request` to load the caller's identity, roles and permissions into an application context that only one package can write to. Handlers then call `require_permission`. If the context was never loaded, every check fails.
+- **Location:** `db/package_specs/road_ctx_pkg.pks`, `db/package_bodies/road_ctx_pkg.pkb`, `deploy/create/65_contexts.sql`, `spec/database-session-context-v1.md`
+- **Status:** in-use
+- **Notes:** Application contexts are database-wide, not per schema. `namespace()` gives each schema its own context name, so two apps on one ADB don't take over each other's context. Handler coverage is checked by `bin/check-handler-coverage.sh` (see `handler-coverage-check`).
+
+### Principals, roles and permissions
+- **Slug:** road-rbac
+- **Summary:** Tables for principals, roles and permissions, plus an admin API to grant and revoke roles. Granting a reserved role needs an extra permission, so a user admin cannot promote anyone, themselves included, to system admin.
+- **Location:** `db/tables/road_principals.create.sql`, `db/tables/road_roles.create.sql`, `db/tables/road_permissions.create.sql`, `db/tables/road_role_permissions.create.sql`, `db/tables/road_principal_roles.create.sql`, `db/package_specs/road_admin_api.pks`, `db/package_bodies/road_admin_api.pkb`, `api/modules/admin/module.create.sql`
+- **Status:** in-use
+- **Notes:** Depends on `road-session-context`. quorate holds a more advanced auth model that is owed back to road-kit (road-atlas ledger B-01).
+
+### SQL assertions that guard the role model
+- **Slug:** road-rbac-assertions
+- **Summary:** Two `CREATE ASSERTION` constraints stop reserved permissions being attached to the wrong roles, and make sure some role can always grant roles. They run after the seed data, so a bad seed fails the deploy.
+- **Location:** `deploy/create/96_assertions.sql`, `admin/grant-schema-privileges.sql`
+- **Status:** in-use
+- **Notes:** Needs the schema-scoped `CREATE ASSERTION` privilege, which Oracle AI Database 26ai provides. Pairs with `road-rbac`.
+
+### Optimistic concurrency with read tokens
+- **Slug:** read-token-concurrency
+- **Summary:** A read returns a token, logged as a row in `road_api_log`. A later write passes the token back, and `check_fresh` rejects it if the record has changed since the read. The same row records the outcome for audit.
+- **Location:** `db/package_specs/road_audit_api.pks`, `db/package_bodies/road_audit_api.pkb`, `db/tables/road_api_log.create.sql`
+- **Status:** in-use
+- **Notes:** `demo_todo_api` shows it in use (see `framework-canary-app`).
+
+### Admin action audit
+- **Slug:** admin-action-audit
+- **Summary:** `log_admin_action` writes an audit row in an autonomous transaction, so the record survives a rolled-back operation. It takes the actor from the session context, never from a parameter, so a caller cannot misattribute what it did.
+- **Location:** `db/package_specs/road_audit_api.pks`, `db/package_bodies/road_audit_api.pkb`, `db/tables/road_api_log.create.sql`
+- **Status:** in-use
+- **Notes:** Ledger D-05 extends autonomous audit to rejected business decisions. That change isn't in this code yet.
+
+### Key-value framework settings
+- **Slug:** road-config-table
+- **Summary:** A narrow key-value table for framework settings that must outlast the JWT scaffold, such as the default role for new principals. Adding a setting doesn't need a schema change.
+- **Location:** `db/tables/road_config.create.sql`, `db/triggers/road_config_updated_at.create.sql`
+- **Status:** experimental
+- **Notes:** Small. Included as the place framework settings go, rather than as reusable logic.
+
+## API (ORDS)
+
+### Error envelope
+- **Slug:** error-envelope
+- **Summary:** `error_api` turns an application error in the -20000 to -20999 range into a fixed JSON body and HTTP status. Any other exception is logged in full to `error_log` and returned as a generic 500, so no raw exception reaches a client.
+- **Location:** `db/package_specs/error_api.pks`, `db/package_bodies/error_api.pkb`, `db/tables/error_log.create.sql`, `spec/error-handling-contract-v1.md`
+- **Status:** in-use
+- **Notes:** Ledger D-05 changes business rejections from 422 to 200 with a structured outcome. Not yet applied here.
+
+### JSON in, JSON out packages
+- **Slug:** json-package-boundary
+- **Summary:** Application packages take native JSON and return native JSON, with no ref cursors or collections at the boundary. They check permissions themselves and never commit. A handler, an MCP tool or a batch job then calls the same code under the same rules, and tests can roll back.
+- **Location:** `db/package_specs/road_admin_api.pks`, `db/package_specs/demo_todo_api.pks`, `db/package_bodies/demo_todo_api.pkb`, `api/modules/todos/module.create.sql`
+- **Status:** in-use
+- **Notes:** A convention more than a single piece of code. `demo_todo_api` is the smallest complete example.
+
+## Auth and security
+
+### Local JWT issuer for development
+- **Slug:** jwt-scaffold-issuer
+- **Summary:** PL/SQL that signs RS256 JWTs, publishes a JWKS document and registers ORDS's trust in them, so an app has working login with no external identity provider. Token overrides let tests build expired, wrong-issuer and wrong-audience tokens.
+- **Location:** `db/package_specs/jwt_scaffold_auth_api.pks`, `db/package_bodies/jwt_scaffold_auth_api.pkb`, `db/tables/jwt_scaffold_config.create.sql`, `db/tables/jwt_scaffold_credentials.create.sql`, `api/modules/auth/module.create.sql`, `deploy/create/80_standalone.sql.tmpl`, `spec/authentication-spec-v1.md`
+- **Status:** in-use
+- **Notes:** Development only. It is dropped when a deployment switches to `external_oidc` (see `auth-provider-profiles`).
+
+### PBKDF2 in PL/SQL
+- **Slug:** plsql-pbkdf2
+- **Summary:** PBKDF2-HMAC-SHA256 written in PL/SQL, because `DBMS_CRYPTO` on 26ai has no key-derivation function. Each stored hash records its iteration count and algorithm, so the count can be raised without breaking existing passwords.
+- **Location:** `db/package_specs/jwt_scaffold_crypto.pks`, `db/package_bodies/jwt_scaffold_crypto.pkb`, `db/package_bodies/jwt_scaffold_crypto_test.pkb`
+- **Status:** in-use
+- **Notes:** `set-password-offline` holds a second implementation that must agree with this one. Both are pinned to the same published test vector.
+
+### Setting a password without sending it to the database
+- **Slug:** set-password-offline
+- **Summary:** A script that reads a password from the terminal, derives the PBKDF2 hash locally with Python's standard library, and sends only hex to the database. The plaintext never appears in SQL, logs, process arguments or shell history.
+- **Location:** `bin/set-principal-password.sh`
+- **Status:** in-use
+- **Notes:** Run `--self-test` after changing either PBKDF2 implementation. Pairs with `plsql-pbkdf2`.
+
+### Per-environment signing key
+- **Slug:** per-env-signing-key
+- **Summary:** Generates each environment's RSA signing key with openssl and pipes it straight into the database. The key is never written to a file or committed.
+- **Location:** `bin/ensure-auth-key.sh`
+- **Status:** in-use
+- **Notes:** Replaced an earlier setup where one key was committed and shared by every environment.
+
+### Switchable auth provider profiles
+- **Slug:** auth-provider-profiles
+- **Summary:** `AUTH_PROFILE` chooses between the local JWT scaffold and an external OIDC provider such as Auth0 at deploy time. The script renders the ORDS JWT profile registration, and decides whether the scaffold's login endpoint is deployed at all.
+- **Location:** `bin/render-auth-config.sh`, `deploy/create/80_standalone.sql.tmpl`, `deploy/create/80_standalone.external_oidc.sql.tmpl`, `spec/authentication-spec-v1.md`
+- **Status:** in-use
+- **Notes:** road-blogger runs `external_oidc` in production. quorate holds the end-user Auth0 flow for single-page apps (ledger L-01).
+
+### Check that every handler loads the session context
+- **Slug:** handler-coverage-check
+- **Summary:** A static check that every ORDS handler on a protected module calls `begin_request`. Otherwise a handler runs with whatever identity the pooled connection last held.
+- **Location:** `bin/check-handler-coverage.sh`
+- **Status:** in-use
+- **Notes:** Needed because ORDS gives a schema no pre-dispatch hook. Pairs with `road-session-context`.
+
+### Schema user setup
+- **Slug:** schema-user-setup
+- **Summary:** Admin scripts that create an application schema user and grant it exactly the privileges road-kit needs, including schema-scoped `CREATE ASSERTION`.
+- **Location:** `admin/create-schema-user.sql`, `admin/grant-schema-privileges.sql`, `admin/drop-schema-user.sql`, `admin/README.md`
+- **Status:** in-use
+
+## UI
+
+### React login shell
+- **Slug:** react-auth-shell
+- **Summary:** A React starter with a fetch client that attaches the bearer token, a login page, and a route guard that redirects to login when there is no token. Runtime settings come from one config module.
+- **Location:** `hello_world/src/api/client.ts`, `hello_world/src/api/auth.ts`, `hello_world/src/components/RequireAuth.tsx`, `hello_world/src/config/runtime.ts`, `hello_world/src/router.tsx`, `hello_world/src/pages/LoginPage.tsx`
+- **Status:** in-use
+
+### Theme tokens and their check
+- **Slug:** theme-token-check
+- **Summary:** Colours and fonts live only in `tokens.css`, and the Tailwind and shadcn theme reads from them. A script fails the build if a colour or font literal appears anywhere else.
+- **Location:** `hello_world/src/tokens.css`, `hello_world/src/theme.css`, `hello_world/scripts/check-theme-tokens.mjs`
+- **Status:** in-use
+- **Notes:** Written after quorate's stylesheet drifted to nearly twice the size of road-kit's while the standard said they were identical. Ledger D-02.
+
+## AI
+
+### Governed State Contract schema
+- **Slug:** governed-state-contract
+- **Summary:** A JSON Schema for declaring a governed action: who may call it, its request, its preconditions, the outcomes it can return, and the audit and events it produces. Any client, including an AI agent, then works under the same rules. A validator checks contracts against the schema.
+- **Location:** `spec/governed-state-contract.schema.json`, `test/contract/validate-governed-state-contract-schema.mjs`, `test/contract/fixtures/governed-state-contract.valid.json`
+- **Status:** demo
+- **Notes:** Released as v0.1.0 (W1). Not yet used by an app.
+
+### MCP tool descriptor from a contract
+- **Slug:** mcp-descriptor-projection
+- **Summary:** Turns a Governed State Contract into an MCP tool descriptor (name, description and input schema), with the same output every time, so an agent's tool list is derived from the contract and never written by hand.
+- **Location:** `scripts/project-mcp-descriptor.mjs`, `test/mcp/validate-mcp-descriptor-projection.mjs`
+- **Status:** demo
+- **Notes:** Released as v0.2.0 (W2). Depends on `governed-state-contract`.
+
+## Deployment and tooling
+
+### SQL runner with INTENT blocks and history
+- **Slug:** run-sql-with-history
+- **Summary:** All database work goes through `run-sql.sh`. Each script states its intent in a header, and every run is recorded in a SQLite history that can be searched by task, object name or Oracle error before trying something again.
+- **Location:** `bin/run-sql.sh`, `bin/db-history-common.sh`, `bin/db-history-similar.sh`, `bin/db-history-failures.sh`, `skills/sql-runner/SKILL.md`, `skills/sql-runner/scripts/install-sql-runner.sh`
+- **Status:** in-use
+- **Notes:** The sql-runner repo is upstream. When its catalogue is written, decide which repo owns this slug and point the other at it.
+
+### Ordered deploy stages with rerunnable scripts
+- **Slug:** ordered-deploy-stages
+- **Summary:** Deployment runs numbered stages in a fixed order, from types and tables through packages, REST modules, seed data and assertions to a final verify. Each object's create script tolerates the object already existing, so a deploy can be rerun.
+- **Location:** `deploy/create/00_full.sql`, `deploy/create/99_verify.sql`, `db/tables/road_config.create.sql`, `db/tables/road_config.drop.sql`
+- **Status:** in-use
+- **Notes:** Ledger F-10 records which of road-kit's own scripts still lacked the error tolerance.
+
+### React app served from the database
+- **Slug:** spa-from-database
+- **Summary:** The built React app is uploaded into a database table, and an ORDS module serves it: real files by path, with `index.html` for any other route. A missing asset returns a real 404, not the app shell.
+- **Location:** `bin/deploy-react.sh`, `db/tables/ui_assets.create.sql`, `db/package_specs/ui_assets_api.pks`, `db/package_bodies/ui_assets_api.pkb`, `api/modules/ui/module.create.sql`, `spec/file-upload-and-ui-delivery-spec-v1.md`
+- **Status:** in-use
+- **Notes:** ORDS retries a wildcard GET with a trailing slash when the first attempt returns no rows. The module strips it so the retry resolves to the same file (ledger F-11).
+
+### Parity check between copied repos
+- **Slug:** repo-parity-check
+- **Summary:** Compares the files that road-kit and road-cal are meant to hold identically, and reports any that differ.
+- **Location:** `bin/check-road-kit-parity.sh`
+- **Status:** experimental
+- **Notes:** Ledger F-08 records a case it misses. road-cal is parked, so the script may only be worth reusing as a template for other copied pairs.
+
+## Testing
+
+### PL/SQL test packages
+- **Slug:** plsql-test-packages
+- **Summary:** Each package has a `_test` partner with a `run_all` procedure. Tests run against the deployed schema and roll back to a savepoint, so they leave no data behind.
+- **Location:** `db/package_specs/road_ctx_pkg_test.pks`, `db/package_bodies/road_ctx_pkg_test.pkb`, `db/package_bodies/road_admin_api_test.pkb`, `deploy/test/00_test_setup.sql`, `test/smoke/00_smoke.sql`, `spec/automated-testing-strategy-v1.md`
+- **Status:** in-use
+
+### HTTP endpoint tests with real tokens
+- **Slug:** endpoint-test-suite
+- **Summary:** Shell tests that call the deployed ORDS endpoints with real tokens and check status codes and response bodies. They include an auth conformance suite that sends expired, wrong-issuer and wrong-audience tokens.
+- **Location:** `bin/run-endpoint-tests.sh`, `bin/assert-http.sh`, `bin/get-test-token.sh`, `test/endpoint/00_endpoint.sh`, `test/endpoint/auth-conformance.endpoint.sh`
+- **Status:** in-use
+
+### Browser smoke test
+- **Slug:** browser-smoke-test
+- **Summary:** A Playwright test that logs in through the real React app against a deployed environment.
+- **Location:** `bin/run-browser-smoke.sh`, `hello_world/e2e/login.smoke.spec.ts`
+- **Status:** in-use
+
+### Demo app that tests the framework
+- **Slug:** framework-canary-app
+- **Summary:** A to-do app built to exercise every part of the framework an adopter uses: permission checks, an app role, a reserved permission, per-user ownership and optimistic concurrency. If the framework breaks, the demo fails.
+- **Location:** `db/package_specs/demo_todo_api.pks`, `db/package_bodies/demo_todo_api.pkb`, `db/package_bodies/demo_todo_api_test.pkb`, `api/modules/todos/module.create.sql`, `deploy/create/97_demo.sql`, `test/endpoint/todos.endpoint.sh`
+- **Status:** demo
+- **Notes:** By its own rule the demo may never cause a framework change. Nobody should build on it.
