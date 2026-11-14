@@ -1,6 +1,10 @@
 # ORDS API Design Standards
-**Version:** 1.0  
+**Version:** 1.1  
 **Status:** Approved
+
+**Changed in 1.1** (`planning/spec-patch-12-business-decisions-and-decision-record.md`, road-atlas
+ledger D-05): governed actions return an outcome with HTTP 200 (section 6.5). A business rule
+violation is no longer a 422.
 
 ---
 
@@ -179,6 +183,23 @@ or for actions without a created resource:
 }
 ```
 
+### 6.5 Governed Action Responses
+
+A governed action is a proposal that the database decides (section 3.4 resources, Governed Surface Contract definition section 6). It returns an outcome, with HTTP 200 whether the proposal was accepted or rejected:
+
+```json
+{
+  "contract_version": "1.0.0",
+  "decision": "accepted",
+  "result": { "item_id": 42, "status": "In progress" },
+  "audit_id": 91877
+}
+```
+
+A rejected outcome has `"decision": "rejected"` and a `rejections` array in place of `result`. Each rejection carries `rule_id`, `message`, `retryable` and, where disclosure is permitted, `ids`. `road_decision_api` builds both shapes and writes the decision record. See `error-handling-contract-v1.md` sections 3.2 and 4.4.
+
+A governed action that removes something may use `DELETE` on the record's resource. It still returns 200 with an outcome, not 204.
+
 ### 6.4 Field Conventions
 
 - Field names: `snake_case`
@@ -216,12 +237,15 @@ Fields:
 | Condition | HTTP Status |
 |---|---|
 | Success | 200 / 201 / 204 |
+| Governed action decided, accepted or rejected | 200 OK, with an outcome (section 6.5) |
 | Validation failure | 400 Bad Request |
 | Unauthenticated | 401 Unauthorized |
 | Insufficient privilege | 403 Forbidden |
-| Resource not found | 404 Not Found |
-| Business rule violation | 422 Unprocessable Entity |
+| Resource not found, on a read | 404 Not Found |
+| Stale write, on an endpoint that is not a governed action | 409 Conflict |
 | Unexpected server error | 500 Internal Server Error |
+
+A business rule is never an error status. HTTP 422 is not used.
 
 ### 7.3 Error Emission from Handlers
 

@@ -5,6 +5,14 @@
 **Status:** design, 2026-09-04. Not built.
 **Depends on:** `planning/spec-patch-10-event-emission.md`, built and deployed first.
 
+> **Amended by spec-patch-12 (14 November 2026, ledger D-05).** Read
+> `planning/spec-patch-12-business-decisions-and-decision-record.md` before building this. In
+> short: both rejections in section 4.2 return HTTP 200 with a rejected outcome, not 403 and 404;
+> `TODO_NOT_FOUND` is still indistinguishable from a todo that does not exist, as a 200 rejection;
+> section 6's `demo_todo_decisions` table is replaced by the framework's `road_decisions`, written
+> through `road_decision_api`, with rejections recorded autonomously; and both findings in section
+> 10 are closed. Sections 1 to 3, 5, 7 and 8 stand.
+
 **Related:**
 `planning/governed-state-contracts-proof-plan-v1.md` — W3. This patch is W3.
 `spec/governed-state-contract.schema.json` — the contract schema this action must satisfy

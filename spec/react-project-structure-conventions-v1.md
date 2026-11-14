@@ -288,7 +288,9 @@ Both components are rendered in `App.tsx` at the root level, outside of the rout
 
 The API client dispatches errors to `ErrorContext` automatically. Components do not need to handle API errors — they only handle the success case.
 
-Exception: forms may catch `ApiError` with status 400 or 422 to display inline field-level validation messages in addition to (or instead of) the global toast.
+Exception: forms may catch `ApiError` with status 400 to display inline field-level validation messages in addition to (or instead of) the global toast.
+
+A governed action's rejected outcome is not an `ApiError`. It arrives as a normal 200 result with `decision: 'rejected'` (type `GovernedOutcome` in `src/types/api.ts`). The component that made the proposal shows each rejection's `message` next to the control the user acted on, and uses `retryable` to decide whether to offer a retry after re-reading. It does not raise a toast. See `error-handling-contract-v1.md` section 6.
 
 ---
 

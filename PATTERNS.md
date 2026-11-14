@@ -38,7 +38,14 @@ The rules for this file are in `road-atlas/patterns/SPEC.md`. Check it with
 - **Summary:** `log_admin_action` writes an audit row in an autonomous transaction, so the record survives a rolled-back operation. It takes the actor from the session context, never from a parameter, so a caller cannot misattribute what it did.
 - **Location:** `db/package_specs/road_audit_api.pks`, `db/package_bodies/road_audit_api.pkb`, `db/tables/road_api_log.create.sql`
 - **Status:** in-use
-- **Notes:** Ledger D-05 extends autonomous audit to rejected business decisions. That change isn't in this code yet.
+- **Notes:** Rejected business decisions are recorded the same way, autonomously, by `governed-decision-record`.
+
+### Governed decision record
+- **Slug:** governed-decision-record
+- **Summary:** A governed action returns an outcome with HTTP 200, accepted or rejected, and never raises a business rejection. `road_decision_api` writes the decision record and builds the outcome: accepted records in the caller's transaction, rejected records in an autonomous one so they survive the rollback. The same table replays an earlier outcome for a repeated idempotency key.
+- **Location:** `db/tables/road_decisions.create.sql`, `db/indexes/road_decisions_idempotency.create.sql`, `db/package_specs/road_decision_api.pks`, `db/package_bodies/road_decision_api.pkb`, `db/package_bodies/road_decision_api_test.pkb`, `planning/spec-patch-12-business-decisions-and-decision-record.md`
+- **Status:** experimental
+- **Notes:** Implements GSC definition 0.1.0 sections 6.4 to 6.7 and ledger D-05. Tested in PL/SQL only: no governed action in road-kit uses it over HTTP yet. Depends on `road-session-context` for the principal. Records decisions, not field changes (ledger F-12).
 
 ### Key-value framework settings
 - **Slug:** road-config-table
@@ -54,7 +61,7 @@ The rules for this file are in `road-atlas/patterns/SPEC.md`. Check it with
 - **Summary:** `error_api` turns an application error in the -20000 to -20999 range into a fixed JSON body and HTTP status. Any other exception is logged in full to `error_log` and returned as a generic 500, so no raw exception reaches a client.
 - **Location:** `db/package_specs/error_api.pks`, `db/package_bodies/error_api.pkb`, `db/tables/error_log.create.sql`, `spec/error-handling-contract-v1.md`
 - **Status:** in-use
-- **Notes:** Ledger D-05 changes business rejections from 422 to 200 with a structured outcome. Not yet applied here.
+- **Notes:** Wrong calls only (4xx). Since spec-patch-12 (ledger D-05) a business rejection is not an error: it returns 200 with an outcome through `governed-decision-record`. `-20003`/422 was removed.
 
 ### JSON in, JSON out packages
 - **Slug:** json-package-boundary

@@ -29,9 +29,13 @@ create or replace package body error_api_test as
     assert_eq('ora_code', 'ORA-20001', json_value(l_response, '$.ora_code'));
   end test_handle_known_validation;
 
-  procedure test_handle_known_agenda_locked is
-    l_status   number;
-    l_response clob;
+  -- Ledger D-05: a business rule is not an error. -20003 used to map to 422; it must now be
+  -- treated like any other unmapped code -- a logged 500 -- so a package that still raises a
+  -- business rejection fails loudly instead of quietly returning the old contract.
+  procedure test_business_rule_code_not_mapped is
+    l_status    number;
+    l_response  clob;
+    l_log_count number;
   begin
     begin
       raise_application_error(-20003, 'agenda is locked');
@@ -39,9 +43,19 @@ create or replace package body error_api_test as
       when others then
         error_api.handle_known(sqlcode, sqlerrm, l_status, l_response);
     end;
-    assert_eq('status', '422', to_char(l_status));
-    assert_eq('error', 'AGENDA_LOCKED', json_value(l_response, '$.error'));
-  end test_handle_known_agenda_locked;
+    assert_eq('status', '500', to_char(l_status));
+    assert_eq('error', 'INTERNAL_ERROR', json_value(l_response, '$.error'));
+
+    select count(*) into l_log_count
+      from error_log
+     where sqlcode = -20003;
+    if l_log_count = 0 then
+      raise_application_error(-20000, 'expected an error_log row for -20003');
+    end if;
+
+    delete from error_log where sqlcode = -20003;
+    commit;
+  end test_business_rule_code_not_mapped;
 
   procedure test_handle_known_not_found is
     l_status   number;
@@ -167,7 +181,7 @@ create or replace package body error_api_test as
       savepoint before_test;
       case p_proc
         when 'validation'         then test_handle_known_validation;
-        when 'agenda_locked'      then test_handle_known_agenda_locked;
+        when 'business_rule'      then test_business_rule_code_not_mapped;
         when 'not_found'          then test_handle_known_not_found;
         when 'conflict'           then test_handle_known_conflict;
         when 'forbidden'          then test_handle_known_forbidden;
@@ -185,7 +199,7 @@ create or replace package body error_api_test as
     end run;
   begin
     run('test_handle_known_validation', 'validation');
-    run('test_handle_known_agenda_locked', 'agenda_locked');
+    run('test_business_rule_code_not_mapped', 'business_rule');
     run('test_handle_known_not_found', 'not_found');
     run('test_handle_known_conflict', 'conflict');
     run('test_handle_known_forbidden', 'forbidden');

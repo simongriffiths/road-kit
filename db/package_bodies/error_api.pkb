@@ -28,16 +28,19 @@ create or replace package body error_api as
     l_error   varchar2(60);
     l_message varchar2(4000);
   begin
-    -- Fixed mapping per calendar-app-design-outline.md §"Error signalling from EVENT_API to
-    -- ORDS". Not a generic range-based scheme (e.g. 20000-20099 => 400): each code is a
-    -- deliberately chosen business meaning, so it is listed explicitly rather than derived.
+    -- Fixed mapping, spec/error-handling-contract-v1.md section 4.1. Not a generic range-based
+    -- scheme (e.g. 20000-20099 => 400): each code is a deliberately chosen meaning, so it is
+    -- listed explicitly rather than derived.
+    --
+    -- Every code here is a WRONG CALL (4xx): the request was stopped before any decision code
+    -- ran. A business rejection is not an error and never reaches this procedure. A governed
+    -- action returns it as an outcome with HTTP 200, through road_decision_api (ledger D-05,
+    -- spec-patch-12). -20003, which mapped a business rule to 422, was removed for that reason;
+    -- a package that still raises it now gets the unmapped-code path below, a logged 500.
     case p_sqlcode
       when -20001 then
         l_error := 'VALIDATION_ERROR';
         p_status_code := 400;
-      when -20003 then
-        l_error := 'AGENDA_LOCKED';
-        p_status_code := 422;
       when -20004 then
         l_error := 'NOT_FOUND';
         p_status_code := 404;

@@ -1,0 +1,211 @@
+[INFO] START
+
+[INFO] RUN_ID=20261114_203248_spec-patch-12-apply_18722
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/spec-patch-12-apply.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/spec-patch-12-apply.sql
+[INFO] SCRIPT_SHA256=7e71b1df657d6d07bf730287eea63a3d86cc3d035e8aeb1450dfa68de223d509
+[INFO] GIT_COMMIT=30b3851
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261114_203248
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261114_203248_spec-patch-12-apply_18722.log
+
+[INTENT]
+Purpose: Land spec-patch-12 (ledger D-05) on road_kit_dev: the road_decisions table and its
+  idempotency index, road_decision_api and its tests, and error_api without the -20003 -> 422
+  mapping.
+Approach: Create the table and index through their ORA-955-tolerant create scripts, compile
+  both packages and their test packages, list compile errors, then run error_api_test and
+  road_decision_api_test.
+Reason: Business rejections become HTTP 200 outcomes with a decision record (GSC definition
+  0.1.0 sections 5.4 and 6.7). road-tracker needs this in a tagged road-kit release.
+Expected objects:
+  ROAD_DECISIONS (table, new), ROAD_DECISIONS_IDEMPOTENCY_UX (index, new)
+  ROAD_DECISION_API, ROAD_DECISION_API_TEST (packages, new)
+  ERROR_API, ERROR_API_TEST (bodies, replaced)
+Risk: Low. Additive apart from error_api; nothing in road-kit raises -20003 except
+  error_api_test, checked by grep. Test rows are committed by the autonomous rejection write
+  and removed by the suite's own teardown.
+Prior history checked: db-history-similar for "decision" and "error_api" -- no decisions table
+  has been deployed here; error_api last changed in 20260819_152905 (ORA-8601 mapping). The
+  20260829 ORA-12839 failure (ADB parallel DML) is why road_decision_api_test.setup disables
+  parallel DML, as the other suites do.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sat Nov 14 20:32:49 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+=== road_decisions table and index ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.161
+Elapsed: 00:00:00.179
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.318
+Elapsed: 00:00:00.335
+=== specs ===
+
+Package ERROR_API compiled
+
+Elapsed: 00:00:00.251
+Elapsed: 00:00:00.270
+
+Package ERROR_API_TEST compiled
+
+Elapsed: 00:00:00.077
+Elapsed: 00:00:00.098
+
+Package ROAD_DECISION_API compiled
+
+Elapsed: 00:00:00.175
+Elapsed: 00:00:00.191
+
+Package ROAD_DECISION_API_TEST compiled
+
+Elapsed: 00:00:00.078
+Elapsed: 00:00:00.096
+=== bodies ===
+
+Package Body ERROR_API compiled
+
+Elapsed: 00:00:00.142
+Elapsed: 00:00:00.158
+
+Package Body ERROR_API_TEST compiled
+
+Elapsed: 00:00:00.210
+Elapsed: 00:00:00.226
+
+Package Body ROAD_DECISION_API compiled
+
+
+Errors for PACKAGE BODY ROAD_DECISION_API:
+
+LINE/COL ERROR
+-------- -----------------------------------------------------------------
+24/9     PL/SQL: Statement ignored
+24/29    PLS-00306: wrong number or types of arguments in call to 'PARSE'
+27/7     PL/SQL: Statement ignored
+27/31    PLS-00306: wrong number or types of arguments in call to 'PARSE'
+44/5     PL/SQL: Statement ignored
+44/13    PLS-00306: wrong number or types of arguments in call to 'PARSE'
+92/7     PL/SQL: Statement ignored
+92/24    PLS-00306: wrong number or types of arguments in call to 'PARSE'
+Elapsed: 00:00:00.315
+Elapsed: 00:00:00.336
+
+Package Body ROAD_DECISION_API_TEST compiled
+
+Elapsed: 00:00:00.265
+Elapsed: 00:00:00.282
+=== compile errors ===
+
+[1mNAME[m                 [1mTYPE[m               [1mLINE[m    [1mPOSITION[m [1mTEXT[m                                                                
+____________________ _______________ _______ ___________ ___________________________________________________________________ 
+ROAD_DECISION_API    PACKAGE BODY         24          29 PLS-00306: wrong number or types of arguments in call to 'PARSE'    
+ROAD_DECISION_API    PACKAGE BODY         24           9 PL/SQL: Statement ignored                                           
+ROAD_DECISION_API    PACKAGE BODY         27          31 PLS-00306: wrong number or types of arguments in call to 'PARSE'    
+ROAD_DECISION_API    PACKAGE BODY         27           7 PL/SQL: Statement ignored                                           
+ROAD_DECISION_API    PACKAGE BODY         44          13 PLS-00306: wrong number or types of arguments in call to 'PARSE'    
+ROAD_DECISION_API    PACKAGE BODY         44           5 PL/SQL: Statement ignored                                           
+ROAD_DECISION_API    PACKAGE BODY         92          24 PLS-00306: wrong number or types of arguments in call to 'PARSE'    
+ROAD_DECISION_API    PACKAGE BODY         92           7 PL/SQL: Statement ignored                                           
+
+8 rows selected. 
+
+Elapsed: 00:00:00.112
+=== object state ===
+
+[1mOBJECT_NAME[m                      [1mOBJECT_TYPE[m     [1mSTATUS[m     
+________________________________ _______________ __________ 
+ERROR_API                        PACKAGE         VALID      
+ERROR_API                        PACKAGE BODY    VALID      
+ERROR_API_TEST                   PACKAGE         VALID      
+ERROR_API_TEST                   PACKAGE BODY    VALID      
+ROAD_DECISIONS                   TABLE           VALID      
+ROAD_DECISIONS_IDEMPOTENCY_UX    INDEX           VALID      
+ROAD_DECISION_API                PACKAGE         VALID      
+ROAD_DECISION_API                PACKAGE BODY    INVALID    
+ROAD_DECISION_API_TEST           PACKAGE         VALID      
+ROAD_DECISION_API_TEST           PACKAGE BODY    VALID      
+
+10 rows selected. 
+
+Elapsed: 00:00:00.054
+=== error_api_test ===
+PASS test_handle_known_validation
+PASS test_business_rule_code_not_mapped
+PASS test_handle_known_not_found
+PASS test_handle_known_conflict
+PASS test_handle_known_forbidden
+PASS test_handle_known_unmapped_escalates
+PASS test_handle_unknown
+error_api_test: 7 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.222
+=== road_decision_api_test ===
+FAIL accept_outcome: ORA-06508: PL/SQL: could not find program unit being called
+FAIL reject_outcome: ORA-06508: PL/SQL: could not find program unit being called
+FAIL accept_rolls_back: ORA-06508: PL/SQL: could not find program unit being called
+FAIL reject_survives: ORA-06508: PL/SQL: could not find program unit being called
+FAIL replay_per_principal: ORA-06508: PL/SQL: could not find program unit being called
+FAIL rejection_keeps_key: ORA-06508: PL/SQL: could not find program unit being called
+FAIL second_accept_refused: ORA-06508: PL/SQL: could not find program unit being called
+FAIL undisclosed_truth: ORA-06508: PL/SQL: could not find program unit being called
+FAIL public_no_principal: ORA-06508: PL/SQL: could not find program unit being called
+FAIL reject_needs_one: ORA-06508: PL/SQL: could not find program unit being called
+road_decision_api_test: 0 passed, 10 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.193
+=== leftover test rows (expect 0) ===
+
+   [1mLEFTOVER[m 
+___________ 
+          0 
+
+1 row selected. 
+
+Elapsed: 00:00:00.041
+Elapsed: 00:00:00.057
+[INFO] USER_ERRORS_CHECK
+
+[1mNAME[m                 [1mTYPE[m               [1mLINE[m    [1mPOSITION[m [1mTEXT[m                                                                
+____________________ _______________ _______ ___________ ___________________________________________________________________ 
+ROAD_DECISION_API    PACKAGE BODY         24          29 PLS-00306: wrong number or types of arguments in call to 'PARSE'    
+ROAD_DECISION_API    PACKAGE BODY         24           9 PL/SQL: Statement ignored                                           
+ROAD_DECISION_API    PACKAGE BODY         27          31 PLS-00306: wrong number or types of arguments in call to 'PARSE'    
+ROAD_DECISION_API    PACKAGE BODY         27           7 PL/SQL: Statement ignored                                           
+ROAD_DECISION_API    PACKAGE BODY         44          13 PLS-00306: wrong number or types of arguments in call to 'PARSE'    
+ROAD_DECISION_API    PACKAGE BODY         44           5 PL/SQL: Statement ignored                                           
+ROAD_DECISION_API    PACKAGE BODY         92          24 PLS-00306: wrong number or types of arguments in call to 'PARSE'    
+ROAD_DECISION_API    PACKAGE BODY         92           7 PL/SQL: Statement ignored                                           
+
+8 rows selected. 
+
+Elapsed: 00:00:00.145
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

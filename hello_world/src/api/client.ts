@@ -24,7 +24,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   if (!response.ok) {
     throw buildError(
       response.status,
-      typeof payload?.code === 'string' ? payload.code : 'HTTP_ERROR',
+      typeof payload?.error === 'string' ? payload.error : 'HTTP_ERROR',
       typeof payload?.message === 'string'
         ? payload.message
         : `Request failed with status ${response.status}`

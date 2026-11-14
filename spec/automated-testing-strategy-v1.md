@@ -139,7 +139,9 @@ Every endpoint must have tests covering at minimum:
 | Unauthenticated (no token) | 401 |
 | Response shape includes required fields | 200 |
 
-Additional test cases for business rule violations (422) and permission checks (403) where applicable.
+Additional test cases for permission checks (403) where applicable.
+
+A governed action also needs, for each rejection it declares, a test that the response is 200 with `decision` `rejected` and the expected `rule_id`, and that nothing changed. One test should confirm that the rejection's decision record exists after the request, read from a separate session. See `error-handling-contract-v1.md` section 3.2.
 
 ### 4.9 Running Endpoint Tests
 

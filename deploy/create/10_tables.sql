@@ -23,6 +23,8 @@ prompt === deploy identity tables (spec patch 06) ===
 -- road_audit_api names an application concept. It lived only in road-cal until 2026-08-19 --
 -- see spec-patch-08 section 7.2.
 @db/tables/road_api_log.create.sql
+-- Decision record for governed actions (spec-patch-12, ledger D-05). Framework-generic.
+@db/tables/road_decisions.create.sql
 @db/tables/road_config.create.sql
 @db/tables/road_principals.create.sql
 @db/tables/jwt_scaffold_credentials.create.sql

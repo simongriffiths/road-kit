@@ -5,6 +5,13 @@ sequences the work and records what each phase actually cost.
 
 **Status: not started.**
 
+> **Amended by spec-patch-12 (14 November 2026).** Phase 1's spike is no longer needed: rejections
+> are recorded by `road_decision_api.reject` in an autonomous transaction, which does not depend on
+> ORDS committing after a caught exception. Phase 2 creates `demo_todo_contributors` only;
+> `demo_todo_decisions` is replaced by the framework's `road_decisions`. Phases 4, 6 and 7 expect
+> HTTP 200 with a rejected outcome for `NOT_A_CONTRIBUTOR` and `TODO_NOT_FOUND`, not 403 and 404.
+> Release numbering below moves on: `v0.3.0` is spec-patch-12.
+
 **Hard precondition: build plan 10 complete and deployed.** The action emits through
 `road_event_api`, which does not exist until then. Do not start phase 4 without it.
 
@@ -220,7 +227,8 @@ and note it as a gap worth closing later.
 1. All suites green, recorded above.
 2. Commit; `git diff` shows only intended files.
 3. Simon approves.
-4. Annotated tag `v0.4.0` (assuming build plan 10 took `v0.3.0`).
+4. Annotated tag for the next free minor version. `v0.3.0` is spec-patch-12, and build plan 10
+   takes the next one.
 5. Record in road-atlas as the next `RK-nn`. This one is `origin: road-kit` but demo-scoped —
    say so plainly, so no adopter reads it as framework surface they inherit.
 6. Update `planning/governed-state-contracts-proof-plan-v1.md`: W3 complete, and what W4 still
@@ -235,8 +243,8 @@ to road-atlas, not only here._
 
 Two already known, carried from spec-patch-11 §10:
 
-1. `spec/error-handling-contract-v1.md` contradicts `error_api.pkb` on error-code mapping. Not
-   fixed by this plan. Worth a road-atlas `F-` entry — an adopter reading the spec would build to
-   the wrong codes.
-2. Watch for a second decisions table anywhere in the estate. That is the trigger for a framework
-   primitive, generalised from two real shapes rather than guessed from one.
+1. `spec/error-handling-contract-v1.md` contradicts `error_api.pkb` on error-code mapping.
+   **Closed by spec-patch-12**, which made the contract list `error_api`'s mapping.
+2. Watch for a second decisions table anywhere in the estate. **Closed by spec-patch-12.** road-tracker
+   was about to build the second one (`rt_decisions`), and GSC definition 6.7 now requires a
+   decision record for every governed action, so the primitive is `road_decisions`.
