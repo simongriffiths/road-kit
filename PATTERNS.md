@@ -141,8 +141,15 @@ The rules for this file are in `road-atlas/patterns/SPEC.md`. Check it with
 - **Slug:** governed-state-contract
 - **Summary:** A JSON Schema for declaring a governed action: who may call it, its request, its preconditions, the outcomes it can return, and the audit and events it produces. Any client, including an AI agent, then works under the same rules. A validator checks contracts against the schema.
 - **Location:** `spec/governed-state-contract.schema.json`, `test/contract/validate-governed-state-contract-schema.mjs`, `test/contract/fixtures/governed-state-contract.valid.json`
-- **Status:** demo
-- **Notes:** Released as v0.1.0 (W1). Not yet used by an app.
+- **Status:** superseded
+- **Notes:** Released as v0.1.0 (W1), and that tag is unchanged. Superseded by `governed-surface-contract`, which describes a whole surface and reuses this action shape with the changes in spec-patch-13 section 3.
+
+### Governed Surface Contract schema
+- **Slug:** governed-surface-contract
+- **Summary:** A JSON Schema for one contract per surface: a shared envelope (identity, versioning, bindings), a state section of governed actions and an optional batch, and a publication section of governed views. A dependency-free validator checks a contract against the schema and checks the cross-references the schema cannot express.
+- **Location:** `spec/governed-surface-contract.schema.json`, `scripts/validate-gsc-contract.mjs`, `scripts/lib/json-schema-subset.mjs`, `test/contract/validate-governed-surface-contract-schema.mjs`, `test/contract/fixtures/governed-surface-contract.valid.json`, `planning/spec-patch-13-governed-surface-contract-schema.md`
+- **Status:** experimental
+- **Notes:** Draft. Implements GSC definition 0.1.0; the publication section and batch are Provisional there. No surface has a contract written to it yet, and the MCP projector does not read it yet.
 
 ### MCP tool descriptor from a contract
 - **Slug:** mcp-descriptor-projection

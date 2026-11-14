@@ -1,0 +1,248 @@
+{
+  "schema_version": "0.3.0",
+  "gsc_definition_version": "0.1.0",
+  "surface": {
+    "id": "example.tracker",
+    "title": "Example issue tracker",
+    "description": "Items that people and agents create, claim and revise. Built from the claim example in Appendix B of the GSC definition; not a deployed surface."
+  },
+  "envelope": {
+    "contract_version": "1.0.0",
+    "identity": {
+      "established_from": ["jwt", "database_session"],
+      "principal_key": ["issuer", "subject"],
+      "system_processes": "run_as_system_owner",
+      "description": "People and agents call REST with a JWT. Batch agents connect as their own database user, mapped to a principal with issuer urn:oracle-db."
+    },
+    "versioning": {
+      "response_field": "contract_version",
+      "discovery": { "rest": { "method": "GET", "path": "/contract" } },
+      "expected_major_header": "Accept-Version"
+    },
+    "metadata_format": "json-schema-2020-12",
+    "bindings": ["rest", "database"],
+    "public_entries": []
+  },
+  "state": {
+    "actions": [
+      {
+        "id": "items.create",
+        "title": "Create an item",
+        "description": "Propose a new item in a project the caller belongs to. It starts in To do.",
+        "action_resource": { "rest": { "method": "POST", "path": "/items" } },
+        "authority": {
+          "operational_authority": "Item lifecycle",
+          "actor": { "model": "authenticated", "required_permissions": ["item.create"], "attribution_required": true }
+        },
+        "changes_existing_record": false,
+        "request": {
+          "idempotency": {
+            "strategy": "idempotency_key",
+            "header": "Idempotency-Key",
+            "retention": "indefinitely",
+            "replays": "accepted_only"
+          },
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["project_id", "title"],
+            "properties": {
+              "project_id": { "type": "integer", "description": "The project the item belongs to." },
+              "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+              "description": { "type": "string" }
+            }
+          }
+        },
+        "preconditions": {
+          "current_state_recheck": true,
+          "evaluation": "first_failure",
+          "rules": [
+            { "id": "NOT_A_MEMBER", "kind": "access", "description": "The principal is a member of the project.", "consumer_visible": true }
+          ]
+        },
+        "outcomes": {
+          "accepted": {
+            "description": "The item is created and its id and reference returned.",
+            "result": {
+              "type": "object",
+              "required": ["item_id", "reference"],
+              "properties": { "item_id": { "type": "integer" }, "reference": { "type": "string" } }
+            }
+          },
+          "rejections": [ { "rule_id": "NOT_A_MEMBER", "retryable": false, "discloses_ids": false } ],
+          "non_disclosing": false
+        },
+        "audit": {
+          "record": "road_decisions",
+          "fields": ["principal", "action_id", "contract_version", "decision", "rule_ids", "record_ids", "idempotency_key", "decided_at"]
+        },
+        "events": {
+          "emitted": [
+            { "name": "item.created", "when": "after_commit", "payload": { "type": "object", "required": ["item_id"], "properties": { "item_id": { "type": "integer" } } } }
+          ]
+        }
+      },
+      {
+        "id": "items.claim",
+        "title": "Claim an item",
+        "description": "Propose that the calling agent takes an item to work on. A claimed item in To do moves to In progress. A claim expires after two hours unless renewed.",
+        "action_resource": {
+          "rest": { "method": "POST", "path": "/items/{id}/claims" },
+          "database": { "entry_point": "item_agent_api.claim_item" }
+        },
+        "authority": {
+          "operational_authority": "Item lifecycle",
+          "actor": { "model": "authenticated", "required_permissions": ["item.claim"], "attribution_required": true }
+        },
+        "changes_existing_record": true,
+        "request": {
+          "idempotency": { "strategy": "natural_key", "fields": ["item_id", "principal"], "retention": "indefinitely" },
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["read_token"],
+            "properties": {
+              "read_token": { "type": "string", "description": "The read token returned with the item by the items.get view." }
+            }
+          }
+        },
+        "preconditions": {
+          "current_state_recheck": true,
+          "evaluation": "first_failure",
+          "rules": [
+            { "id": "STALE_TOKEN", "kind": "concurrency", "description": "The item has not changed since the read token was issued.", "consumer_visible": true },
+            { "id": "ITEM_ALREADY_CLAIMED", "kind": "access", "description": "No other principal holds an unexpired claim on the item.", "consumer_visible": true },
+            { "id": "NOT_A_MEMBER", "kind": "access", "description": "The principal is a member of the item's project." }
+          ]
+        },
+        "outcomes": {
+          "accepted": { "description": "The claim is recorded, with its expiry time and the item's new status." },
+          "rejections": [
+            { "rule_id": "STALE_TOKEN", "retryable": true, "discloses_ids": true },
+            { "rule_id": "ITEM_ALREADY_CLAIMED", "retryable": true, "discloses_ids": true },
+            { "rule_id": "NOT_A_MEMBER", "retryable": false, "discloses_ids": false }
+          ],
+          "non_disclosing": false
+        },
+        "audit": {
+          "record": "road_decisions",
+          "fields": ["principal", "action_id", "contract_version", "decision", "rule_ids", "record_ids", "idempotency_key", "decided_at"]
+        },
+        "events": { "emitted": [ { "name": "item.claimed", "when": "after_commit" } ] }
+      },
+      {
+        "id": "items.revise",
+        "title": "Revise an item",
+        "description": "Propose a new title or description for an item. Status, rank, assignee and claim each have their own action.",
+        "action_resource": { "rest": { "method": "POST", "path": "/items/{id}/revisions" } },
+        "authority": {
+          "operational_authority": "Item lifecycle",
+          "actor": { "model": "authenticated", "required_permissions": ["item.update"], "attribution_required": true }
+        },
+        "changes_existing_record": true,
+        "request": {
+          "idempotency": { "strategy": "natural_key", "fields": ["principal", "read_token"] },
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["read_token"],
+            "properties": {
+              "read_token": { "type": "string" },
+              "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+              "description": { "type": "string" }
+            }
+          }
+        },
+        "preconditions": {
+          "current_state_recheck": true,
+          "rules": [
+            { "id": "STALE_TOKEN", "kind": "concurrency", "description": "The item has not changed since the read token was issued." },
+            { "id": "ITEM_CLOSED", "kind": "integrity", "description": "A closed item cannot be revised. Reopen it first." }
+          ]
+        },
+        "outcomes": {
+          "accepted": { "description": "The item's title or description is changed." },
+          "rejections": [
+            { "rule_id": "STALE_TOKEN", "retryable": true },
+            { "rule_id": "ITEM_CLOSED", "retryable": false }
+          ],
+          "non_disclosing": false
+        },
+        "audit": {
+          "record": "road_decisions",
+          "fields": ["principal", "action_id", "contract_version", "decision", "rule_ids", "record_ids", "idempotency_key", "decided_at"]
+        },
+        "events": { "emitted": [] }
+      }
+    ],
+    "batch": {
+      "provisional": true,
+      "action_resource": {
+        "rest": { "method": "POST", "path": "/batches" },
+        "database": { "entry_point": "item_agent_api.apply_batch" }
+      },
+      "operations": ["items.create", "items.revise"],
+      "limits": { "max_operations": 500 },
+      "idempotency": { "strategy": "idempotency_key", "header": "Idempotency-Key" },
+      "dry_run": true
+    }
+  },
+  "publication": {
+    "provisional": true,
+    "views": [
+      {
+        "id": "items.get",
+        "title": "Get an item",
+        "meaning": "One item as it is now, with the read token a later action on it must carry.",
+        "resource": { "rest": { "method": "GET", "path": "/items/{id}" } },
+        "authority": {
+          "actor": { "model": "authenticated", "required_permissions": ["item.read"], "attribution_required": false }
+        },
+        "result": {
+          "type": "object",
+          "required": ["item_id", "reference", "title", "status", "read_token"],
+          "properties": {
+            "item_id": { "type": "integer", "description": "Database-issued id." },
+            "reference": { "type": "string", "description": "Human reference, for example RK-42. Unique within the tenant." },
+            "title": { "type": "string" },
+            "status": { "enum": ["To do", "In progress", "In review", "Done"] },
+            "read_token": { "type": "string" }
+          }
+        },
+        "keys": {
+          "identity": ["item_id"],
+          "shared": [ { "field": "reference", "refers_to": "commit messages in the item's repository" } ]
+        },
+        "time": { "stated_as": "both", "granularity": "response", "response_fields": ["as_at", "change_number"] },
+        "scope": { "access_rules_apply": true, "statement_field": "scope" },
+        "read_tokens": { "field": "read_token", "changed_by": ["items.claim", "items.revise"] }
+      },
+      {
+        "id": "items.similar",
+        "title": "Find similar items",
+        "meaning": "Items whose text is close in meaning to a given item or draft, nearest first.",
+        "resource": { "rest": { "method": "GET", "path": "/items/similar" } },
+        "authority": {
+          "actor": { "model": "authenticated", "required_permissions": ["item.read"], "attribution_required": false }
+        },
+        "parameters": {
+          "type": "object",
+          "properties": { "item_id": { "type": "integer" }, "text": { "type": "string" } }
+        },
+        "result": {
+          "type": "object",
+          "required": ["item_id", "distance"],
+          "properties": { "item_id": { "type": "integer" }, "distance": { "type": "number" } }
+        },
+        "keys": { "identity": ["item_id"], "shared": [ { "field": "item_id", "refers_to": "items.get" } ] },
+        "time": { "stated_as": "change_number", "granularity": "response", "response_fields": ["change_number"] },
+        "scope": {
+          "access_rules_apply": true,
+          "statement_field": "scope",
+          "exclusions": ["Items with no embedding yet, which are created asynchronously within a minute of each change."]
+        },
+        "dependent_versions": [ { "name": "embedding model", "response_field": "dependent_versions.embedding_model" } ]
+      }
+    ]
+  }
+}

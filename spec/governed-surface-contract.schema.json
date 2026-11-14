@@ -1,0 +1,663 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/simongriffiths/road-kit/blob/v0.3.0/spec/governed-surface-contract.schema.json",
+  "title": "Governed Surface Contract",
+  "description": "One contract for one surface: a shared envelope, a governed state contract (the governed actions a consumer may propose) and a governed publication contract (the governed views a consumer may read). Implements the Governed Surface Contract definition, version 0.1.0 (draft). Draft schema: see planning/spec-patch-13-governed-surface-contract-schema.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "gsc_definition_version", "surface", "envelope"],
+  "anyOf": [
+    { "required": ["state"] },
+    { "required": ["publication"] }
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.3.0",
+      "description": "The version of this schema the document conforms to."
+    },
+    "gsc_definition_version": {
+      "const": "0.1.0",
+      "description": "The version of the GSC definition this schema implements. For field names the schema applies; for their meaning the definition applies."
+    },
+    "surface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "description"],
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "title": { "$ref": "#/$defs/text" },
+        "description": { "$ref": "#/$defs/text" }
+      }
+    },
+    "envelope": { "$ref": "#/$defs/envelope" },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actions"],
+      "properties": {
+        "actions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/action" }
+        },
+        "batch": { "$ref": "#/$defs/batch" }
+      },
+      "patternProperties": { "^x-": {} }
+    },
+    "publication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provisional", "views"],
+      "properties": {
+        "provisional": {
+          "const": true,
+          "description": "Section 7 of the definition is Provisional in 0.1.0, and a document that uses it says so."
+        },
+        "views": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/view" }
+        }
+      },
+      "patternProperties": { "^x-": {} }
+    }
+  },
+  "patternProperties": { "^x-": {} },
+
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$",
+      "description": "Stable identifier, unique within the surface. Never reused with a different meaning."
+    },
+    "rule_id": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]*$"
+    },
+    "text": { "type": "string", "minLength": 1 },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "field_name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "json_schema": {
+      "type": "object",
+      "description": "An embedded JSON Schema (draft 2020-12). Its own properties may carry x-mcp-exclude: true to keep them out of every generated consumer artefact (definition 9.3.2)."
+    },
+    "path": {
+      "type": "string",
+      "pattern": "^/[^?]*$",
+      "description": "Resource path, without host or query string."
+    },
+
+    "envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["contract_version", "identity", "versioning", "metadata_format", "bindings"],
+      "description": "Declared once for both sections (definition section 5).",
+      "properties": {
+        "contract_version": {
+          "$ref": "#/$defs/semver",
+          "description": "The contract's own semantic version. A change that could make a conforming consumer propose or read incorrectly increases the major version (5.3.4)."
+        },
+        "identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["established_from", "principal_key", "system_processes"],
+          "properties": {
+            "established_from": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "enum": ["jwt", "database_session"] },
+              "description": "Where identity comes from. Never a request body or query parameter (5.2.1)."
+            },
+            "principal_key": {
+              "const": ["issuer", "subject"],
+              "description": "A principal is identified by its issuer and subject (5.2.2)."
+            },
+            "system_processes": {
+              "const": "run_as_system_owner",
+              "description": "A process with no end user runs as its system owner. No session adopts another principal (5.2.3, 5.2.4)."
+            },
+            "description": { "$ref": "#/$defs/text" }
+          }
+        },
+        "versioning": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["response_field", "discovery"],
+          "properties": {
+            "response_field": {
+              "const": "contract_version",
+              "description": "Every response, outcome, view or error, carries the contract version in this field (5.3.2)."
+            },
+            "discovery": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["rest"],
+              "description": "Where a consumer reads the current contract at request time (5.3.3, 5.5).",
+              "properties": {
+                "rest": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["method", "path"],
+                  "properties": {
+                    "method": { "const": "GET" },
+                    "path": { "$ref": "#/$defs/path" }
+                  }
+                }
+              }
+            },
+            "expected_major_header": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Optional request header carrying the major version the consumer expects. A mismatch is a wrong call (5.3.5)."
+            }
+          }
+        },
+        "metadata_format": {
+          "const": "json-schema-2020-12",
+          "description": "One schema language for the whole contract (5.5, 9.1.1)."
+        },
+        "bindings": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["rest", "mcp", "database"] },
+          "description": "The ways the surface can be called. Every binding reaches the same decision code (5.6)."
+        },
+        "public_entries": {
+          "$ref": "#/$defs/names",
+          "description": "Action and view ids that need no established identity (5.2.7). Each must also declare actor model public."
+        }
+      },
+      "patternProperties": { "^x-": {} }
+    },
+
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "required_permissions", "attribution_required"],
+      "properties": {
+        "model": {
+          "enum": ["public", "authenticated"],
+          "description": "Delegation is not an actor model. It is a permission checked for the acting principal (5.2.6)."
+        },
+        "required_permissions": {
+          "$ref": "#/$defs/names",
+          "description": "Permissions that depend only on the principal, checked before the decision code runs. Failing one is a wrong call (5.4.2)."
+        },
+        "attribution_required": { "type": "boolean" }
+      }
+    },
+
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id", "title", "description", "action_resource", "authority", "changes_existing_record",
+        "request", "preconditions", "outcomes", "audit", "events"
+      ],
+      "description": "A governed action: one business operation (definition 6.1, 6.2). Field names follow schema v0.1.0 where it had them, changed as definition Appendix A.2 records.",
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "title": { "$ref": "#/$defs/text" },
+        "description": {
+          "$ref": "#/$defs/text",
+          "description": "What the action does, in a sentence a consumer can match to a goal."
+        },
+        "action_resource": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "description": "Where the action is proposed, per binding.",
+          "properties": {
+            "rest": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["method", "path"],
+              "properties": {
+                "method": {
+                  "enum": ["POST", "PUT", "PATCH", "DELETE"],
+                  "description": "A noun-based action resource. DELETE returns 200 with an outcome, not 204."
+                },
+                "path": { "$ref": "#/$defs/path" }
+              }
+            },
+            "mcp": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["tool"],
+              "properties": { "tool": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" } }
+            },
+            "database": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["entry_point"],
+              "properties": {
+                "entry_point": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_$#]*\\.[a-z][a-z0-9_$#]*$",
+                  "description": "package.function the database binding calls, after mapping the session to a principal."
+                }
+              }
+            }
+          }
+        },
+        "authority": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["operational_authority", "actor"],
+          "properties": {
+            "operational_authority": { "$ref": "#/$defs/text" },
+            "actor": { "$ref": "#/$defs/actor" }
+          }
+        },
+        "changes_existing_record": {
+          "type": "boolean",
+          "description": "True when the action changes a record that already exists. Its rules must then include a concurrency check (6.6)."
+        },
+        "request": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["idempotency", "body"],
+          "properties": {
+            "idempotency": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["strategy"],
+              "properties": {
+                "strategy": { "enum": ["idempotency_key", "natural_key"] },
+                "header": { "type": "string", "minLength": 1 },
+                "fields": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "type": "string", "minLength": 1 },
+                  "uniqueItems": true,
+                  "description": "Request fields the key is derived from. The authority may add the principal, named as \"principal\"."
+                },
+                "retention": {
+                  "$ref": "#/$defs/text",
+                  "description": "How long keys are kept, for example \"indefinitely\" or \"30 days\" (6.5)."
+                },
+                "replays": {
+                  "enum": ["accepted_only", "any_decision"],
+                  "description": "Which earlier outcome a repeated key returns. Not settled by definition 0.1.0; see spec-patch-12 section 4.4."
+                }
+              },
+              "allOf": [
+                {
+                  "if": { "properties": { "strategy": { "const": "idempotency_key" } } },
+                  "then": { "required": ["header"] }
+                },
+                {
+                  "if": { "properties": { "strategy": { "const": "natural_key" } } },
+                  "then": { "required": ["fields"] }
+                }
+              ]
+            },
+            "body": { "$ref": "#/$defs/json_schema" }
+          }
+        },
+        "preconditions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["current_state_recheck", "rules"],
+          "properties": {
+            "current_state_recheck": {
+              "const": true,
+              "description": "The authority re-reads every record the decision depends on (6.3 step 4)."
+            },
+            "evaluation": {
+              "enum": ["first_failure", "all_failures"],
+              "description": "Whether the authority stops at the first rejection or collects them all (6.3 step 5)."
+            },
+            "rules": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "kind", "description"],
+                "properties": {
+                  "id": { "$ref": "#/$defs/rule_id" },
+                  "kind": {
+                    "enum": ["integrity", "access", "concurrency"],
+                    "description": "Integrity and access rules are named and maintained separately (8.4.1)."
+                  },
+                  "description": {
+                    "$ref": "#/$defs/text",
+                    "description": "Specific enough for a consumer to avoid a predictable rejection (6.2)."
+                  },
+                  "consumer_visible": {
+                    "type": "boolean",
+                    "description": "True when a generated tool description may show this rule (9.3.4). Defaults to false. Never true for a rule behind a non-disclosing outcome."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "outcomes": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["accepted", "rejections", "non_disclosing"],
+          "description": "Every outcome, accepted or rejected, returns in the business-decided class: HTTP 200 in REST (5.4).",
+          "properties": {
+            "accepted": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["description"],
+              "properties": {
+                "description": { "$ref": "#/$defs/text" },
+                "result": { "$ref": "#/$defs/json_schema" }
+              }
+            },
+            "rejections": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["rule_id", "retryable"],
+                "properties": {
+                  "rule_id": { "$ref": "#/$defs/rule_id" },
+                  "retryable": { "type": "boolean" },
+                  "discloses_ids": {
+                    "type": "boolean",
+                    "description": "Whether the rejection carries the ids of the records involved (6.4.2)."
+                  }
+                }
+              }
+            },
+            "non_disclosing": {
+              "type": "boolean",
+              "description": "True when some rejections are reported to the consumer as an acceptance (6.4.4). The decision record holds the truth."
+            }
+          }
+        },
+        "audit": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["record", "fields"],
+          "description": "The decision record (6.7). Accepted decisions in the same transaction; rejected decisions so they survive rollback.",
+          "properties": {
+            "record": {
+              "$ref": "#/$defs/text",
+              "description": "Where decisions are recorded, for example road_decisions."
+            },
+            "fields": {
+              "$ref": "#/$defs/names",
+              "allOf": [
+                { "contains": { "const": "principal" } },
+                { "contains": { "const": "action_id" } },
+                { "contains": { "const": "contract_version" } },
+                { "contains": { "const": "decision" } },
+                { "contains": { "const": "rule_ids" } },
+                { "contains": { "const": "record_ids" } },
+                { "contains": { "const": "idempotency_key" } },
+                { "contains": { "const": "decided_at" } }
+              ],
+              "description": "Must include the eight fields definition 6.7.2 requires."
+            }
+          }
+        },
+        "events": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["emitted"],
+          "properties": {
+            "emitted": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["name", "when"],
+                "properties": {
+                  "name": { "$ref": "#/$defs/identifier" },
+                  "when": { "const": "after_commit" },
+                  "payload": { "$ref": "#/$defs/json_schema" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patternProperties": { "^x-": {} },
+      "if": { "properties": { "changes_existing_record": { "const": true } } },
+      "then": {
+        "properties": {
+          "preconditions": {
+            "properties": {
+              "rules": { "contains": { "properties": { "kind": { "const": "concurrency" } } } }
+            }
+          }
+        }
+      }
+    },
+
+    "batch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provisional", "action_resource", "operations", "limits", "idempotency", "dry_run"],
+      "description": "Provisional (definition 6.9). See planning/spec-patch-14-batch-and-database-identity.md.",
+      "properties": {
+        "provisional": { "const": true },
+        "action_resource": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "rest": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["method", "path"],
+              "properties": {
+                "method": { "const": "POST" },
+                "path": { "$ref": "#/$defs/path" }
+              }
+            },
+            "database": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["entry_point"],
+              "properties": {
+                "entry_point": { "type": "string", "pattern": "^[a-z][a-z0-9_$#]*\\.[a-z][a-z0-9_$#]*$" }
+              }
+            }
+          }
+        },
+        "operations": {
+          "$ref": "#/$defs/names",
+          "minItems": 1,
+          "description": "Ids of the governed actions a batch may contain. Each must be declared in state.actions."
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["max_operations"],
+          "properties": {
+            "max_operations": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "idempotency": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["strategy", "header"],
+          "properties": {
+            "strategy": { "const": "idempotency_key" },
+            "header": { "type": "string", "minLength": 1 }
+          }
+        },
+        "dry_run": {
+          "type": "boolean",
+          "description": "Whether the batch offers a dry run that returns the full outcome, rolls back and emits nothing (6.9.8)."
+        }
+      }
+    },
+
+    "view": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "meaning", "resource", "authority", "result", "keys", "time", "scope"],
+      "description": "A governed view: one published read (definition 7). Provisional.",
+      "properties": {
+        "id": { "$ref": "#/$defs/identifier" },
+        "title": { "$ref": "#/$defs/text" },
+        "meaning": {
+          "$ref": "#/$defs/text",
+          "description": "What one result represents, in a sentence."
+        },
+        "resource": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "rest": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["method", "path"],
+              "properties": {
+                "method": { "const": "GET" },
+                "path": { "$ref": "#/$defs/path" }
+              }
+            },
+            "mcp": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["tool"],
+              "properties": { "tool": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" } }
+            }
+          }
+        },
+        "authority": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["actor"],
+          "properties": { "actor": { "$ref": "#/$defs/actor" } }
+        },
+        "parameters": { "$ref": "#/$defs/json_schema" },
+        "result": {
+          "$ref": "#/$defs/json_schema",
+          "description": "Schema of one result, with the meaning of each field in its description."
+        },
+        "keys": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["identity"],
+          "properties": {
+            "identity": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/field_name" },
+              "uniqueItems": true
+            },
+            "shared": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["field", "refers_to"],
+                "properties": {
+                  "field": { "$ref": "#/$defs/field_name" },
+                  "refers_to": {
+                    "$ref": "#/$defs/text",
+                    "description": "The view id, or the external system, whose key this is."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "time": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["stated_as", "granularity", "response_fields"],
+          "description": "How each response states the time its data reflects (7.3).",
+          "properties": {
+            "stated_as": { "enum": ["timestamp", "change_number", "both"] },
+            "granularity": {
+              "enum": ["response", "source", "result"],
+              "description": "One time for the whole response, one per source, or one per result (7.3.2)."
+            },
+            "response_fields": { "$ref": "#/$defs/names", "minItems": 1 },
+            "changes_after_parameter": {
+              "$ref": "#/$defs/field_name",
+              "description": "Query parameter that returns changes after a stated point, where the view supports polling (7.3.3)."
+            }
+          }
+        },
+        "scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["access_rules_apply"],
+          "description": "How a response says its results may be limited (7.4).",
+          "properties": {
+            "access_rules_apply": { "type": "boolean" },
+            "statement_field": {
+              "$ref": "#/$defs/field_name",
+              "description": "The response field that states results are limited to what the principal may see, without saying what was withheld."
+            },
+            "exclusions": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/text" },
+              "description": "Exclusions that do not depend on the principal, which may be stated in detail (7.4.3)."
+            },
+            "masked_fields": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/field_name" },
+              "description": "Fields that may be returned masked, and marked as masked (7.4.4)."
+            }
+          },
+          "if": { "properties": { "access_rules_apply": { "const": true } } },
+          "then": { "required": ["statement_field"] }
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sources", "response_field"],
+          "properties": {
+            "sources": { "$ref": "#/$defs/names", "minItems": 2 },
+            "response_field": { "$ref": "#/$defs/field_name" }
+          }
+        },
+        "dependent_versions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "response_field"],
+            "properties": {
+              "name": { "$ref": "#/$defs/text" },
+              "response_field": { "type": "string", "minLength": 1 }
+            }
+          },
+          "description": "Models or indexes the results depend on, such as an embedding model, and where each version is returned (7.2)."
+        },
+        "read_tokens": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["field", "changed_by"],
+          "description": "For records a governed action can change: the read token returned with each record (6.6).",
+          "properties": {
+            "field": { "$ref": "#/$defs/field_name" },
+            "changed_by": {
+              "$ref": "#/$defs/names",
+              "minItems": 1,
+              "description": "Ids of the actions that accept this token."
+            }
+          }
+        }
+      },
+      "patternProperties": { "^x-": {} }
+    }
+  }
+}
