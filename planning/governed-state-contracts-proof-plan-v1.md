@@ -1,7 +1,7 @@
 # Governed State Contracts Proof Plan
 
 **Version:** 1.0  
-**Status:** In progress. W1 and W2 released; W3 designed, not built; W4 not started (updated 23 October 2026)  
+**Status:** In progress. W1 and W2 released; the Governed Surface Contract schema and decision record released in v0.3.0; W3 designed, not built; W4 not started (updated 14 November 2026)  
 **Scope:** road-kit engineering only
 
 ## Progress
@@ -10,10 +10,12 @@
 | --- | --- | --- |
 | W1 — Canonical contract schema | Released 4 September 2026 | Tag `v0.1.0` (commit `44afcc6`); `planning/action-w1-contract-schema.md`; road-atlas `RK-10` |
 | W2 — Deterministic descriptor projection | Released 4 September 2026 | Tag `v0.2.0` (commit `69e0b32`); `planning/action-w2-mcp-descriptor-projection.md`; road-atlas `RK-11` |
-| W3 — Reference governed action | Designed 4–6 September 2026, not built | `planning/spec-patch-11-governed-completion-action.md`, `planning/build-plan-11-governed-completion-action.md`, `planning/build-plan-10-event-emission.md`; road-atlas `RK-12` |
+| Decision record and 200 outcomes | Released 14 November 2026 | Tag `v0.3.0`; `planning/spec-patch-12-business-decisions-and-decision-record.md`; road-atlas `D-05`, `RK-13` |
+| Governed Surface Contract schema | Released as a draft 14 November 2026 | Tag `v0.3.0`; `planning/spec-patch-13-governed-surface-contract-schema.md`; road-atlas `D-04`, `D-07`, `RK-14` |
+| W3 — Reference governed action | Designed 4–6 September 2026, amended by spec-patch-12, not built | `planning/spec-patch-11-governed-completion-action.md`, `planning/build-plan-11-governed-completion-action.md`, `planning/build-plan-10-event-emission.md`; road-atlas `RK-12` |
 | W4 — End-to-end proof | Not started | — |
 
-The name is changing. On 29 September 2026 the contract became the Governed Surface Contract, with a governed state contract (proposals inward) and a governed publication contract (data outward). The W1 schema describes one governed action, which is part of the governed state contract. The schema file is renamed in a later release; the `v0.1.0` and `v0.2.0` tags are unchanged.
+The name has changed. On 29 September 2026 the contract became the Governed Surface Contract, with a governed state contract (proposals inward) and a governed publication contract (data outward). The W1 schema describes one governed action, which is part of the governed state contract. `spec/governed-surface-contract.schema.json` (schema `0.3.0`, tag `v0.3.0`) describes a whole surface and implements the GSC definition 0.1.0, which lives in the `gsc` repository. The `v0.1.0` and `v0.2.0` tags are unchanged.
 
 ## Purpose
 
@@ -67,4 +69,4 @@ The website may later link to that tag. It remains responsible for checking that
 
 ## Next action
 
-W3 is the next technical action. Its design is in `planning/spec-patch-11-governed-completion-action.md` and its build plans are 10 and 11, neither started. road-kit is on hold in road-atlas, so W3 waits for that hold to lift. A schema release renaming `spec/governed-state-contract.schema.json` to the Governed Surface Contract name is also pending; it is a new tagged release and does not alter `v0.1.0` or `v0.2.0`. No database, ORDS, deployment, or ROAD Blogger change is authorised by this plan.
+W3 is the next technical action. Its design is in `planning/spec-patch-11-governed-completion-action.md`, amended by spec-patch-12, and its build plans are 10 and 11, neither started. W3 should write its contract against the 0.3.0 schema and record its decisions through `road_decision_api`. The batch and database-user identity path (spec-patch-14) wait for Simon's ruling on its open points. No ROAD Blogger change is authorised by this plan.
