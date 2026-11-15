@@ -5,6 +5,7 @@ import { RequireAuth } from './components/RequireAuth';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { SessionPage } from './pages/SessionPage';
+import { AgentsPage } from './pages/AgentsPage';
 
 const appName = import.meta.env.VITE_APP_NAME;
 const uiBasePath = import.meta.env.VITE_UI_BASE_PATH;
@@ -33,6 +34,10 @@ export const router = createBrowserRouter(
             {
               path: 'session',
               element: <SessionPage />
+            },
+            {
+              path: 'agents',
+              element: <AgentsPage />
             }
           ]
         }

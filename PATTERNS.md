@@ -107,6 +107,27 @@ The rules for this file are in `road-atlas/patterns/SPEC.md`. Check it with
 - **Status:** in-use
 - **Notes:** road-blogger runs `external_oidc` in production. quorate holds the end-user Auth0 flow for single-page apps (ledger L-01).
 
+### Agents with API keys, traded for short-lived tokens
+- **Slug:** api-key-exchange
+- **Summary:** A person makes an agent of their own, a separate principal they own that holds only the application's agent role, and makes API keys for it. A key is shown once and stored as a SHA-256 hash, and is added to the answer only after the decision is recorded, so the decision record never holds it. A tool trades the key at a public endpoint for a short-lived JWT that ORDS validates like any other; revoking the key, retiring the agent or suspending its owner stops new tokens at once.
+- **Location:** `db/package_bodies/road_agent_api.pkb`, `db/tables/road_agents.create.sql`, `db/tables/road_api_keys.create.sql`, `api/modules/agents/`, `api/modules/api_auth/`, `hello_world/src/pages/AgentsPage.tsx`, `planning/spec-patch-15-agent-api-keys-and-cli.md`
+- **Status:** experimental
+- **Notes:** From road-tracker (ledger B-04), where keys sit under its tenant isolation policy. ORDS accepts only JWTs as bearer tokens, hence the exchange. Scaffold profile only (`spec/authentication-spec-v1.md` 11.6). An agent role should include `session.me.read`.
+
+### A command-line core applications extend
+- **Slug:** road-cli-core
+- **Summary:** `tools/road-cli/road-cli` signs in with an agent's API key, keeps the token, makes calls, turns a governed outcome into a result or a refusal (exit 3), reads a record before changing it and retries once on a stale read. Each application adds task commands in `commands.js` beside it, one per step of the work, each printing one line, so an agent spends few turns and no tokens on bookkeeping.
+- **Location:** `tools/road-cli/`, `test/agents/road-cli.test.mjs`
+- **Status:** experimental
+- **Notes:** road-tracker's `rt` is the fuller example (`next`, `claim`, `done`, `file`). Read standard input as a stream: `readFileSync(0)` fails with EAGAIN on a pipe. Ask for a key with echo off, never on the command line.
+
+### Agent skill generated from the contract
+- **Slug:** skill-from-contract
+- **Summary:** `scripts/generate-skill.mjs` writes an application's Claude Code skill around its road-cli commands from its Governed Surface Contract and the agent role's permissions. It fails when a command calls a resource the contract lacks or the agent may not use, leaves out what the contract keeps from consumers, and `--check` fails when the skill is stale.
+- **Location:** `scripts/generate-skill.mjs`, `test/skill/generate-skill.test.mjs`
+- **Status:** experimental
+- **Notes:** Meets the gsc checklist's items 33 and 34 without MCP. In road-tracker a fresh headless Claude Code session using the skill worked an item end to end for about 0.31 USD; the cost of an agent task is mostly its number of turns.
+
 ### Check that every handler loads the session context
 - **Slug:** handler-coverage-check
 - **Summary:** A static check that every ORDS handler on a protected module calls `begin_request`. Otherwise a handler runs with whatever identity the pooled connection last held.

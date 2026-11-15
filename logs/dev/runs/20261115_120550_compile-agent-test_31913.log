@@ -1,0 +1,58 @@
+[INFO] START
+
+[INFO] RUN_ID=20261115_120550_compile-agent-test_31913
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/compile-agent-test.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/compile-agent-test.sql
+[INFO] SCRIPT_SHA256=46f5b2eb3f7056a0af5b215177c87e02c9422589d4223c5ec1301f83b417291b
+[INFO] GIT_COMMIT=520144d
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261115_120550
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261115_120550_compile-agent-test_31913.log
+
+[INTENT]
+Purpose: Recompile road_agent_api_test after PLS-00231 in run 20261115_120445_00_full (env dev).
+Approach: Run its body, then list compile errors.
+Reason: spec-patch-15 build.
+Expected objects: ROAD_AGENT_API_TEST body.
+Risk: Low. A test package.
+Prior history checked: run 20261115_120445_00_full.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sun Nov 15 12:05:51 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+
+Package Body ROAD_AGENT_API_TEST compiled
+
+Elapsed: 00:00:00.184
+Elapsed: 00:00:00.204
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.247
+Elapsed: 00:00:00.266
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.044
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

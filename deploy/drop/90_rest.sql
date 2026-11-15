@@ -11,6 +11,9 @@ whenever sqlerror exit sql.sqlcode rollback
 -- END INTENT
 
 prompt === drop ords modules ===
+@api/modules/api_auth/module.drop.sql
+@api/modules/agents/privileges.drop.sql
+@api/modules/agents/module.drop.sql
 @api/modules/ui/privileges.drop.sql
 @api/modules/ui/module.drop.sql
 @api/modules/session/privileges.drop.sql

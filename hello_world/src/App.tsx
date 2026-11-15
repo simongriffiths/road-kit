@@ -19,6 +19,7 @@ export function App() {
           <NavLink className="nav-link" to="/">Home</NavLink>
           <NavLink className="nav-link" to="/login">Login</NavLink>
           <NavLink className="nav-link" to="/session">Session</NavLink>
+          {hasToken ? <NavLink className="nav-link" to="/agents">Agents</NavLink> : null}
           {hasToken ? (
             <button className="button ghost" onClick={handleLogout} type="button">
               Log Out

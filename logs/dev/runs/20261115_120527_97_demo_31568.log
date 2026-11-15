@@ -1,0 +1,199 @@
+[INFO] START
+
+[INFO] RUN_ID=20261115_120527_97_demo_31568
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=deploy/create/97_demo.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/deploy/create/97_demo.sql
+[INFO] SCRIPT_SHA256=788057b15fb82f78a74ee919e11a05d63bfbc3365d9605d46928dd042fbae9b7
+[INFO] GIT_COMMIT=520144d
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261115_120527
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261115_120527_97_demo_31568.log
+
+[INTENT]
+Purpose: Deploy the todo demo application -- one table, one package, its permissions and its
+  role -- so road-kit's own framework features can be exercised in road-kit.
+Approach: Table, index and trigger, then the package, then the seed, then verification.
+Reason: Three framework features are untestable without an application: the RESERVED
+  application permission (spec-patch-07 section 3.1's worked example),
+  grant_all_app_permissions, and the "an application extends the role model" pattern.
+Expected objects: DEMO_TODOS, DEMO_TODOS_OWNER_STATUS, DEMO_TODOS_UPDATED_AT_TRG,
+  DEMO_TODO_API (+ _TEST), 7 permissions, 1 role.
+Risk: Low, and confined -- every object is demo_/todo. prefixed.
+Prior history checked: build-plan-08 phase 5.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sun Nov 15 12:05:28 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+=== demo application (spec patch 08) ===
+--- table, index, trigger --
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.047
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.263
+Elapsed: 00:00:00.282
+
+Trigger DEMO_TODOS_UPDATED_AT_TRG compiled
+
+Elapsed: 00:00:00.094
+Elapsed: 00:00:00.112
+--- package --
+
+Package DEMO_TODO_API compiled
+
+Elapsed: 00:00:00.089
+Elapsed: 00:00:00.108
+
+Package DEMO_TODO_API_TEST compiled
+
+Elapsed: 00:00:00.082
+Elapsed: 00:00:00.102
+
+Package Body DEMO_TODO_API compiled
+
+Elapsed: 00:00:00.108
+Elapsed: 00:00:00.129
+
+Package Body DEMO_TODO_API_TEST compiled
+
+Elapsed: 00:00:00.103
+Elapsed: 00:00:00.121
+--- permissions --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.109
+
+0 rows updated.
+
+Elapsed: 00:00:00.052
+--- todo_admin role --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.106
+
+Commit complete.
+
+Elapsed: 00:00:00.040
+--- role composition --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.060
+
+0 rows inserted.
+
+Elapsed: 00:00:00.047
+
+0 rows inserted.
+
+Elapsed: 00:00:00.048
+
+Commit complete.
+
+Elapsed: 00:00:00.041
+--- ORDS module and scope --
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.062
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.066
+Elapsed: 00:00:00.085
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.044
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.049
+Elapsed: 00:00:00.068
+
+0 rows inserted.
+
+Elapsed: 00:00:00.067
+
+0 rows inserted.
+
+Elapsed: 00:00:00.045
+
+0 rows inserted.
+
+Elapsed: 00:00:00.048
+
+Commit complete.
+
+Elapsed: 00:00:00.041
+--- agents for the todo demo (spec-patch-15) --
+
+1 row inserted.
+
+Elapsed: 00:00:00.185
+
+Commit complete.
+
+Elapsed: 00:00:00.373
+
+5 rows inserted.
+
+Elapsed: 00:00:00.081
+
+2 rows inserted.
+
+Elapsed: 00:00:00.072
+
+1 row updated.
+
+Elapsed: 00:00:00.050
+
+Commit complete.
+
+Elapsed: 00:00:00.042
+
+0 rows updated.
+
+Elapsed: 00:00:00.044
+
+Commit complete.
+
+Elapsed: 00:00:00.039
+--- verify the demo model --
+[INFO] Demo application verified: 7 permissions (1 reserved), todo_admin correctly restricted
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.107
+Elapsed: 00:00:00.125
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.043
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

@@ -34,3 +34,6 @@ prompt === deploy ords modules ===
 @api/modules/ui/privileges.create.sql
 @api/modules/admin/module.create.sql
 @api/modules/admin/privileges.create.sql
+@api/modules/agents/module.create.sql
+@api/modules/agents/privileges.create.sql
+@api/modules/api_auth/module.create.sql

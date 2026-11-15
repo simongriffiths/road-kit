@@ -11,7 +11,8 @@ prompt === demo application (spec patch 08) ===
 --   application permission (spec-patch-07 section 3.1's worked example),
 --   grant_all_app_permissions, and the "an application extends the role model" pattern.
 -- Expected objects: DEMO_TODOS, DEMO_TODOS_OWNER_STATUS, DEMO_TODOS_UPDATED_AT_TRG,
---   DEMO_TODO_API (+ _TEST), 7 permissions, 1 role.
+--   DEMO_TODO_API (+ _TEST), 7 permissions, 2 roles (todo_admin, and todo_agent with agents.role
+--   set to it, spec-patch-15).
 -- Risk: Low, and confined -- every object is demo_/todo. prefixed.
 -- Prior history checked: build-plan-08 phase 5.
 -- END INTENT
@@ -162,6 +163,46 @@ select 'todo_admin', 'todo.rw' from dual
                     where role_name = 'todo_admin' and permission_name = 'todo.rw');
 
 commit;
+
+prompt --- agents for the todo demo (spec-patch-15) ---
+
+-- The demo switches self-serve agents on, so road-kit's own tests and tools/road-cli can exercise
+-- them: an agent role holding the ordinary todo permissions and the todo gate, named in
+-- agents.role, and road.agent.self_serve with its gate for every user. A real application chooses
+-- what its agents may do; this is the worked example.
+insert into road_roles (role_name, display_name, description, is_reserved)
+select 'todo_agent', 'Todo agent',
+       'Held by every agent principal in the demo: works its own todos, nothing else.', 'N'
+  from dual
+ where not exists (select 1 from road_roles where role_name = 'todo_agent');
+commit;
+
+insert into road_role_permissions (role_name, permission_name)
+-- session.me.read too, so an agent can read its own identity (road-cli whoami): an agent role
+-- should always include it.
+select 'todo_agent', p.name from (
+  select 'session.me.read' as name from dual union all
+  select 'todo.rw' from dual union all
+  select 'todo.list' from dual union all
+  select 'todo.get' from dual union all
+  select 'todo.create' from dual union all
+  select 'todo.update' from dual
+) p
+ where not exists (select 1 from road_role_permissions x
+                    where x.role_name = 'todo_agent' and x.permission_name = p.name);
+
+insert into road_role_permissions (role_name, permission_name)
+select 'user', p.name from (
+  select 'road.agents.rw' as name from dual union all
+  select 'road.agent.self_serve' from dual
+) p
+ where not exists (select 1 from road_role_permissions x
+                    where x.role_name = 'user' and x.permission_name = p.name);
+
+update road_config set config_value = 'todo_agent'
+ where config_key = 'agents.role' and config_value is null;
+commit;
+
 
 -- SUPERSEDED BY THE ABOVE, and now DEAD CODE rather than merely redundant -- kept for the
 -- record rather than deleted. spec-patch-09 phase 4 made SCOPE_NAME nullable and set it to NULL

@@ -1,0 +1,58 @@
+[INFO] START
+
+[INFO] RUN_ID=20261115_120650_probe-principals_32326
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/probe-principals.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/probe-principals.sql
+[INFO] SCRIPT_SHA256=848d09ce72ee0cf3f1e05db9e9bc4759e868ca6a41235e83916f36583e7e81ed
+[INFO] GIT_COMMIT=520144d
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261115_120650
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261115_120650_probe-principals_32326.log
+
+[INTENT]
+Purpose: Read-only: which principals and roles exist in ROAD_KIT_DEV, to choose fixtures for the
+  spec-patch-15 HTTP tests.
+Approach: Query road_principals and road_principal_roles (env dev). Nothing is changed.
+Reason: spec-patch-15 build, endpoint tests.
+Expected objects: None.
+Risk: Low. Read-only.
+Prior history checked: bin/run-endpoint-tests.sh (uses ADMIN and USER1).
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sun Nov 15 12:06:50 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+
+[1mSUBJECT[m    [1mSTATUS[m    [1mROLES[m                     
+__________ _________ _________________________ 
+ADMIN      ACTIVE    road.system_admin,user    
+USER1      ACTIVE    user                      
+
+2 rows selected. 
+
+Elapsed: 00:00:00.298
+Elapsed: 00:00:00.315
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.038
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

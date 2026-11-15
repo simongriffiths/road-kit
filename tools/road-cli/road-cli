@@ -1,0 +1,209 @@
+#!/usr/bin/env node
+'use strict';
+// road-cli: the command-line core for a road-kit application (spec-patch-15 section 4.7).
+//
+// An application copies this folder, renames the file to its own command (road-tracker's is rt),
+// and puts its task commands in commands.js beside it. This core does what every one of them needs:
+// signs in with an API key an agent's owner made on the My agents page, keeps a short-lived token,
+// calls the API with the version header, turns a governed outcome into a result or a refusal, reads
+// a record before changing it, and retries once when it changed meanwhile. It prints one short
+// line per answer, never JSON (except `api`), and never prints the key or a token.
+//
+// Exit codes: 0 done, 1 error, 2 usage, 3 refused by a rule, 4 and up for the application.
+// Framework file: bin/check-road-kit-parity.sh checks it; commands.js is the application's own.
+
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const crypto = require('node:crypto');
+
+let ext = { app: 'road', acceptVersion: '0', help: '', commands: {} };
+try { ext = { ...ext, ...require(path.join(__dirname, 'commands.js')) }; } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; }
+
+const APP = process.env.ROAD_CLI_APP || ext.app;
+const HOME = process.env.ROAD_CLI_HOME || path.join(os.homedir(), '.config', APP);
+const CONFIG = path.join(HOME, 'config.json');
+const KEY_FILE = path.join(HOME, 'key');
+const TOKEN_FILE = path.join(HOME, 'token.json');
+const CMD = path.basename(process.argv[1]);
+
+class Usage extends Error {}
+class Refused extends Error {}
+
+function readJson(file) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return null; }
+}
+function writePrivate(file, text) {
+  fs.mkdirSync(HOME, { recursive: true, mode: 0o700 });
+  fs.writeFileSync(file, text, { mode: 0o600 });
+  fs.chmodSync(file, 0o600);
+}
+function baseUrl() {
+  const url = readJson(CONFIG)?.url;
+  if (!url) throw new Usage(`not set up: run ${CMD} login --url <API base>, and paste the key when asked`);
+  return url.replace(/\/+$/, '');
+}
+function apiKey() {
+  if (fs.existsSync(KEY_FILE)) return fs.readFileSync(KEY_FILE, 'utf8').trim();
+  throw new Usage(`no API key: make one on the My agents page, then ${CMD} login --url <API base>`);
+}
+// The exchange sits beside the API: .../<alias>/api/v1 -> .../<alias>/api-auth/tokens
+const authUrl = () => baseUrl().replace(/\/api\/v1$/, '') + '/api-auth/tokens';
+
+async function token(force = false) {
+  const cached = readJson(TOKEN_FILE);
+  if (!force && cached?.access_token && cached.expires_at > Date.now() + 60_000 && cached.base === baseUrl()) return cached.access_token;
+  const res = await fetch(authUrl(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ api_key: apiKey() }) });
+  const out = await res.json().catch(() => ({}));
+  if (res.status !== 200 || !out.access_token) {
+    throw new Error(res.status === 401 ? 'the API key is unknown, revoked or expired, or its agent is not active' : `sign-in failed (HTTP ${res.status})`);
+  }
+  writePrivate(TOKEN_FILE, JSON.stringify({ access_token: out.access_token, subject: out.subject, base: baseUrl(), expires_at: Date.now() + out.expires_in * 1000 }));
+  return out.access_token;
+}
+
+// One API call. A new token and one retry on 401. Returns the parsed body of a 2xx answer; throws
+// an Error naming the status otherwise, with .status set.
+async function call(method, p, { body, key, raw } = {}) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const headers = { Authorization: `Bearer ${await token(attempt > 0)}`, 'Accept-Version': ext.acceptVersion };
+    if (key) headers['Idempotency-Key'] = key;
+    let payload;
+    if (raw) { payload = raw.bytes; headers['Content-Type'] = raw.type; if (raw.name) headers['X-File-Name'] = encodeURIComponent(raw.name); }
+    else if (body !== undefined) { payload = JSON.stringify(body); headers['Content-Type'] = 'application/json'; }
+    const res = await fetch(baseUrl() + p, { method, headers, body: payload });
+    if (res.status === 401 && attempt === 0) continue;
+    const text = await res.text();
+    let json = null;
+    try { json = JSON.parse(text); } catch { /* not JSON */ }
+    if (res.status >= 200 && res.status < 300) return json ?? text;
+    const e = new Error(res.status === 404 ? `not found: ${p}` : res.status === 403 ? 'not allowed for this agent'
+      : `HTTP ${res.status}: ${json?.message || json?.error || text.slice(0, 200)}`);
+    e.status = res.status;
+    throw e;
+  }
+  throw new Error('could not sign in');
+}
+
+// A governed outcome (spec-patch-12): its result if accepted, otherwise a Refused naming the rule.
+function settle(outcome) {
+  if (outcome?.decision === 'accepted') return outcome.result ?? {};
+  const r = outcome?.rejections?.[0];
+  const e = new Refused(r ? `refused: ${r.rule_id} - ${r.message}` : 'refused');
+  e.rule = r?.rule_id;
+  throw e;
+}
+
+// Read a record for a fresh read token, act on it, and once more if it changed meanwhile: a
+// governed STALE_TOKEN refusal, or a 409 from an older-style API.
+async function onRecord(read, act) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const rec = await read();
+    try {
+      const out = await act(rec);
+      return { rec, result: out?.decision ? settle(out) : out };
+    } catch (e) {
+      const stale = (e instanceof Refused && e.rule === 'STALE_TOKEN') || e.status === 409;
+      if (stale && attempt === 0) continue;
+      throw e;
+    }
+  }
+  throw new Error('unreachable');
+}
+
+// Standard input, as a stream: readFileSync(0) fails with EAGAIN on a pipe whose writer has not
+// finished.
+function readStdin() {
+  return new Promise((resolve, reject) => {
+    let text = '';
+    process.stdin.setEncoding('utf8');
+    process.stdin.on('data', (d) => { text += d; }).on('end', () => resolve(text.trim())).on('error', reject);
+  });
+}
+const textArg = async (v) => (v === '-' ? readStdin() : v);
+
+// One line from the terminal with echo off, for pasting a key.
+function askHidden(prompt) {
+  return new Promise((resolve) => {
+    process.stdout.write(prompt);
+    const stdin = process.stdin;
+    stdin.setRawMode(true); stdin.resume(); stdin.setEncoding('utf8');
+    let text = '';
+    stdin.on('data', function onData(ch) {
+      for (const c of ch) {
+        if (c === '\r' || c === '\n') { stdin.setRawMode(false); stdin.pause(); stdin.removeListener('data', onData); process.stdout.write('\n'); return resolve(text.trim()); }
+        if (c === '\u0003') { process.stdout.write('\n'); process.exit(2); }
+        if (c === '\u007f') text = text.slice(0, -1); else text += c;
+      }
+    });
+  });
+}
+
+function options(args, known, flags = []) {
+  const opts = {}; const rest = [];
+  for (let n = 0; n < args.length; n++) {
+    const a = args[n];
+    if (a.startsWith('--')) {
+      const name = a.slice(2);
+      if (flags.includes(name)) opts[name] = true;
+      else if (known.includes(name)) { opts[name] = args[++n]; if (opts[name] === undefined) throw new Usage(`${a} needs a value`); }
+      else throw new Usage(`unknown option ${a}`);
+    } else rest.push(a);
+  }
+  return { opts, rest };
+}
+const need = (rest, n, usage) => { if (rest.length < n) throw new Usage(`usage: ${CMD} ${usage}`); };
+const newKey = () => crypto.randomUUID();
+const time = (iso) => (iso ? new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
+
+const kit = { call, settle, onRecord, readStdin, textArg, options, need, newKey, time, Usage, Refused, CMD };
+
+const core = {
+  help: async () => console.log(`${CMD}: ${APP} from the command line
+
+  ${CMD} login --url <API base>     save the API base and the key (asked for, or read from standard input)
+  ${CMD} whoami                     the agent this key signs in as
+  ${CMD} api METHOD PATH [JSON]     the raw API, JSON out
+${ext.help ? `\n${ext.help}\n` : ''}
+Exit codes: 0 done, 1 error, 2 usage, 3 refused by a rule; 4 and up are ${APP}'s own.`),
+
+  login: async (args) => {
+    const { opts } = options(args, ['url']);
+    if (!opts.url || !/\/api\/v1\/?$/.test(opts.url)) throw new Usage(`${CMD} login --url <API base, ending /api/v1>`);
+    const key = process.stdin.isTTY ? await askHidden('Paste the API key, then press Enter: ') : await readStdin();
+    if (!/^[a-z0-9]+_[0-9a-f]{48}$/.test(key)) throw new Usage('that is not an API key (a prefix, _, and 48 hex characters)');
+    writePrivate(CONFIG, JSON.stringify({ url: opts.url.replace(/\/+$/, '') }, null, 2));
+    writePrivate(KEY_FILE, key + '\n');
+    try { fs.unlinkSync(TOKEN_FILE); } catch { /* none */ }
+    await token(true);
+    console.log(`signed in as ${readJson(TOKEN_FILE).subject}; key saved in ${KEY_FILE}`);
+  },
+
+  whoami: async () => {
+    await token();
+    const me = await call('GET', '/session/me/').catch(() => null);
+    console.log(`${readJson(TOKEN_FILE).subject}${me?.display_name ? ` (${me.display_name})` : ''}`);
+  },
+
+  api: async (args) => {
+    need(args, 2, 'api METHOD PATH [JSON]');
+    const [method, p, body] = args;
+    const m = method.toUpperCase();
+    const out = await call(m, p, { body: body ? JSON.parse(body) : undefined, key: m === 'GET' ? undefined : newKey() });
+    console.log(typeof out === 'string' ? out : JSON.stringify(out));
+  },
+};
+
+(async () => {
+  const [cmd = 'help', ...args] = process.argv.slice(2);
+  const name = { '-h': 'help', '--help': 'help' }[cmd] || cmd;
+  const run = ext.commands[name] ? (a) => ext.commands[name](a, kit) : core[name];
+  try {
+    if (!run) throw new Usage(`unknown command ${cmd}; ${CMD} help lists them`);
+    await run(args);
+  } catch (e) {
+    if (e instanceof Refused) { console.log(e.message); process.exitCode = 3; }
+    else if (e instanceof Usage) { console.error(e.message); process.exitCode = 2; }
+    else { console.error(`error: ${e.message}`); process.exitCode = 1; }
+  }
+})();

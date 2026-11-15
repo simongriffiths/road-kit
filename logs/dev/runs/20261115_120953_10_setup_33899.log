@@ -1,0 +1,62 @@
+[INFO] START
+
+[INFO] RUN_ID=20261115_120953_10_setup_33899
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=test/agents/10_setup.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/test/agents/10_setup.sql
+[INFO] SCRIPT_SHA256=0f1110d682313fafa0f5e6b08af2be540164d532c88337e914b25bed057c4714
+[INFO] GIT_COMMIT=520144d
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261115_120953
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261115_120953_10_setup_33899.log
+
+[INTENT]
+Purpose: Fixture for the spec-patch-15 HTTP and CLI tests (bin/run-agent-tests.sh): a second
+  person, ZZ_AGENT_OTHER, with the demo's default role, so a test can show one person cannot see
+  another's agents.
+Approach: Insert the principal in the scaffold's issuer if missing, and grant role user (env dev).
+Reason: ROAD_KIT_DEV has only ADMIN and USER1.
+Expected objects: one ROAD_PRINCIPALS row and one role grant, removed by 90_cleanup.sql.
+Risk: Low.
+Prior history checked: scratch/probe-principals.sql.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sun Nov 15 12:09:53 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+
+1 row inserted.
+
+Elapsed: 00:00:00.047
+
+1 row inserted.
+
+Elapsed: 00:00:00.181
+
+Commit complete.
+
+Elapsed: 00:00:00.037
+Elapsed: 00:00:00.053
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.246
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

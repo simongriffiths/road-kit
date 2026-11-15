@@ -49,6 +49,24 @@ exception
 end;
 /
 begin
+  execute immediate 'drop package road_agent_api_test';
+exception
+  when others then
+    if sqlcode != -4043 then
+      raise;
+    end if;
+end;
+/
+begin
+  execute immediate 'drop package road_agent_api';
+exception
+  when others then
+    if sqlcode != -4043 then
+      raise;
+    end if;
+end;
+/
+begin
   execute immediate 'drop package road_admin_api_test';
 exception
   when others then

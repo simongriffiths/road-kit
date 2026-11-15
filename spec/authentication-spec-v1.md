@@ -390,6 +390,27 @@ Key rotation must update the active signing key and JWKS representation. Callers
 
 Hardcoded users, locally managed signing keys, or similar scaffold mechanics must remain clearly marked as development-only.
 
+### 11.6 Agents and API Keys (spec-patch-15)
+
+An agent, such as Claude Code, signs in with an API key rather than a password:
+
+1. A person with `road.agent.self_serve` makes an agent of their own on the My agents page. It is a
+   principal of its own (`AGENT_<id>`), owned by them, holding the application's agent role
+   (`road_config` `agents.role`) and never its owner's roles.
+2. They make a key for it. The key (`<prefix>_` and 48 hex characters) is shown once; only its
+   SHA-256 is stored.
+3. The tool posts `{"api_key": "..."}` to `POST /api-auth/tokens` (public) and receives a JWT for
+   `api_keys.token_minutes` (default 15), whose scope is the agent's own permissions. It sends that
+   JWT as a bearer token like any other (section 4.1).
+
+A key stops at once when it is revoked or expires, or when its agent is retired or its owner is not
+`ACTIVE`; a token already issued lasts until it expires. `tools/road-cli/` is the client.
+
+**Restriction:** the exchange mints with `jwt_scaffold_auth_api.issue_token`, so it works under the
+`ords_local_jwt_scaffold` profile only. Under `external_oidc`, ORDS trusts the external issuer and
+would refuse these tokens; an application on that profile needs the provider's own machine-to-machine
+flow, or a later patch, before it switches agents on.
+
 ---
 
 ## 12. Testing Requirements
@@ -438,3 +459,4 @@ A ROAD authentication provider is conformant only if:
 | Version | Date | Notes |
 |---|---|---|
 | 1.0 | 2026-04-21 | Initial draft based on external OIDC, ORDS OAuth, and ORDS local JWT scaffold source implementations |
+| 1.1 | 2026-11-15 | Section 11.6: agents and API keys (spec-patch-15) |

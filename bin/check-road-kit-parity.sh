@@ -98,6 +98,20 @@ SHARED_FILES=(
   # and identical would mean sharing a password.
   config/local.env.example
 
+  # spec-patch-15 (agents and API keys), added 2026-11-15 and commented out until the first
+  # consumer adopts it: an entry here that the peer lacks fails the check, and no consumer has these
+  # yet (road-tracker has its own tenancy-aware version, to be replaced at its next upgrade). Uncomment
+  # in that consumer's adoption commit. The agents and api_auth module scripts are not listed: their
+  # module names carry the application's alias, as the admin module's do. tools/road-cli/commands.js
+  # and skills/ are the application's own.
+  # db/tables/road_agents.create.sql            db/tables/road_agents.drop.sql
+  # db/tables/road_api_keys.create.sql          db/tables/road_api_keys.drop.sql
+  # db/indexes/road_agents_owner.create.sql     db/indexes/road_agents_owner.drop.sql
+  # db/indexes/road_api_keys_agent.create.sql   db/indexes/road_api_keys_agent.drop.sql
+  # db/package_specs/road_agent_api.pks         db/package_bodies/road_agent_api.pkb
+  # db/package_specs/road_agent_api_test.pks    db/package_bodies/road_agent_api_test.pkb
+  # tools/road-cli/road-cli                     scripts/generate-skill.mjs
+
   # Added 2026-08-29 with the B-01 back-port, per the rule in this header: a file becomes shared in
   # the same commit that lists it here. Every one of these is framework-shaped and was identical in
   # both repositories while being watched by nothing.

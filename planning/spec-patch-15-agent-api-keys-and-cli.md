@@ -5,7 +5,7 @@
 a "My agents" page and an admin view in the React scaffold, and two new tools: `tools/road-cli/` (a
 command-line core that applications extend with task commands) and `scripts/generate-skill.mjs` (a
 Claude Code skill generated from a contract).
-**Status:** ruled 15 November 2026, not built. Simon accepted the recommendations in section 6 and
+**Status:** ruled and built 15 November 2026 (section 9), not yet released. Simon accepted the recommendations in section 6 and
 ruled that people make their own agents and keys (self-serve), each agent its own principal owned by
 the person who made it, rather than personal keys that act as the person (section 4.2). Two details
 were added in this revision to carry out that ruling and are open to change: the `road_agents` table
@@ -253,3 +253,37 @@ permissions.
 - OAuth 2.1 for MCP clients; an MCP server generated from the contract (RK-11) can sit beside the
   CLI later and use the same key exchange or a proper authorization server.
 - Scoped keys (a key limited to some permissions of its principal).
+
+## 9. Built, 15 November 2026
+
+On `ROAD_KIT_DEV` (QuorateDB), with the full create chain (run `20261115_120445_00_full`) and the demo.
+
+| Check | Result |
+|---|---|
+| PL/SQL | `road_agent_api_test` 8 passed: self-serve off without `agents.role`; a person's agent is its own principal with only the agent role; the per-owner limit, and retired agents not counting; a key shown once, hashed, absent from `road_decisions`, not replayed; another person cannot see, key or retire it, a manager can; shared agents need the manager; the exchange (200, and 401 for wrong, revoked, expired, retired agent and suspended owner, 400 for none); wrong calls. All nine framework suites pass (`test/plsql/run-framework-tests.sql`, new) |
+| HTTP | `test/agents/agents.test.mjs` 19 passed: a person makes an agent and a key, the key buys a token, the token is the agent (`/session/me/`) and works todos with the agent role but cannot manage agents, another person sees nothing, the admin sees all and revokes, revoked and retired keys buy nothing |
+| CLI | `test/agents/road-cli.test.mjs` 12 passed: login with a key made over HTTP, whoami, the demo's todo commands, `api`, exit codes, a revoked key shut out |
+| Browser | `hello_world/e2e/agents.smoke.spec.ts` passed: make an agent and a key, see it once, revoke, retire |
+| Generator | `test/skill/generate-skill.test.mjs` 8 passed, against `test/contract/fixtures/governed-surface-contract.valid.json` |
+| Handler coverage | 21 protected handlers covered; `api_auth` on the public allowlist with its reason |
+
+All of it, with fixtures made and removed: `bin/run-agent-tests.sh --env dev` (no password needed:
+person tokens are minted directly). road-kit's existing endpoint suite needs `ROAD_TEST_PASSWORD`,
+which is Simon's to set in `config/local.env`, and was not rerun.
+
+**Found while building:**
+
+- **An agent role should include `session.me.read`**, or an agent cannot read its own identity; the
+  demo's `todo_agent` does, and the README says so.
+- **The exchange works under the scaffold profile only.** It mints with the scaffold's signing key;
+  an application on `external_oidc` (road-blogger's production profile) would have its tokens
+  refused, so it needs its provider's machine-to-machine flow, or a later patch, before switching
+  agents on (`spec/authentication-spec-v1.md` 11.6).
+- **The new framework files are not yet on the parity list**, which compares against a consumer that
+  has them; they are listed, commented, in `bin/check-road-kit-parity.sh`, to switch on in the first
+  adoption commit.
+- **The todo demo is not a governed API** (a stale change is 409), so `road-cli`'s `onRecord` retries
+  on either a governed `STALE_TOKEN` or a 409.
+
+Not done here: a release tag, and road-tracker's adoption (section 6.7).
+

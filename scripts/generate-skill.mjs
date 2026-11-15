@@ -1,0 +1,157 @@
+#!/usr/bin/env node
+// Generates an application's Claude Code skill from its Governed Surface Contract (spec-patch-15
+// section 4.8). The skill is short and built around the application's road-cli command; the
+// contract supplies every endpoint, rule and description, and generation fails if the two disagree.
+//
+//   node scripts/generate-skill.mjs skills/<app>/skill.config.mjs           write SKILL.md, reference.md
+//   node scripts/generate-skill.mjs skills/<app>/skill.config.mjs --check   fail if either is stale
+//
+// The config (the application's own) exports:
+//   name, description     the skill's frontmatter
+//   contract              path to the contract, from the repository root
+//   commands              path to road-cli's commands.js, whose `calls` map each command to the
+//                         "METHOD /path" resources it uses
+//   cli                   the command's name, such as rt
+//   agentPermissions      the agent role's permissions, or roleData: { file, role } to read them
+//                         from a deploy script's ('role', 'permission') pairs
+//   workflow              Markdown: how an agent does the work with the commands
+//   out                   folder for SKILL.md and reference.md (default: the config's folder)
+//
+// Fails when a command calls a resource the contract does not have, or one the agent role may not
+// use. Leaves out rules marked consumer_visible: false and fields marked x-mcp-exclude (checklist
+// items 33 and 34). Deterministic: no dates; the same inputs give the same files.
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+
+const [configArg, flag] = process.argv.slice(2);
+if (!configArg) {
+  console.error('usage: node scripts/generate-skill.mjs <skill.config.mjs> [--check]');
+  process.exit(2);
+}
+const configPath = path.resolve(configArg);
+const cfg = (await import(pathToFileURL(configPath).href)).default;
+const root = process.cwd();
+const outDir = path.resolve(path.dirname(configPath), cfg.out ?? '.');
+const fail = (msg) => { console.error(`[FAIL] ${msg}`); process.exit(1); };
+
+const contract = JSON.parse(fs.readFileSync(path.resolve(root, cfg.contract), 'utf8'));
+const commandsFile = path.resolve(root, cfg.commands);
+const commands = (await import(pathToFileURL(commandsFile).href)).default ?? {};
+const commandsSource = fs.readFileSync(commandsFile, 'utf8');
+const VERSION = contract.envelope.contract_version;
+
+let perms = cfg.agentPermissions;
+if (!perms && cfg.roleData) {
+  const text = fs.readFileSync(path.resolve(root, cfg.roleData.file), 'utf8');
+  const re = new RegExp(`'${cfg.roleData.role.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}',\\s*'([a-z0-9_.]+)'`, 'g');
+  perms = [...text.matchAll(re)].map((m) => m[1]);
+}
+if (!perms?.length) fail('no agent permissions: give agentPermissions or roleData in the config');
+const agentPerms = new Set(perms);
+const mayUse = (e) => (e.authority?.actor?.required_permissions ?? []).every((p) => agentPerms.has(p));
+
+const actions = contract.state?.actions ?? [];
+const views = contract.publication?.views ?? [];
+const entries = [...actions, ...views];
+const route = (e) => (e.action_resource ?? e.resource).rest;
+const norm = (p) => p.replace(/\{[^}]*\}/g, '{}').replace(/\/+$/, '');
+const findEntry = (method, p) => entries.find((e) => route(e) && route(e).method === method && norm(route(e).path) === norm(p));
+
+// Each command's resources: in the contract, open to the agent, and called by the commands file.
+const used = [];
+for (const [cmd, calls] of Object.entries(commands.calls ?? {})) {
+  for (const c of calls) {
+    const [method, p] = c.split(/\s+/);
+    const e = findEntry(method, p);
+    if (!e) fail(`${cfg.cli} ${cmd} calls ${c}, which is not in ${cfg.contract}`);
+    if (!mayUse(e)) fail(`${cfg.cli} ${cmd} calls ${c} (${e.id}), which the agent role may not use`);
+    const literal = p.split('/').filter((x) => x && !x.startsWith('{')).at(-1);
+    if (literal && !commandsSource.includes(`/${literal}`)) fail(`${cfg.cli} ${cmd} is mapped to ${c}, but ${cfg.commands} never calls /${literal}`);
+    used.push(e);
+  }
+}
+if (!used.length) fail(`${cfg.commands} maps no command to the contract (export calls)`);
+
+const visible = (a) => (a.preconditions?.rules ?? []).filter((r) => r.consumer_visible !== false);
+const rules = new Map();
+for (const a of used.filter((e) => e.action_resource)) {
+  for (const r of visible(a)) {
+    if (r.id === 'STALE_TOKEN') continue; // road-cli reads again and retries
+    const rej = (a.outcomes?.rejections ?? []).find((x) => x.rule_id === r.id);
+    if (!rules.has(r.id)) rules.set(r.id, { description: r.description, retryable: rej?.retryable ?? false });
+  }
+}
+const cell = (t) => String(t).replace(/\|/g, '\\|').replace(/\s+/g, ' ');
+
+const skill = `---
+name: ${cfg.name}
+description: ${cfg.description}
+---
+
+# ${cfg.title ?? cfg.name}
+
+<!-- GENERATED by road-kit scripts/generate-skill.mjs from ${cfg.contract} ${VERSION}. Edit
+     ${path.relative(root, configPath)}, not this file. --check fails if this file is stale. -->
+
+Use the \`${cfg.cli}\` command. It signs in with an API key, keeps a short-lived token, and prints one
+line per answer. You are an agent: your own identity, never the person who owns you.
+
+If \`${cfg.cli} whoami\` says it is not set up, stop and ask your owner to make an API key on the My
+agents page and run \`${cfg.cli} login\`. Never print, log or commit a key.
+
+${cfg.workflow.trim()}
+
+## When ${cfg.cli} says "refused"
+
+\`refused: RULE - message\` (exit 3) means the application decided no and nothing changed. Stop and
+report the rule and message; do not work around it. ${cfg.cli} already retries when a record changed
+under you. Errors (exit 1) are wrong calls or a network problem.
+${rules.size ? `
+| Rule | What must be true |
+|---|---|
+${[...rules.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([id, r]) => `| \`${id}\` | ${cell(r.description)}${r.retryable ? ' Retrying later may succeed.' : ''} |`).join('\n')}
+` : ''}
+## More
+
+\`${cfg.cli} help\` lists every command. For anything else, \`${cfg.cli} api METHOD PATH [JSON]\` calls
+the API directly; [reference.md](reference.md) lists what an agent may call.
+`;
+
+const agentActions = actions.filter(mayUse);
+const agentViews = views.filter(mayUse);
+const fields = (schema) => Object.entries(schema?.properties ?? {}).filter(([, s]) => !s['x-mcp-exclude']).map(([k]) => k);
+const reference = `# ${cfg.title ?? cfg.name}: API reference for agents
+
+<!-- GENERATED by road-kit scripts/generate-skill.mjs from ${cfg.contract} ${VERSION}. -->
+
+Contract ${VERSION}. Use these with \`${cfg.cli} api METHOD PATH [JSON]\`. These are the
+${agentActions.length} actions and ${agentViews.length} views the agent role may use.
+
+## Actions
+
+${agentActions.map((a) => `### ${a.title} (\`${a.id}\`)
+
+\`${route(a).method} ${route(a).path}\`. ${cell(a.description ?? '')}
+
+Body: ${fields(a.request?.body).map((f) => `\`${f}\``).join(', ') || 'none'}. Refused with: ${visible(a).map((r) => `\`${r.id}\``).join(', ') || 'nothing'}.
+`).join('\n')}
+## Views
+
+${agentViews.map((v) => `### ${v.title} (\`${v.id}\`)
+
+\`GET ${route(v).path}\`. ${cell(v.meaning ?? '')}
+`).join('\n')}`;
+
+const out = [[path.join(outDir, 'SKILL.md'), skill], [path.join(outDir, 'reference.md'), reference]];
+if (flag === '--check') {
+  const stale = out.filter(([f, t]) => !fs.existsSync(f) || fs.readFileSync(f, 'utf8') !== t);
+  for (const [f] of stale) console.error(`[FAIL] ${path.relative(root, f)} is not what the contract generates`);
+  if (stale.length) process.exit(1);
+  console.log(`[PASS] the ${cfg.name} skill matches contract ${VERSION}`);
+} else {
+  fs.mkdirSync(outDir, { recursive: true });
+  for (const [f, t] of out) fs.writeFileSync(f, t);
+  console.log(`[INFO] ${cfg.name} skill written for contract ${VERSION}: ${used.length} command resources, ${rules.size} rules`);
+}

@@ -1,0 +1,141 @@
+[INFO] START
+
+[INFO] RUN_ID=20261115_120535_run-framework-tests_31738
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=test/plsql/run-framework-tests.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/test/plsql/run-framework-tests.sql
+[INFO] SCRIPT_SHA256=ae42d32fef3967821197ff342f6e454ac5d65bf39ff0215cd63fabfe36e09bd2
+[INFO] GIT_COMMIT=520144d
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261115_120535
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261115_120535_run-framework-tests_31738.log
+
+[INTENT]
+Purpose: Run every framework PL/SQL test suite, and report invalid objects and compile errors.
+Approach: Each suite's run_all, committing between suites (each cleans up after itself).
+Reason: road-kit had no committed runner; road-tracker wrote this one during its build and
+  spec-patch-15 adds road_agent_api_test.
+Expected objects: None left behind.
+Risk: Low. Suites roll back their fixtures.
+Prior history checked: road-tracker test/plsql/run-framework-tests.sql.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sun Nov 15 12:05:36 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+=== invalid objects (expect none) ===
+
+Elapsed: 00:00:00.304
+=== user_errors (expect none) ===
+
+Elapsed: 00:00:00.055
+=== suites ===
+PASS test_handle_known_validation
+PASS test_business_rule_code_not_mapped
+PASS test_handle_known_not_found
+PASS test_handle_known_conflict
+PASS test_handle_known_forbidden
+PASS test_handle_known_unmapped_escalates
+PASS test_handle_unknown
+error_api_test: 7 passed, 0 failed
+
+Elapsed: 00:00:00.191
+Elapsed: 00:00:00.039
+PASS accept_outcome
+PASS reject_outcome
+PASS accept_rolls_back
+PASS reject_survives
+PASS replay_per_principal
+PASS rejection_keeps_key
+PASS second_accept_refused
+PASS undisclosed_truth
+PASS public_no_principal
+PASS reject_needs_one
+road_decision_api_test: 10 passed, 0 failed
+
+Elapsed: 00:00:00.240
+Elapsed: 00:00:00.040
+PASS test_issue_read_token_creates_row
+PASS test_check_fresh_true_when_unchanged
+PASS test_check_fresh_false_when_stale
+PASS test_check_fresh_false_for_unknown_guid
+road_audit_api_test: 4 passed, 0 failed
+
+Elapsed: 00:00:00.099
+Elapsed: 00:00:00.037
+[PASS] road_ctx_pkg_test: 13 tests
+
+Elapsed: 00:00:00.753
+Elapsed: 00:00:00.042
+PASS test_user_admin_cannot_grant_reserved
+PASS test_system_admin_can_grant_reserved
+PASS test_granted_by_ignores_request_body
+PASS test_grant_is_idempotent
+PASS test_define_role_rejects_road_namespace
+PASS test_user_admin_cannot_define_roles
+PASS test_unauthenticated_denied
+PASS test_grant_all_app_permissions_is_explicit
+PASS test_get_principals_requires_permission
+PASS test_get_principals_search
+PASS test_get_principals_paging
+PASS test_attach_reserved_permission_refused
+PASS test_attach_to_reserved_role_refused
+PASS test_composition_takes_effect_on_next_request
+PASS test_attached_by_ignores_request_body
+PASS test_attach_detach_idempotent
+PASS test_compose_denied_without_permission
+PASS test_assertion_permits_ordinary_session_attach
+PASS test_assertion_refuses_reserved_session_attach
+PASS test_assertion_refuses_flip_under_session_attach
+PASS test_assertion_permits_reserved_deploy_attach
+PASS test_cannot_revoke_last_system_admin
+road_admin_api_test: 22 passed, 0 failed
+
+Elapsed: 00:00:01.179
+Elapsed: 00:00:00.041
+FAIL test_self_serve_off: ORA-06550: line 1, column 27:
+PLS-00302: component 'TEST_SELF_SERVE_OFF' must be declared
+FAIL test_person_makes_an_agent: ORA-06550: line 1, column 27:
+PLS-00302: component 'TEST_PERSON_MAKES_AN_AGENT' must be declared
+FAIL test_limit_per_owner: ORA-06550: line 1, column 27:
+PLS-00302: component 'TEST_LIMIT_PER_OWNER' must be declared
+FAIL test_key_shown_once: ORA-06550: line 1, column 27:
+PLS-00302: component 'TEST_KEY_SHOWN_ONCE' must be declared
+FAIL test_others_cannot_touch_it: ORA-06550: line 1, column 27:
+PLS-00302: component 'TEST_OTHERS_CANNOT_TOUCH_IT' must be declared
+FAIL test_shared_agents: ORA-06550: line 1, column 27:
+PLS-00302: component 'TEST_SHARED_AGENTS' must be declared
+FAIL test_exchange: ORA-06550: line 1, column 27:
+PLS-00302: component 'TEST_EXCHANGE' must be declared
+FAIL test_wrong_calls: ORA-06550: line 1, column 27:
+PLS-00302: component 'TEST_WRONG_CALLS' must be declared
+road_agent_api_test: 0 passed, 8 failed
+
+begin road_agent_api_test.run_all; end;
+*
+ERROR at line 1:
+ORA-20000: 8 road_agent_api test(s) failed
+ORA-06512: at "ROAD_KIT_DEV.ROAD_AGENT_API_TEST", line 309
+ORA-06512: at line 1
+
+https://docs.oracle.com/error-help/db/ora-20000/
+
+Elapsed: 00:00:00.433
+Elapsed: 00:00:00.452
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=FAILURE
+SQLCL_EXIT=32
+
+[INFO] SQLCL_EXIT=32
+[INFO] END

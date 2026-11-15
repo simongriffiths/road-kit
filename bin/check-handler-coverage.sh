@@ -23,7 +23,9 @@ MODULES_DIR="${PROJECT_ROOT}/api/modules"
 #   health -- liveness probe, must answer before anyone can log in
 #   auth   -- the login and JWKS endpoints themselves; requiring a session to get a session is circular
 #   ui     -- static SPA assets, protected by nothing because the bundle is public anyway
-PUBLIC_MODULES=("health" "auth" "ui")
+#   api_auth -- agent sign-in (spec-patch-15): trades an API key for a token, so like auth it
+#               cannot require the session it creates; the key is the credential
+PUBLIC_MODULES=("health" "auth" "ui" "api_auth")
 
 usage() {
   cat >&2 <<'EOF'

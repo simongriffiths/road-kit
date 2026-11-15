@@ -1,0 +1,59 @@
+[INFO] START
+
+[INFO] RUN_ID=20261115_120837_90_cleanup_33650
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=test/agents/90_cleanup.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/test/agents/90_cleanup.sql
+[INFO] SCRIPT_SHA256=b2098b61312d1069e7d8dcee7f41e66eec7f7493f14a54df5a56f925b06b4aac
+[INFO] GIT_COMMIT=520144d
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261115_120837
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261115_120837_90_cleanup_33650.log
+
+[INTENT]
+Purpose: Remove what bin/run-agent-tests.sh made: agents whose display name starts "agent-test",
+  their keys, roles and decisions, the todos they made, and the fixture person ZZ_AGENT_OTHER.
+Approach: Delete by those names only (env dev).
+Reason: Leave ROAD_KIT_DEV as it was.
+Expected objects: none left.
+Risk: Low. Names only test rows.
+Prior history checked: test/agents/10_setup.sql.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sun Nov 15 12:08:38 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+
+Session altered.
+
+Elapsed: 00:00:00.043
+[INFO] removed 2 test principals
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.131
+Elapsed: 00:00:00.150
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.250
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

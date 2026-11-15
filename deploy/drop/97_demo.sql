@@ -15,6 +15,11 @@ prompt --- seed rows ---
 
 delete from road_role_permissions where permission_name like 'todo.%';
 delete from road_role_permissions where role_name = 'todo_admin';
+delete from road_role_permissions where role_name = 'todo_agent';
+delete from road_role_permissions where role_name = 'user' and permission_name in ('road.agents.rw', 'road.agent.self_serve');
+delete from road_principal_roles where role_name = 'todo_agent';
+delete from road_roles where role_name = 'todo_agent';
+update road_config set config_value = null where config_key = 'agents.role' and config_value = 'todo_agent';
 delete from road_principal_roles where role_name = 'todo_admin';
 delete from road_permissions where permission_name like 'todo.%';
 delete from road_roles where role_name = 'todo_admin';

@@ -1,0 +1,47 @@
+[INFO] START
+
+[INFO] RUN_ID=20261115_121226_assets_index-DKH-dWA0_css_34884
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/var/folders/zq/vz__y9m90n92dh_3fs7lbgqw0000gn/T/tmp.PTOw1By0lz/assets_index-DKH-dWA0_css.sql
+[INFO] SCRIPT_PATH=/var/folders/zq/vz__y9m90n92dh_3fs7lbgqw0000gn/T/tmp.PTOw1By0lz/assets_index-DKH-dWA0_css.sql
+[INFO] SCRIPT_SHA256=a76705fdde5fb089b890cf54c24329c37c815218e429ff38be0a49716228a7d5
+[INFO] GIT_COMMIT=520144d
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261115_121226
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261115_121226_assets_index-DKH-dWA0_css_34884.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sun Nov 15 12:12:26 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.924
+Elapsed: 00:00:00.946
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.253
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

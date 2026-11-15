@@ -24,6 +24,18 @@ select 'default_principal_role',
   from dual
  where not exists (select 1 from road_config where config_key = 'default_principal_role');
 
+-- Agents and API keys (spec-patch-15). agents.role is left unset: self-serve agents stay off until
+-- an application names its agent role here and grants road.agent.self_serve.
+insert into road_config (config_key, config_value, description)
+select c.k, c.v, c.d from (
+  select 'agents.role' as k, cast(null as varchar2(4000)) as v,
+         'Role every agent principal holds. Unset: people cannot make agents. An application names its own agent role, never a person''s role.' as d from dual union all
+  select 'agents.limit_per_owner', '5', 'Most live agents one person may own.' from dual union all
+  select 'api_keys.prefix', 'rk', 'Prefix of every API key, so a leaked key names the application it came from.' from dual union all
+  select 'api_keys.token_minutes', '15', 'Minutes a token traded for an API key lasts. A revoked key gets no new token; one already issued lasts at most this long.' from dual
+) c
+ where not exists (select 1 from road_config where config_key = c.k);
+
 insert into road_config (config_key, config_value, description)
 select 'bootstrap_admin_subject',
        'ADMIN',
@@ -145,6 +157,18 @@ select 'session.me.read',
   from dual
  where not exists (select 1 from road_permissions where permission_name = 'session.me.read');
 
+-- Agents and API keys (spec-patch-15). road.agents.rw is the ORDS gate to /api/v1/agents/, named as
+-- its privilege; road.agent.self_serve lets a person make agents of their own and keys for them;
+-- road.api_key.manage sees and revokes every agent's keys and makes shared agents. The first two
+-- are unreserved, so an application grants them to its own roles; the third is the framework's.
+insert into road_permissions (permission_name, description, is_reserved)
+select p.name, p.descr, p.reserved from (
+  select 'road.agents.rw' as name, 'Reach the ORDS /agents/ endpoints. Held with road.agent.self_serve or road.api_key.manage.' as descr, 'N' as reserved from dual union all
+  select 'road.agent.self_serve', 'Make agents of your own and API keys for them (spec-patch-15).', 'N' from dual union all
+  select 'road.api_key.manage', 'See and revoke every agent''s API keys, retire any agent, and make shared agents.', 'Y' from dual
+) p
+ where not exists (select 1 from road_permissions x where x.permission_name = p.name);
+
 prompt --- mark existing permissions reserved (patch 07 migration) ---
 
 -- Fixes up a schema that already had these rows before is_reserved existed -- the insert guards
@@ -193,6 +217,16 @@ insert into road_role_permissions (role_name, permission_name)
 select 'road.system_admin', 'road.role.compose' from dual
  where not exists (select 1 from road_role_permissions
                     where role_name = 'road.system_admin' and permission_name = 'road.role.compose');
+
+-- road.system_admin manages every agent and key, and may have agents of its own.
+insert into road_role_permissions (role_name, permission_name)
+select 'road.system_admin', p.name from (
+  select 'road.agents.rw' as name from dual union all
+  select 'road.agent.self_serve' from dual union all
+  select 'road.api_key.manage' from dual
+) p
+ where not exists (select 1 from road_role_permissions x
+                    where x.role_name = 'road.system_admin' and x.permission_name = p.name);
 
 -- road.user_admin grants and revokes, but deliberately cannot define. Nothing in the table
 -- structure enforces that separation, so it lives here and is asserted in 99_verify.
