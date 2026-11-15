@@ -1,11 +1,15 @@
-# Specification Patch 15 — Agent API Keys and the Command-Line Tool
+# Specification Patch 15 — Agents, API Keys and the Command-Line Tool
 
-**Applies to:** framework surface. A new table `road_api_keys`, a new package `road_api_key_api`, a
-new public ORDS module `/api-auth/`, three governed admin actions, an admin page in the React
-scaffold, and two new tools: `tools/road-cli/` (a command-line core that applications extend with
-task commands) and `scripts/generate-skill.mjs` (a Claude Code skill generated from a contract).
-**Status:** design, 15 November 2026. Not built. Section 6 recommends an answer to each open point;
-each needs Simon's ruling before building.
+**Applies to:** framework surface. New tables `road_agents` and `road_api_keys`, a new package
+`road_agent_api`, a new public ORDS module `/api-auth/`, governed actions for agents and their keys,
+a "My agents" page and an admin view in the React scaffold, and two new tools: `tools/road-cli/` (a
+command-line core that applications extend with task commands) and `scripts/generate-skill.mjs` (a
+Claude Code skill generated from a contract).
+**Status:** ruled 15 November 2026, not built. Simon accepted the recommendations in section 6 and
+ruled that people make their own agents and keys (self-serve), each agent its own principal owned by
+the person who made it, rather than personal keys that act as the person (section 4.2). Two details
+were added in this revision to carry out that ruling and are open to change: the `road_agents` table
+(4.1) and a default limit of five live agents per person (4.4).
 **Decisions it implements:** road-atlas ledger B-04 (road-tracker's agent API keys and `rt` tool are
 owed to road-kit). It follows the Governed Surface Contract definition 0.1.0 (draft), sections 5.2
 (the acting principal is always the one evaluated) and 9 (generated artefacts).
@@ -26,8 +30,10 @@ for a fixed time (`bin/get-test-token.sh`), or the raw API, which costs it many 
 
 This patch adds the model cloud services use, and the tooling that makes it cheap for an agent:
 
-1. **API keys.** An administrator makes a key for a principal in the app, names it for where it will
-   run, and copies it once. Only a SHA-256 hash is stored. Revoking it stops it at once.
+1. **Self-serve agents and API keys.** A person makes their own agent in the app ("Simon's Claude
+   Code"), a principal of its own that they own, and makes keys for it, named for where each will
+   run and copied once. Only a SHA-256 hash is stored. Revoking a key stops it at once. Admins see
+   and revoke every agent's keys, and make shared agents with no person as owner.
 2. **The key exchange.** A tool trades the key at a public endpoint for a short-lived JWT, which ORDS
    validates like any other bearer token. ORDS accepts only JWTs, so a raw key cannot be the bearer
    credential.
@@ -64,47 +70,85 @@ adopts another's identity. This patch does not change either:
 Both keep "one principal per caller, never borrowed". The API key path is for agents that should
 not hold database credentials at all: with them, a tool could start a session as any principal and
 skip the governed actions. It also answers the gsc definition's open question E.5 (a command line
-calls the REST binding as its own principal).
+calls the REST binding as its own principal), and, with section 4.2, E.1 (delegation).
 
 ## 4. Design
 
-### 4.1 Table `road_api_keys`
+### 4.1 Table `road_agents`
 
-`key_id`, `principal_id` (FK `road_principals`), `name` (where it runs, up to 80 characters),
-`key_prefix` (first 12 characters, to recognise it), `key_hash` (SHA-256 hex, unique),
+`principal_id` (primary key, FK `road_principals`), `owner_principal_id` (FK `road_principals`, null
+for a shared agent an admin made), `created_by`, `created_at`. A principal is an agent if and only if
+it has a row here. `road_principals` itself does not change: road-blogger is live (atlas F-06).
+
+### 4.2 Agents are their own principals, owned by a person
+
+Simon's ruling: self-serve, but never a key that acts as the person. An agent:
+
+- **is a principal of its own**, with a subject the framework issues (`AGENT_<n>`), the application's
+  JWT issuer, the display name its owner gives, and no password;
+- **holds one role, the application's agent role** (`road_config` key `agents.role`, for example
+  road-tracker's `rt_agent`), never its owner's roles. The application chooses what agents may do,
+  and its agent rules (road-tracker's claims, "agents cannot close") keep working because the agent
+  is not its owner;
+- **is attributed to itself**: history and `road_decisions` record the agent's principal; the owner is
+  one join away in `road_agents`, so a screen can say "Simon's Claude Code";
+- **stops when its owner stops**: the exchange refuses a key whose agent or owner is not `ACTIVE`, so
+  suspending a person suspends their agents.
+
+This is a worked answer to the gsc definition's open question E.1 (delegation): the agent acts for
+its owner under its own identity, and the acting principal, the agent, is the one evaluated (5.2).
+
+Self-serve is off until an application sets `agents.role` and grants `road.agent.self_serve` to the
+roles whose holders may make agents.
+
+### 4.3 Table `road_api_keys`
+
+`key_id`, `principal_id` (the agent; FK `road_agents`), `name` (where it runs, up to 80
+characters), `key_prefix` (first 12 characters, to recognise it), `key_hash` (SHA-256 hex, unique),
 `created_by`, `created_at`, `last_used_at`, `expires_at` (optional), `revoked_at`, `revoked_by`.
-No tenant column in road-kit; an application with tenancy adds one and puts the table under its
-isolation policy, as road-tracker did.
+No tenant column in road-kit; an application with tenancy adds one to both tables and puts them under
+its isolation policy, as road-tracker did.
 
-### 4.2 Package `road_api_key_api`
+### 4.4 Package `road_agent_api`
 
-- `create_key(p_body json, p_idempotency_key varchar2) return json`: governed action
-  `api_keys.create`, permission `road.api_key.manage`. Rule `PRINCIPAL_NOT_ELIGIBLE` (section 6.1).
-  The key is `<prefix>_` and 48 hex characters (192 random bits, `DBMS_CRYPTO.RANDOMBYTES`). It is
-  added to the answer **after** `road_decision_api.accept` records the decision, so the decision
-  record never holds it; a replay of the same key returns the outcome without it.
-- `revoke_key(p_key_id number, p_idempotency_key varchar2) return json`: `api_keys.delete`, rule
-  `API_KEY_NOT_FOUND`.
-- `list_keys return clob`: view `api_keys.list`: keys with name, prefix, holder, made, last used,
-  revoked; never the key or its hash.
-- `exchange(p_body clob, p_status out number, p_response out clob)`: `{"api_key": "..."}` in. 200
-  with `access_token`, `token_type`, `expires_in` and `subject`; 401 `invalid_key` for unknown,
-  revoked or expired; 400 for no key. Records `last_used_at`. Mints with
-  `jwt_scaffold_auth_api.issue_token` (or the provider profile's equivalent, spec-patch-09).
+Governed actions (spec-patch-12), each through `road_decision_api`:
 
-### 4.3 ORDS module `api_auth`
+| Action | Resource | Who | Rules |
+|---|---|---|---|
+| `agents.create` | `POST /agents/` `{display_name}` | holders of `road.agent.self_serve` (owner: the caller); holders of `road.api_key.manage` may set `"shared": true` (no owner) | `AGENT_LIMIT_REACHED` (at most `agents.limit_per_owner`, default 5, live agents per owner) |
+| `agents.retire` | `DELETE /agents/{id}/` | the owner, or `road.api_key.manage` | `AGENT_NOT_FOUND` (not yours, or not an agent) |
+| `api_keys.create` | `POST /agents/{id}/keys/` `{name, expires_at?}` | the owner, or `road.api_key.manage` | `AGENT_NOT_FOUND`, `AGENT_RETIRED` |
+| `api_keys.delete` | `DELETE /agents/{id}/keys/{key_id}/` | the owner, or `road.api_key.manage` | `AGENT_NOT_FOUND`, `API_KEY_NOT_FOUND` |
+
+Views: `agents.list` (`GET /agents/`: the caller's agents with their keys; with `?all=true`, every
+agent, for `road.api_key.manage`). Never a key or its hash.
+
+A key is `<prefix>_` and 48 hex characters (192 random bits, `DBMS_CRYPTO.RANDOMBYTES`). It is added
+to the answer **after** `road_decision_api.accept` records the decision, so the decision record
+never holds it; a replay of the same Idempotency-Key returns the outcome without it. Retiring an
+agent revokes its keys and sets its principal `RETIRED`.
+
+`exchange(p_body clob, p_status out number, p_response out clob)`: `{"api_key": "..."}` in. 200
+with `access_token`, `token_type`, `expires_in` and `subject`; 401 `invalid_key` for a key that is
+unknown, revoked or expired, or whose agent or owner is not `ACTIVE`; 400 for no key. Records
+`last_used_at`. Mints with `jwt_scaffold_auth_api.issue_token` (or the provider profile's
+equivalent, spec-patch-09).
+
+### 4.5 ORDS modules
 
 `POST /api-auth/tokens`, public, beside `/jwt-auth/login`, on `bin/check-handler-coverage.sh`'s
 allowlist with its reason: requiring a session to get a session is circular. The handler calls
-`road_api_key_api.exchange` and sends what it returns.
+`road_agent_api.exchange` and sends what it returns. `/api/v1/agents/` carries the actions and view
+above, protected like any other module.
 
-### 4.4 The admin page
+### 4.6 The pages
 
-An "API keys" page in the scaffold app: choose a principal, name the key, make it; the key is shown
-once with a copy button and the setup command (`<cli> login --url ...`, the key pasted at a prompt,
-never on the command line). A list with last use and Revoke.
+**My agents**, for everyone with `road.agent.self_serve`: make an agent, make a key for it (shown
+once, with a copy button and the setup command `<cli> login --url ...`, the key pasted at a prompt,
+never on the command line), see each key's last use, revoke keys, retire the agent. **All agents**,
+for `road.api_key.manage`: the same over every agent, with owners, and shared agents.
 
-### 4.5 `tools/road-cli/`
+### 4.7 `tools/road-cli/`
 
 A single Node file, no dependencies, that an application copies and extends, as it copies the React
 scaffold:
@@ -116,12 +160,13 @@ scaffold:
 - `call`, `settle` (an outcome becomes a result, or a refusal with `rule_id` and message, exit 3),
   `onRecord` (read for a fresh read token, act, retry once on `STALE_TOKEN`), idempotency keys per
   create, standard input read as a stream (`readFileSync(0)` fails with EAGAIN on a pipe).
-- `whoami`, `api METHOD PATH [JSON]` for anything the task commands do not cover.
+- `whoami` (the agent and its owner), `api METHOD PATH [JSON]` for anything the task commands do not
+  cover.
 - An extension point, `commands.js`, for the application's task commands.
 
 Exit codes: 0 done, 1 error, 2 usage, 3 refused by a rule, and codes from 4 for the application.
 
-### 4.6 `scripts/generate-skill.mjs`
+### 4.8 `scripts/generate-skill.mjs`
 
 Generates `skills/<app>/SKILL.md` and `reference.md` from the contract and the agent role's
 permissions. The application supplies the workflow text and a map of each CLI command to the
@@ -132,58 +177,65 @@ and 34 (deterministic, states the contract version, leaves out `consumer_visible
 
 ## 5. Tests
 
-PL/SQL: a key made, shown once, hashed, absent from `road_decisions`; replay without it; the
-eligibility rule; exchange 200, 401 for wrong, revoked and expired, 400 for none; last use recorded;
-revoke and `API_KEY_NOT_FOUND`; the permission. Endpoint: the exchange, and a call with the token it
+PL/SQL: a person makes an agent, which gets the agent role and none of theirs; the per-owner limit;
+a key made, shown once, hashed, absent from `road_decisions`; replay without it; another person
+cannot see, key or retire your agent, an admin can; exchange 200, 401 for wrong, revoked, expired,
+retired agent and suspended owner, 400 for none; last use recorded; self-serve off when
+`agents.role` is unset. Endpoint: the exchange, and a call with the token it
 returns. CLI: login, whoami, `api`, a refusal's exit code, a revoked key. Browser: make a key, see it
 once, revoke it. Generator: `--check`, and a command mapped to a missing entry fails.
 
-## 6. Open points, with recommendations
+## 6. Rulings (15 November 2026)
 
-### 6.1 Who may hold a key
+### 6.1 Who makes agents and keys
 
-Any principal, or only some. **Recommend:** principals that hold a role marked for API keys
-(`road_roles.allows_api_keys`, a new column, default N), so people do not get long-lived keys by
-default; road-tracker's `rt_agent` would be such a role. The rule is `PRINCIPAL_NOT_ELIGIBLE`.
+**Ruled: self-serve.** People make their own agents and keys (`road.agent.self_serve`); admins
+(`road.api_key.manage`) see and revoke all of them and make shared agents. The first draft
+recommended admin-only keys for principals whose role allowed them; Simon asked for self-serve, and
+the choice between a personal key that acts as the person and an agent of one's own was ruled for
+the agent (section 4.2).
 
-### 6.2 Who makes them
+### 6.2 What an agent may do
 
-**Recommend:** a new permission `road.api_key.manage`, held by `road.system_admin`; an application
-grants it to its own admin role. A principal never makes its own key.
+**Ruled:** the application's agent role, set in `agents.role`, never its owner's roles. Limiting an
+agent further to what its owner may do is not in this patch.
 
 ### 6.3 Token lifetime
 
-**Recommend:** 15 minutes, set in `JWT_SCAFFOLD_CONFIG`. Revocation then takes effect within 15
-minutes for a token already issued, at once for new ones.
+**Ruled:** 15 minutes, set in `JWT_SCAFFOLD_CONFIG`. Revocation then takes effect within 15 minutes
+for a token already issued, at once for new ones.
 
 ### 6.4 Key expiry
 
-**Recommend:** optional `expires_at`, unset by default, shown on the admin page; no automatic
-rotation in this patch.
+**Ruled:** optional `expires_at`, unset by default, shown on the pages; no automatic rotation.
 
 ### 6.5 The key prefix
 
-**Recommend:** set per application in `road.config` (road-tracker's is `rtk`), so a leaked key names
-its source, and secret scanners can be taught the pattern.
+**Ruled:** set per application in `road.config` (road-tracker's is `rtk`), so a leaked key names its
+source, and secret scanners can be taught the pattern.
 
 ### 6.6 Where the CLI and generator live, and how applications take them
 
-**Recommend:** in road-kit under `tools/road-cli/` and `scripts/`, copied into an application with
-the scaffold and checked by `bin/check-road-kit-parity.sh` like other framework files; the
-application's own `commands.js` and skill workflow text are not checked.
+**Ruled:** in road-kit under `tools/road-cli/` and `scripts/`, copied into an application with the
+scaffold and checked by `bin/check-road-kit-parity.sh` like other framework files; the application's
+own `commands.js` and skill workflow text are not checked.
 
 ### 6.7 road-tracker's copy
 
-road-tracker built this with tenancy: keys under its admin-only isolation policy, and the exchange's
-lookup in its tenancy schema. **Recommend:** road-tracker adopts the framework package when it next
-upgrades road-kit, keeping its tenancy wrapper (tenant column, policy, `RT_KEY_API`) as the
-documented extension for multi-tenant applications.
+road-tracker built admin-made keys with tenancy: keys under its admin-only isolation policy, the
+exchange's lookup in its tenancy schema, and agent principals made by a platform script.
+**Ruled:** road-tracker adopts the framework version when it next upgrades road-kit. Self-serve
+there needs a person to create an agent inside their own tenant, which crosses its isolation
+boundary, so it takes one more narrow function in `ROAD_TRACKER_TENANCY` beside `RT_KEY_API`:
+create an agent principal in the caller's tenant, with the agent role, owned by the caller. Its
+tenancy wrapper stays the documented extension for multi-tenant applications.
 
 ## 7. Build plan, once ruled
 
-1. Table, package and tests; the permission and role column (`deploy/create`, rerunnable).
-2. The `api_auth` module and its allowlist entry; endpoint tests.
-3. The admin page in the scaffold app; browser test.
+1. Tables `road_agents` and `road_api_keys`, package `road_agent_api` and tests; the permissions
+   and `road_config` keys (`deploy/create`, rerunnable).
+2. The `api_auth` and `agents` modules, the allowlist entry; endpoint tests.
+3. The My agents and All agents pages in the scaffold app; browser tests.
 4. `tools/road-cli/` with a demo extension for the todos example, and its tests.
 5. `scripts/generate-skill.mjs` with the todos example's skill, and `--check` in the release
    checks.
@@ -191,11 +243,13 @@ documented extension for multi-tenant applications.
    `skill-from-contract`); a release note; road-atlas RK-15 when released, B-04 closed.
 
 road-blogger is live (atlas F-06): every change is additive, no existing table, package or module
-changes, and nothing is switched on until an application grants `road.api_key.manage`.
+changes, and nothing is switched on until an application sets `agents.role` and grants the
+permissions.
 
 ## 8. Out of scope
 
-- Making agent principals from the admin page (principal creation stays where it is).
+- Personal keys that act as the person (ruled out in 6.1).
+- Limiting an agent to the intersection of its role and its owner's permissions (6.2).
 - OAuth 2.1 for MCP clients; an MCP server generated from the contract (RK-11) can sit beside the
   CLI later and use the same key exchange or a proper authorization server.
 - Scoped keys (a key limited to some permissions of its principal).
