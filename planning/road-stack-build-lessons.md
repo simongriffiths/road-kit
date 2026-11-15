@@ -897,3 +897,135 @@ function TokenBridge({ children }) {
 across reloads that the loop lives. One redirect then a visible error beats a page that thrashes
 and tells the user nothing.
 
+
+---
+
+## Row-level security (VPD) on Autonomous Database
+
+From road-tracker, which put every table under a tenant and project policy owned by a separate
+schema (15 November 2026).
+
+**A policy predicate's subquery runs with the policy function owner's privileges (ORA-28113).** A
+predicate such as `PROJECT_ID IN (SELECT ... FROM APP.MEMBERS ...)` is resolved as the owner of the
+policy function, not the querying session. If that schema has no SELECT on the subquery's table,
+every query on the protected table fails for the sessions whose predicate has the subquery. Fix:
+grant the policy schema SELECT on that table. Atlas F-13.
+
+**VPD refuses the table owner DDL that reads every row (ORA-28133).** Once a table is under a policy,
+its owner cannot add a column with a default, a NOT NULL column to a populated table, or a validated
+constraint. A nullable column with no default is allowed. Fix: run such changes as ADMIN (EXEMPT
+ACCESS POLICY), each made only if missing, before the application deploy; create indexes on a new
+table before its policy is applied. Atlas F-15.
+
+**MERGE fails a policy's check option when the predicate has a subquery (ORA-28115).** The same MERGE
+passed for an admin, whose predicate had no subquery, and failed for a member, whose predicate did,
+though the row was in the member's scope. Plain UPDATE, then INSERT if nothing was updated, passes for
+both. Test upserts as a non-admin. Atlas F-17.
+
+**Clean-up under an owner-only policy has to act as each owner.** With a predicate of
+`OWNER_ID = <caller>`, no application session sees all rows, so a test clean-up begins a request as
+each fixture principal in turn.
+
+## More PL/SQL and SQL/JSON
+
+**A PL/SQL JSON object type cannot be used inside SQL (ORA-40573).** `insert ... values (l_obj.to_clob)`
+fails; assign `l_obj.to_clob` to a CLOB variable first.
+
+**A variable's size check runs before your validation (ORA-06502).** `l_q varchar2(200) := p_q`
+raises at declaration when the caller sends 201 characters, so the 400 your code meant to return
+becomes a 500. Declare the variable wide (4000) and check the length yourself.
+
+**`json_object_t.get_object(...).put(...)` cannot be used as an assignment target (PLS-00363).** Hold
+the nested object in a variable, then call `put` on the variable; it is a reference, so the parent
+changes.
+
+**A package constant cannot be referenced in SQL**, the same restriction as PLS-00231 for private
+functions: `dbms_crypto.hash(x, dbms_crypto.hash_sh256)` inside a VALUES clause fails. Compute it in
+PL/SQL first.
+
+**`bin/run-sql.sh` reports SUCCESS when a package fails to compile.** It lists the errors in the log's
+`USER_ERRORS_CHECK` section and still exits 0. Read that section after every deploy; a test package
+that does not compile shows up only as a confusing ORA-06550 when the suite runs.
+
+## ORDS
+
+**ORDS reserves the `q` query parameter.** It treats `?q=` as its own filter syntax and handles it
+before the handler runs, so the handler never sees it and the reply is not the handler's JSON. Name a
+search parameter anything else (`text`). Atlas F-16.
+
+**ORDS adds `X-Content-Type-Options: nosniff` to every response.** A handler that sends it too gets
+the header twice.
+
+**A JSON content type on a DELETE with no body returns ORDS's HTML error page.** Send Content-Type
+only when there is a body.
+
+## Node command-line tools
+
+**`fs.readFileSync(0)` fails with EAGAIN on a pipe whose writer has not finished.** Read standard input
+as a stream (`process.stdin.on('data' ...).on('end' ...)`).
+
+**Never take a secret on the command line.** It lands in shell history and process listings. Ask at a
+prompt with echo off (raw mode), or read it from a pipe; for curl, pass the Authorization header on
+standard input (`-H @-`).
+
+## Testing agents and browsers
+
+**A headless Claude Code session in a new folder ignores that folder's `.claude/settings.json`**
+("this workspace has not been trusted"). Pass `--allowedTools` on the command line, and close
+standard input (`< /dev/null`) or it waits for it.
+
+**macOS temporary folders have two spellings.** `mktemp -d` gives `/var/folders/...`, which the
+process sees as `/private/var/folders/...`; a permission rule naming one does not match the other.
+Resolve with `cd "$(mktemp -d)" && pwd -P`.
+
+**Measure an agent task in turns.** In road-tracker's acceptance run, 16 turns cost about 0.31 USD and
+nearly all input was Claude Code's own context, re-sent each turn from cache. Answers of a few lines
+barely register; a command that does three steps saves two turns.
+
+**dnd-kit marks a draggable it has disabled `aria-disabled`, and Playwright then refuses to click it.**
+An item that cannot be dragged but can still be opened needs its own button semantics instead of the
+drag attributes.
+
+**Mouse drags in Playwright need the target on screen.** Coordinates outside the viewport hit
+nothing, and a busy test board pushes cards below it. Scroll the card into view and drop at its own
+height inside the target column.
+
+## Running a build: time and cost
+
+From road-tracker's Release 1 (14 to 15 November 2026): seven increments, tenant isolation, a full
+governed contract, an agent tool and road-kit backports, in many hours of work and over 12 hours
+elapsed. Not Oracle facts: what made it slow, and what to do instead.
+
+**Settle every decision with more than one reasonable reading before building.** The largest avoidable
+cost was rework: attachments built on Object Storage because the spec said so, then rebuilt in the
+database, which was what Simon meant; an agent skill built on the raw API, then rebuilt on a task
+tool. Before a build, sweep the spec for external services, identity, storage and agent access, and
+ask. Minutes against hours.
+
+**Read this file before building.** PLS-00231 was already recorded above and was hit three times in
+road-tracker, whose copy of road-kit did not carry `planning/`. An application's AGENTS.md should
+point here.
+
+**Size the governance to the project.** Contract checks, rule catalogues, the 35-item checklist, atlas
+entries, pattern notes and per-phase records took perhaps a quarter of the effort. That is right for
+a reference implementation, and too much for a personal tool. Decide at the start which an app is.
+
+**Tenant isolation costs something in every phase.** Two schemas, ADMIN-only column changes, two
+fixture tenants in every test and three of the pitfalls above came from future-proofing a one-user
+tool for multi-tenancy. Build it when it is needed, or once in road-kit.
+
+**Do the human steps first.** Users, grants, model loading, passwords and keys, as one checklist run
+at the start, so the build does not stop for an admin script or a ruling halfway through. A standing
+permission for ADMIN actions limited to the application's own schema removes most of those stops.
+
+**One session per phase, each starting from a handoff file.** A single session across twelve phases
+carries a huge context on every turn, which is most of the token cost, and needed compacting twice.
+`docs/HANDOFF.md` is the pattern.
+
+**Keep the test loop short.** Compile only the changed package, run only the affected suite, and run
+everything once at the end of a phase; a full run against a remote database is minutes each time.
+
+**Put generic pieces in road-kit first.** Contract helpers, the handler generator, the coverage check,
+the skill generator and the key exchange were built in road-tracker because road-kit lacked them
+(spec-patches 15 and 16 move them). With them in road-kit, the next application copies instead of
+builds.
