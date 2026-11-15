@@ -4,8 +4,8 @@
 `road_contract`; a public `GET /contract/` module; three scripts (`contract-to-sql.mjs`,
 `generate-modules.mjs`, `check-contract-coverage.mjs`); framework contract fragments; and the todo
 demo, rebuilt as a governed surface with its own contract.
-**Status:** design, 15 November 2026. Not built. Section 6 recommends an answer to each open point;
-each needs Simon's ruling before building.
+**Status:** ruled 15 November 2026, not built. Simon accepted every recommendation in section 6 as
+written. The build starts in a new session from `docs/HANDOFF.md`.
 **Decisions it implements:** Simon's intent that road-kit is the reference implementation of the
 gsc definition (15 November 2026); road-atlas D-04 (one contract per surface), D-05 (decisions
 answer 200), D-07 (the definition lives in gsc, road-kit implements it), RK-14's "not done" list, and
@@ -145,28 +145,28 @@ and a missing record answering alike; the envelope). HTTP: outcomes with `rule_i
 over a key. Contract: validation with fragments, coverage both ways, skill `--check`. Browser: the
 scaffold's todo page, governed.
 
-## 6. Open points, with recommendations
+## 6. Rulings (15 November 2026: each recommendation accepted)
 
 ### 6.1 Replace the todo demo, or add a second example
 
-**Recommend: replace it.** Two demos would leave the old model in the place people look first.
+**Ruled: replace it.** Two demos would leave the old model in the place people look first.
 quorate and road-tracker carry the demo but depend on nothing in it (quorate mentions it only in
 comments); each takes the new one at its next upgrade, or drops it.
 
 ### 6.2 Framework entries: fragments merged into the application's contract, or a separate contract
 
-**Recommend: fragments merged.** One surface, one contract (D-04): the agents and session endpoints
+**Ruled: fragments merged.** One surface, one contract (D-04): the agents and session endpoints
 are part of the application's API, under its alias, and a consumer should find them in its contract.
 
 ### 6.3 The contract version: from the table, or a constant in a package
 
-road-tracker keeps a package constant and checks it against the file. **Recommend: the table,**
+road-tracker keeps a package constant and checks it against the file. **Ruled: the table,**
 loaded with the document, so there is one source; the coverage check still compares file, table and
 served document.
 
 ### 6.4 How much the demo shows
 
-**Recommend:** keep it small: five actions, two views, the purge. Leave out change numbers and
+**Ruled:** keep it small: five actions, two views, the purge. Leave out change numbers and
 polling (road-tracker shows them), and a uniqueness rule (`TITLE_TAKEN`) unless Simon wants one
 integrity rule beyond the state rules; the four state rules already show refusal, staleness and
 non-disclosure.
@@ -174,22 +174,22 @@ non-disclosure.
 ### 6.5 The admin API
 
 `road_admin_api` also predates the definition (an idempotent no-op answers `granted: false`, refusals
-are 403 or 409). **Recommend: a later patch.** Applications call it and road-blogger is live (F-06);
+are 403 or 409). **Ruled: a later patch.** Applications call it and road-blogger is live (F-06);
 converting it is its own change with its own adoption plan. Until then the admin endpoints are listed
 in the coverage check as outside the surface, with that reason.
 
 ### 6.6 Naming
 
-**Recommend:** `road_surface_api` for the package, `road_contract` for the table, `contract/` for the
+**Ruled:** `road_surface_api` for the package, `road_contract` for the table, `contract/` for the
 files, matching road-tracker's layout so its adoption is a rename.
 
 ### 6.7 road-tracker
 
-**Recommend:** at its next road-kit upgrade, road-tracker replaces `rt_action_pkg`'s generic half and
+**Ruled:** at its next road-kit upgrade, road-tracker replaces `rt_action_pkg`'s generic half and
 `rt_rest_pkg` with `road_surface_api`, `rt_contract` with `road_contract`, and its scripts with the
 framework's, keeping its own rules, tenancy and `rt` commands.
 
-## 7. Build plan, once ruled
+## 7. Build plan
 
 1. `road_contract`, `road_surface_api` and its tests; `GET /contract/`.
 2. The three scripts and the fragments; validator support for `x-road-include`.

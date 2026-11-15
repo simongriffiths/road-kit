@@ -4,6 +4,8 @@
 > there, not only here. This file still governs how you work inside this repository.
 <!-- /road-atlas -->
 
+Where the work stands and where to start: `docs/HANDOFF.md`.
+
 Oracle database work must use bin/run-sql.sh.
 
 Before database work:
