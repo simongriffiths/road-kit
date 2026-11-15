@@ -1,0 +1,72 @@
+[INFO] START
+
+[INFO] RUN_ID=20261115_204747_deploy-surface-test_54021
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/deploy-surface-test.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/deploy-surface-test.sql
+[INFO] SCRIPT_SHA256=d9d8bbec74c3f42f753d59eb844dd79dc44ae4cb843036c8ea502638dc2683f2
+[INFO] GIT_COMMIT=19548b0
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261115_204747
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261115_204747_deploy-surface-test_54021.log
+
+[INTENT]
+Purpose: Recompile road_surface_api_test after fixing one assertion, then run it.
+Approach: create or replace the test body; run_all.
+Reason: spec-patch-16 step 1 verification.
+Expected objects: ROAD_SURFACE_API_TEST body replaced.
+Risk: Low.
+Prior history checked: this run's earlier deploy-patch16-step1.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sun Nov 15 20:47:47 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+
+Package Body ROAD_SURFACE_API_TEST compiled
+
+Elapsed: 00:00:00.199
+Elapsed: 00:00:00.218
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.240
+PASS version
+PASS natural_key
+PASS token_raw_bad
+PASS token_freshness
+PASS hidden_and_missing
+PASS accept_version
+PASS envelope
+PASS with_version
+road_surface_api_test: 8 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.118
+Elapsed: 00:00:00.134
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.039
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

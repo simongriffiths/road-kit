@@ -1,0 +1,1017 @@
+[INFO] START
+
+[INFO] RUN_ID=20261115_210411_deploy-chain_68331
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/deploy-chain.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/deploy-chain.sql
+[INFO] SCRIPT_SHA256=6660a8a68f68af9bb2c81626e0459ff2d781a243b5344e52c0058996abbd2dac
+[INFO] GIT_COMMIT=19548b0
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261115_210411
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261115_210411_deploy-chain_68331.log
+
+[INTENT]
+Purpose: Prove the whole create chain, framework then demo, still runs as scripts after
+  spec-patch-16: 00_full.sql then 97_demo.sql on ROAD_KIT_DEV.
+Approach: Rerun the idempotent chain; tables exist (ORA-955 tolerated), packages are replaced,
+  seed rows inserted only when missing, modules recreated, the contract reloaded.
+Reason: spec-patch-16 build plan step 5 verification (a release needs a clean chain).
+Expected objects: no new objects; ORDS modules recreated; ROAD_CONTRACT row reloaded.
+Risk: Medium. Reruns the full chain on a schema that already has it; the atlas records this as
+  the routine way to refresh ROAD_KIT_DEV.
+Prior history checked: 18 Aug 2026 00_full SUCCESS on dev; step 3 and 4 deploys this run.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sun Nov 15 21:04:11 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+=== full deploy ===
+=== deploy types ===
+Elapsed: 00:00:00.070
+=== deploy tables ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.048
+Elapsed: 00:00:00.065
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.041
+Elapsed: 00:00:00.058
+=== deploy identity tables (spec patch 06) ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.303
+Elapsed: 00:00:00.318
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.045
+Elapsed: 00:00:00.061
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.036
+Elapsed: 00:00:00.053
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.044
+Elapsed: 00:00:00.060
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.036
+Elapsed: 00:00:00.052
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.042
+
+Comment created.
+
+Elapsed: 00:00:00.042
+
+Comment created.
+
+Elapsed: 00:00:00.036
+
+Comment created.
+
+Elapsed: 00:00:00.036
+
+Comment created.
+
+Elapsed: 00:00:00.039
+Elapsed: 00:00:00.055
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.037
+Elapsed: 00:00:00.053
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.039
+Elapsed: 00:00:00.055
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.041
+Elapsed: 00:00:00.057
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.040
+Elapsed: 00:00:00.056
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.053
+
+Comment created.
+
+Elapsed: 00:00:00.040
+Elapsed: 00:00:00.058
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.040
+
+Comment created.
+
+Elapsed: 00:00:00.036
+Elapsed: 00:00:00.052
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.049
+Elapsed: 00:00:00.065
+Elapsed: 00:00:00.083
+=== deploy triggers ===
+
+Trigger ROAD_PRINCIPALS_UPDATED_AT_TRG compiled
+
+Elapsed: 00:00:00.091
+Elapsed: 00:00:00.108
+
+Trigger JWT_SCAFFOLD_CREDENTIALS_UPDATED_AT_TRG compiled
+
+Elapsed: 00:00:00.085
+Elapsed: 00:00:00.102
+
+Trigger ROAD_CONFIG_UPDATED_AT_TRG compiled
+
+Elapsed: 00:00:00.078
+Elapsed: 00:00:00.094
+Elapsed: 00:00:00.111
+=== deploy indexes ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.041
+Elapsed: 00:00:00.058
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.042
+Elapsed: 00:00:00.058
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.047
+Elapsed: 00:00:00.062
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.039
+Elapsed: 00:00:00.055
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.040
+Elapsed: 00:00:00.056
+Elapsed: 00:00:00.072
+=== deploy synonyms ===
+Elapsed: 00:00:00.068
+=== deploy views ===
+Elapsed: 00:00:00.069
+=== deploy package specs ===
+
+Package UI_ASSETS_API compiled
+
+Elapsed: 00:00:00.074
+Elapsed: 00:00:00.090
+
+Package HEALTH_API compiled
+
+Elapsed: 00:00:00.069
+Elapsed: 00:00:00.085
+
+Package JWT_SCAFFOLD_CRYPTO compiled
+
+Elapsed: 00:00:00.070
+Elapsed: 00:00:00.086
+
+Package JWT_SCAFFOLD_CRYPTO_TEST compiled
+
+Elapsed: 00:00:00.068
+Elapsed: 00:00:00.084
+
+Package JWT_SCAFFOLD_AUTH_API compiled
+
+Elapsed: 00:00:00.070
+Elapsed: 00:00:00.086
+
+Package JWT_SCAFFOLD_AUTH_API_TEST compiled
+
+Elapsed: 00:00:00.070
+Elapsed: 00:00:00.088
+
+Package SESSION_API compiled
+
+Elapsed: 00:00:00.075
+Elapsed: 00:00:00.092
+
+Package ERROR_API compiled
+
+Elapsed: 00:00:00.071
+Elapsed: 00:00:00.088
+
+Package ERROR_API_TEST compiled
+
+Elapsed: 00:00:00.067
+Elapsed: 00:00:00.083
+
+Package ROAD_CTX_PKG compiled
+
+Elapsed: 00:00:00.072
+Elapsed: 00:00:00.088
+
+Package ROAD_CTX_PKG_TEST compiled
+
+Elapsed: 00:00:00.067
+Elapsed: 00:00:00.083
+
+Package ROAD_ADMIN_API compiled
+
+Elapsed: 00:00:00.080
+Elapsed: 00:00:00.096
+
+Package ROAD_AGENT_API compiled
+
+Elapsed: 00:00:00.074
+Elapsed: 00:00:00.091
+
+Package ROAD_AGENT_API_TEST compiled
+
+Elapsed: 00:00:00.068
+Elapsed: 00:00:00.083
+
+Package ROAD_ADMIN_API_TEST compiled
+
+Elapsed: 00:00:00.068
+Elapsed: 00:00:00.085
+
+Package ROAD_AUDIT_API compiled
+
+Elapsed: 00:00:00.093
+Elapsed: 00:00:00.109
+
+Package ROAD_AUDIT_API_TEST compiled
+
+Elapsed: 00:00:00.067
+Elapsed: 00:00:00.085
+
+Package ROAD_DECISION_API compiled
+
+Elapsed: 00:00:00.078
+Elapsed: 00:00:00.094
+
+Package ROAD_DECISION_API_TEST compiled
+
+Elapsed: 00:00:00.067
+Elapsed: 00:00:00.084
+
+Package ROAD_SURFACE_API compiled
+
+Elapsed: 00:00:00.075
+Elapsed: 00:00:00.091
+
+Package ROAD_SURFACE_API_TEST compiled
+
+Elapsed: 00:00:00.069
+Elapsed: 00:00:00.086
+Elapsed: 00:00:00.102
+=== deploy application contexts ===
+[INFO] Context ROAD_CTX_ROAD_KIT_DEV created for road_ctx_pkg
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.054
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.040
+Elapsed: 00:00:00.056
+=== deploy package bodies ===
+
+Package Body UI_ASSETS_API compiled
+
+Elapsed: 00:00:00.071
+Elapsed: 00:00:00.087
+
+Package Body HEALTH_API compiled
+
+Elapsed: 00:00:00.070
+Elapsed: 00:00:00.086
+
+Package Body JWT_SCAFFOLD_CRYPTO compiled
+
+Elapsed: 00:00:00.073
+Elapsed: 00:00:00.089
+
+Package Body JWT_SCAFFOLD_CRYPTO_TEST compiled
+
+Elapsed: 00:00:00.083
+Elapsed: 00:00:00.099
+
+Package Body JWT_SCAFFOLD_AUTH_API compiled
+
+Elapsed: 00:00:00.086
+Elapsed: 00:00:00.102
+
+Package Body JWT_SCAFFOLD_AUTH_API_TEST compiled
+
+Elapsed: 00:00:00.093
+Elapsed: 00:00:00.108
+
+Package Body SESSION_API compiled
+
+Elapsed: 00:00:00.070
+Elapsed: 00:00:00.086
+
+Package Body ERROR_API compiled
+
+Elapsed: 00:00:00.082
+Elapsed: 00:00:00.098
+
+Package Body ERROR_API_TEST compiled
+
+Elapsed: 00:00:00.082
+Elapsed: 00:00:00.097
+
+Package Body ROAD_CTX_PKG compiled
+
+Elapsed: 00:00:00.083
+Elapsed: 00:00:00.099
+
+Package Body ROAD_CTX_PKG_TEST compiled
+
+Elapsed: 00:00:00.085
+Elapsed: 00:00:00.101
+
+Package Body ROAD_ADMIN_API compiled
+
+Elapsed: 00:00:00.089
+Elapsed: 00:00:00.105
+
+Package Body ROAD_AGENT_API compiled
+
+Elapsed: 00:00:00.081
+Elapsed: 00:00:00.096
+
+Package Body ROAD_AGENT_API_TEST compiled
+
+Elapsed: 00:00:00.086
+Elapsed: 00:00:00.102
+
+Package Body ROAD_ADMIN_API_TEST compiled
+
+Elapsed: 00:00:00.108
+Elapsed: 00:00:00.124
+
+Package Body ROAD_AUDIT_API compiled
+
+Elapsed: 00:00:00.082
+Elapsed: 00:00:00.099
+
+Package Body ROAD_AUDIT_API_TEST compiled
+
+Elapsed: 00:00:00.080
+Elapsed: 00:00:00.098
+
+Package Body ROAD_DECISION_API compiled
+
+Elapsed: 00:00:00.085
+Elapsed: 00:00:00.102
+
+Package Body ROAD_DECISION_API_TEST compiled
+
+Elapsed: 00:00:00.083
+Elapsed: 00:00:00.100
+
+Package Body ROAD_SURFACE_API compiled
+
+Elapsed: 00:00:00.078
+Elapsed: 00:00:00.094
+
+Package Body ROAD_SURFACE_API_TEST compiled
+
+Elapsed: 00:00:00.081
+Elapsed: 00:00:00.097
+Elapsed: 00:00:00.113
+=== deploy type bodies ===
+Elapsed: 00:00:00.085
+=== deploy standalone objects ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.116
+
+1 row merged.
+
+Elapsed: 00:00:00.065
+
+Commit complete.
+
+Elapsed: 00:00:00.041
+=== register ORDS JWT profile from the seeded config ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.057
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.048
+Elapsed: 00:00:00.064
+=== deploy ords modules ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.091
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.068
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.046
+Elapsed: 00:00:00.062
+=== public health endpoint requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.067
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.091
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.037
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.043
+Elapsed: 00:00:00.059
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.088
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.040
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.071
+Elapsed: 00:00:00.106
+=== public jwt auth scaffold requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.068
+Elapsed: 00:00:00.086
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.084
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.038
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.062
+Elapsed: 00:00:00.078
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.036
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.043
+Elapsed: 00:00:00.059
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.050
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.037
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.045
+Elapsed: 00:00:00.063
+=== public ui delivery requires no ORDS privilege in v1 ===
+Elapsed: 00:00:00.070
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.047
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.036
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.079
+Elapsed: 00:00:00.096
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.040
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.048
+Elapsed: 00:00:00.064
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.043
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.062
+Elapsed: 00:00:00.078
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.048
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.057
+Elapsed: 00:00:00.074
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.040
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.041
+Elapsed: 00:00:00.057
+Elapsed: 00:00:00.073
+=== deploy seed data ===
+
+Session altered.
+
+Elapsed: 00:00:00.034
+--- road_config --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.067
+
+0 rows inserted.
+
+Elapsed: 00:00:00.057
+
+0 rows inserted.
+
+Elapsed: 00:00:00.067
+
+0 rows inserted.
+
+Elapsed: 00:00:00.064
+--- road_roles --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.045
+
+0 rows inserted.
+
+Elapsed: 00:00:00.062
+
+0 rows inserted.
+
+Elapsed: 00:00:00.062
+--- road_permissions --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.078
+
+0 rows inserted.
+
+Elapsed: 00:00:00.077
+
+0 rows inserted.
+
+Elapsed: 00:00:00.080
+
+0 rows inserted.
+
+Elapsed: 00:00:00.075
+
+0 rows inserted.
+
+Elapsed: 00:00:00.084
+
+0 rows inserted.
+
+Elapsed: 00:00:00.074
+
+0 rows inserted.
+
+Elapsed: 00:00:00.081
+
+0 rows inserted.
+
+Elapsed: 00:00:00.059
+--- mark existing permissions reserved (patch 07 migration) --
+
+0 rows updated.
+
+Elapsed: 00:00:00.050
+--- road_role_permissions --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.212
+
+0 rows inserted.
+
+Elapsed: 00:00:00.044
+
+0 rows inserted.
+
+Elapsed: 00:00:00.043
+
+0 rows inserted.
+
+Elapsed: 00:00:00.042
+
+0 rows inserted.
+
+Elapsed: 00:00:00.043
+
+0 rows inserted.
+
+Elapsed: 00:00:00.058
+
+0 rows inserted.
+
+Elapsed: 00:00:00.045
+
+0 rows inserted.
+
+Elapsed: 00:00:00.047
+
+0 rows inserted.
+
+Elapsed: 00:00:00.412
+
+0 rows inserted.
+
+Elapsed: 00:00:00.045
+
+0 rows inserted.
+
+Elapsed: 00:00:00.040
+--- bootstrap administrator --
+[INFO] 1 principal(s) already hold road.system_admin - no grant made
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.135
+
+Commit complete.
+
+Elapsed: 00:00:00.036
+--- application permission grants --
+--- seeded state --
+
+[1mROLE_NAME[m            [1mIS_RESERVED[m    
+____________________ ______________ 
+road.system_admin    Y              
+road.user_admin      Y              
+todo_admin           N              
+todo_agent           N              
+user                 N              
+
+5 rows selected. 
+
+Elapsed: 00:00:00.079
+
+[1mROLE_NAME[m            [1mPERMISSION_NAME[m           
+____________________ _________________________ 
+road.system_admin    road.admin.rw             
+road.system_admin    road.agent.self_serve     
+road.system_admin    road.agents.rw            
+road.system_admin    road.api_key.manage       
+road.system_admin    road.permission.define    
+road.system_admin    road.role.compose         
+road.system_admin    road.role.define          
+road.system_admin    road.role.grant           
+road.system_admin    road.role.revoke          
+road.user_admin      road.admin.rw             
+road.user_admin      road.role.grant           
+road.user_admin      road.role.revoke          
+todo_admin           todo.list_all             
+todo_admin           todo.purge                
+
+[1mROLE_NAME[m     [1mPERMISSION_NAME[m          
+_____________ ________________________ 
+todo_admin    todo.rw                  
+todo_agent    session.me.read          
+todo_agent    todo.create              
+todo_agent    todo.get                 
+todo_agent    todo.list                
+todo_agent    todo.rw                  
+todo_agent    todo.update              
+user          road.agent.self_serve    
+user          road.agents.rw           
+user          session.me.read          
+user          todo.create              
+user          todo.delete              
+user          todo.get                 
+user          todo.list                
+
+[1mROLE_NAME[m    [1mPERMISSION_NAME[m    
+____________ __________________ 
+user         todo.rw            
+user         todo.update        
+
+30 rows selected. 
+
+Elapsed: 00:00:00.037
+
+[1mCONFIG_KEY[m                   [1mCONFIG_VALUE[m    
+____________________________ _______________ 
+agents.limit_per_owner       5               
+agents.role                  todo_agent      
+api_keys.prefix              rk              
+api_keys.token_minutes       15              
+auto_provision_principals    N               
+bootstrap_admin_subject      ADMIN           
+default_principal_role       user            
+
+7 rows selected. 
+
+Elapsed: 00:00:00.038
+Elapsed: 00:00:00.056
+=== composition guard assertions (spec patch 07) ===
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.253
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.061
+Elapsed: 00:00:00.077
+=== verify deployment ===
+
+[1mSTATUS[m    
+_________ 
+ok        
+
+1 row selected. 
+
+Elapsed: 00:00:00.045
+
+   [1mUI_ASSET_COUNT[m 
+_________________ 
+                7 
+
+1 row selected. 
+
+Elapsed: 00:00:00.046
+
+[1mAUDIENCE[m    [1mAUTH_SCOPE[m    [1mSIGNING_KID[m                     
+___________ _____________ _______________________________ 
+road-dev                  hello_world-dev-c11deafdd803    
+
+1 row selected. 
+
+Elapsed: 00:00:00.047
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.042
+=== verify identity model (spec patch 06) ===
+[INFO] Identity model verified: 6 tables, 3 roles, 5 permissions, bootstrap admin present
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.164
+=== verify role composition (spec patch 07) ===
+[INFO] Role composition verified: 5 reserved permissions, road.role.compose correctly restricted, 2 assertions ENABLED
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.141
+Elapsed: 00:00:00.156
+Elapsed: 00:00:00.173
+=== demo application (spec patch 08) ===
+--- table, index, trigger --
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.046
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.040
+Elapsed: 00:00:00.056
+
+Trigger DEMO_TODOS_UPDATED_AT_TRG compiled
+
+Elapsed: 00:00:00.077
+Elapsed: 00:00:00.093
+--- package --
+
+Package DEMO_TODO_API compiled
+
+Elapsed: 00:00:00.073
+Elapsed: 00:00:00.089
+
+Package DEMO_TODO_API_TEST compiled
+
+Elapsed: 00:00:00.070
+Elapsed: 00:00:00.086
+
+Package Body DEMO_TODO_API compiled
+
+Elapsed: 00:00:00.085
+Elapsed: 00:00:00.101
+
+Package Body DEMO_TODO_API_TEST compiled
+
+Elapsed: 00:00:00.097
+Elapsed: 00:00:00.112
+--- permissions --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.105
+
+0 rows updated.
+
+Elapsed: 00:00:00.043
+--- todo_admin role --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.080
+
+Commit complete.
+
+Elapsed: 00:00:00.038
+--- role composition --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.060
+
+0 rows inserted.
+
+Elapsed: 00:00:00.041
+
+0 rows inserted.
+
+Elapsed: 00:00:00.041
+
+Commit complete.
+
+Elapsed: 00:00:00.036
+--- ORDS module and scope --
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.068
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.078
+Elapsed: 00:00:00.095
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.056
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.055
+Elapsed: 00:00:00.071
+
+0 rows inserted.
+
+Elapsed: 00:00:00.068
+
+0 rows inserted.
+
+Elapsed: 00:00:00.041
+
+0 rows inserted.
+
+Elapsed: 00:00:00.041
+
+Commit complete.
+
+Elapsed: 00:00:00.033
+--- agents for the todo demo (spec-patch-15) --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.061
+
+Commit complete.
+
+Elapsed: 00:00:00.035
+
+0 rows inserted.
+
+Elapsed: 00:00:00.057
+
+0 rows inserted.
+
+Elapsed: 00:00:00.051
+
+0 rows updated.
+
+Elapsed: 00:00:00.038
+
+Commit complete.
+
+Elapsed: 00:00:00.035
+
+0 rows updated.
+
+Elapsed: 00:00:00.037
+
+Commit complete.
+
+Elapsed: 00:00:00.035
+--- the demo's contract, served at GET /contract/ (spec-patch-16) --
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.115
+
+[1m'CONTRACT'||CONTRACT_VERSION||''||DBMS_LOB.GETLENGTH(DOCUMENT)||'CHARS'[m    
+__________________________________________________________________________ 
+CONTRACT 0.1.0 25033 chars                                                 
+
+1 row selected. 
+
+Elapsed: 00:00:00.040
+Elapsed: 00:00:00.057
+--- verify the demo model --
+[INFO] Demo application verified: 7 permissions (1 reserved), todo_admin correctly restricted
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.042
+Elapsed: 00:00:00.059
+=== USER_ERRORS_CHECK ===
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.047
+=== invalid ===
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.033
+Elapsed: 00:00:00.050
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.101
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

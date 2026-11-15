@@ -219,6 +219,20 @@ end;
 
 The package specification of `road_decision_api` shows the full decision procedure, including idempotent replay and the race between two copies of one proposal.
 
+### 4.5 The Contract Version on Every Body
+
+An application that publishes a Governed Surface Contract states its version in every response body, errors included (definition section 5.5). The handler does not do this itself: `road_surface_api.respond` and `road_surface_api.fail` do it for every handler.
+
+| Response | Where the version comes from |
+|---|---|
+| Accepted or rejected outcome | `road_surface_api.accept` and `reject` pass it to `road_decision_api` |
+| View | `road_surface_api.envelope` adds `contract_version`, `as_at` and `scope` |
+| 400, 403, 404, 409 and 5xx | `road_surface_api.fail` calls `error_api` as section 4.3 describes, then adds `contract_version` to the body it returns |
+| 401 | `road_surface_api.unauthorized` |
+| `Accept-Version` with another major version | `road_surface_api.version_ok` answers 400 `VERSION_MISMATCH` |
+
+The version is read from `road_contract`, the table `GET /contract/` serves, so the contract file, the database and every response cannot disagree. `error_api` is unchanged: its output still has `error`, `message` and, for an unknown error, `error_id`. A body that is not a JSON object is returned as it was.
+
 ---
 
 ## 5. Error Log

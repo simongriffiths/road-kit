@@ -1,0 +1,108 @@
+{
+  "x-fragment": "road-session",
+  "x-description": "road-kit's session endpoint, served under the application's alias.",
+  "publication": {
+    "views": [
+      {
+        "id": "session.me",
+        "title": "Who am I",
+        "meaning": "The authenticated session: the caller, their roles and their effective permissions.",
+        "resource": {
+          "rest": {
+            "method": "GET",
+            "path": "/session/me/"
+          }
+        },
+        "authority": {
+          "actor": {
+            "model": "authenticated",
+            "required_permissions": [
+              "session.me.read"
+            ],
+            "attribution_required": false
+          }
+        },
+        "result": {
+          "type": "object",
+          "required": [
+            "principal_id",
+            "roles",
+            "permissions"
+          ],
+          "properties": {
+            "principal_id": {
+              "type": "integer"
+            },
+            "principal": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "issuer": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "audience": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "scope": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "authenticated": {
+              "type": "boolean"
+            },
+            "current_user": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "db_user": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "roles": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "permissions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "keys": {
+          "identity": [
+            "principal_id"
+          ]
+        },
+        "time": {
+          "stated_as": "timestamp",
+          "granularity": "response",
+          "response_fields": [
+            "as_at"
+          ]
+        },
+        "scope": {
+          "access_rules_apply": true,
+          "statement_field": "scope"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,1072 @@
+{
+  "x-road-include": [
+    "road-agents",
+    "road-session"
+  ],
+  "schema_version": "0.3.0",
+  "gsc_definition_version": "0.1.0",
+  "surface": {
+    "id": "hello_world",
+    "title": "road-kit todo demo",
+    "description": "road-kit's reference governed surface: a small todo list that shows each part of a Governed Surface Contract once. People and agents change data only through these governed actions. Business rules answer 200 with a decision record; wrong calls are 400s. Copy the wiring, not the domain."
+  },
+  "envelope": {
+    "contract_version": "0.1.0",
+    "identity": {
+      "established_from": [
+        "jwt"
+      ],
+      "principal_key": [
+        "issuer",
+        "subject"
+      ],
+      "system_processes": "run_as_system_owner",
+      "description": "People sign in and get a JWT. An agent is its own principal with the application's agent role and never acts under a person's identity: it sends {\"api_key\": \"...\"} to POST /api-auth/tokens, outside this surface, and receives a JWT for 15 minutes, which it sends as a bearer token like a person. The owner of every todo is the caller, taken from the session, never from a request."
+    },
+    "versioning": {
+      "response_field": "contract_version",
+      "discovery": {
+        "rest": {
+          "method": "GET",
+          "path": "/contract/"
+        }
+      },
+      "expected_major_header": "Accept-Version"
+    },
+    "metadata_format": "json-schema-2020-12",
+    "bindings": [
+      "rest"
+    ],
+    "public_entries": []
+  },
+  "state": {
+    "actions": [
+      {
+        "id": "todos.create",
+        "title": "Add a todo",
+        "description": "Propose a new todo for the caller. The owner is the caller; a request that names an owner is a wrong call.",
+        "action_resource": {
+          "rest": {
+            "method": "POST",
+            "path": "/todos/"
+          }
+        },
+        "authority": {
+          "operational_authority": "Todo demo, demo_todo_api",
+          "actor": {
+            "model": "authenticated",
+            "required_permissions": [
+              "todo.create"
+            ],
+            "attribution_required": true
+          }
+        },
+        "changes_existing_record": false,
+        "request": {
+          "idempotency": {
+            "strategy": "idempotency_key",
+            "header": "Idempotency-Key",
+            "retention": "indefinitely",
+            "replays": "accepted_only"
+          },
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "title"
+            ],
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "notes": {
+                "type": "string",
+                "maxLength": 4000
+              },
+              "due_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        },
+        "preconditions": {
+          "current_state_recheck": true,
+          "evaluation": "first_failure",
+          "rules": [
+            {
+              "id": "TITLE_TAKEN",
+              "kind": "integrity",
+              "description": "The caller has no other open todo with this title.",
+              "consumer_visible": true
+            }
+          ]
+        },
+        "outcomes": {
+          "accepted": {
+            "description": "The todo is made, open.",
+            "result": {
+              "type": "object",
+              "required": [
+                "todo_id",
+                "status",
+                "read_token"
+              ],
+              "properties": {
+                "todo_id": {
+                  "type": "integer"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "OPEN",
+                    "DONE"
+                  ]
+                },
+                "read_token": {
+                  "type": "string",
+                  "description": "A fresh token for the todo as it is now."
+                }
+              }
+            }
+          },
+          "rejections": [
+            {
+              "rule_id": "TITLE_TAKEN",
+              "retryable": false,
+              "discloses_ids": true
+            }
+          ],
+          "non_disclosing": false
+        },
+        "audit": {
+          "record": "road_decisions",
+          "fields": [
+            "principal",
+            "action_id",
+            "contract_version",
+            "decision",
+            "rule_ids",
+            "record_ids",
+            "idempotency_key",
+            "decided_at"
+          ]
+        },
+        "events": {
+          "emitted": []
+        }
+      },
+      {
+        "id": "todos.revise",
+        "title": "Revise a todo",
+        "description": "Propose a new title, notes or due time for an open todo. Completing and reopening have their own actions.",
+        "action_resource": {
+          "rest": {
+            "method": "POST",
+            "path": "/todos/{id}/revisions/"
+          }
+        },
+        "authority": {
+          "operational_authority": "Todo demo, demo_todo_api",
+          "actor": {
+            "model": "authenticated",
+            "required_permissions": [
+              "todo.update"
+            ],
+            "attribution_required": true
+          }
+        },
+        "changes_existing_record": true,
+        "request": {
+          "idempotency": {
+            "strategy": "natural_key",
+            "fields": [
+              "principal",
+              "id",
+              "read_token"
+            ],
+            "retention": "indefinitely",
+            "replays": "accepted_only"
+          },
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "read_token"
+            ],
+            "minProperties": 2,
+            "properties": {
+              "read_token": {
+                "type": "string",
+                "description": "The read token returned with the todo."
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "notes": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 4000
+              },
+              "due_at": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              }
+            }
+          }
+        },
+        "preconditions": {
+          "current_state_recheck": true,
+          "evaluation": "first_failure",
+          "rules": [
+            {
+              "id": "TODO_NOT_FOUND",
+              "kind": "access",
+              "description": "The todo exists and is the caller's own. Another owner's todo, or a deleted one, gets the same answer as one that does not exist.",
+              "consumer_visible": true
+            },
+            {
+              "id": "STALE_TOKEN",
+              "kind": "concurrency",
+              "description": "The todo has not changed since the read token was issued. Read it again and decide again.",
+              "consumer_visible": true
+            },
+            {
+              "id": "TODO_DONE",
+              "kind": "integrity",
+              "description": "The todo is open. Reopen a done todo first.",
+              "consumer_visible": true
+            }
+          ]
+        },
+        "outcomes": {
+          "accepted": {
+            "description": "The todo's fields are changed.",
+            "result": {
+              "type": "object",
+              "required": [
+                "todo_id",
+                "status",
+                "read_token"
+              ],
+              "properties": {
+                "todo_id": {
+                  "type": "integer"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "OPEN",
+                    "DONE"
+                  ]
+                },
+                "read_token": {
+                  "type": "string",
+                  "description": "A fresh token for the todo as it is now."
+                }
+              }
+            }
+          },
+          "rejections": [
+            {
+              "rule_id": "TODO_NOT_FOUND",
+              "retryable": false,
+              "discloses_ids": false
+            },
+            {
+              "rule_id": "STALE_TOKEN",
+              "retryable": true,
+              "discloses_ids": true
+            },
+            {
+              "rule_id": "TODO_DONE",
+              "retryable": false,
+              "discloses_ids": true
+            }
+          ],
+          "non_disclosing": false
+        },
+        "audit": {
+          "record": "road_decisions",
+          "fields": [
+            "principal",
+            "action_id",
+            "contract_version",
+            "decision",
+            "rule_ids",
+            "record_ids",
+            "idempotency_key",
+            "decided_at"
+          ]
+        },
+        "events": {
+          "emitted": []
+        }
+      },
+      {
+        "id": "todos.complete",
+        "title": "Complete a todo",
+        "description": "Propose marking an open todo done.",
+        "action_resource": {
+          "rest": {
+            "method": "POST",
+            "path": "/todos/{id}/completions/"
+          }
+        },
+        "authority": {
+          "operational_authority": "Todo demo, demo_todo_api",
+          "actor": {
+            "model": "authenticated",
+            "required_permissions": [
+              "todo.update"
+            ],
+            "attribution_required": true
+          }
+        },
+        "changes_existing_record": true,
+        "request": {
+          "idempotency": {
+            "strategy": "natural_key",
+            "fields": [
+              "principal",
+              "id",
+              "read_token"
+            ],
+            "retention": "indefinitely",
+            "replays": "accepted_only"
+          },
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "read_token"
+            ],
+            "properties": {
+              "read_token": {
+                "type": "string",
+                "description": "The read token returned with the todo."
+              }
+            }
+          }
+        },
+        "preconditions": {
+          "current_state_recheck": true,
+          "evaluation": "first_failure",
+          "rules": [
+            {
+              "id": "TODO_NOT_FOUND",
+              "kind": "access",
+              "description": "The todo exists and is the caller's own. Another owner's todo, or a deleted one, gets the same answer as one that does not exist.",
+              "consumer_visible": true
+            },
+            {
+              "id": "STALE_TOKEN",
+              "kind": "concurrency",
+              "description": "The todo has not changed since the read token was issued. Read it again and decide again.",
+              "consumer_visible": true
+            },
+            {
+              "id": "TODO_DONE",
+              "kind": "integrity",
+              "description": "The todo is open: it is not already done.",
+              "consumer_visible": true
+            }
+          ]
+        },
+        "outcomes": {
+          "accepted": {
+            "description": "The todo is done.",
+            "result": {
+              "type": "object",
+              "required": [
+                "todo_id",
+                "status",
+                "read_token"
+              ],
+              "properties": {
+                "todo_id": {
+                  "type": "integer"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "OPEN",
+                    "DONE"
+                  ]
+                },
+                "read_token": {
+                  "type": "string",
+                  "description": "A fresh token for the todo as it is now."
+                }
+              }
+            }
+          },
+          "rejections": [
+            {
+              "rule_id": "TODO_NOT_FOUND",
+              "retryable": false,
+              "discloses_ids": false
+            },
+            {
+              "rule_id": "STALE_TOKEN",
+              "retryable": true,
+              "discloses_ids": true
+            },
+            {
+              "rule_id": "TODO_DONE",
+              "retryable": false,
+              "discloses_ids": true
+            }
+          ],
+          "non_disclosing": false
+        },
+        "audit": {
+          "record": "road_decisions",
+          "fields": [
+            "principal",
+            "action_id",
+            "contract_version",
+            "decision",
+            "rule_ids",
+            "record_ids",
+            "idempotency_key",
+            "decided_at"
+          ]
+        },
+        "events": {
+          "emitted": []
+        }
+      },
+      {
+        "id": "todos.reopen",
+        "title": "Reopen a todo",
+        "description": "Propose making a done todo open again.",
+        "action_resource": {
+          "rest": {
+            "method": "POST",
+            "path": "/todos/{id}/reopenings/"
+          }
+        },
+        "authority": {
+          "operational_authority": "Todo demo, demo_todo_api",
+          "actor": {
+            "model": "authenticated",
+            "required_permissions": [
+              "todo.update"
+            ],
+            "attribution_required": true
+          }
+        },
+        "changes_existing_record": true,
+        "request": {
+          "idempotency": {
+            "strategy": "natural_key",
+            "fields": [
+              "principal",
+              "id",
+              "read_token"
+            ],
+            "retention": "indefinitely",
+            "replays": "accepted_only"
+          },
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "read_token"
+            ],
+            "properties": {
+              "read_token": {
+                "type": "string",
+                "description": "The read token returned with the todo."
+              }
+            }
+          }
+        },
+        "preconditions": {
+          "current_state_recheck": true,
+          "evaluation": "first_failure",
+          "rules": [
+            {
+              "id": "TODO_NOT_FOUND",
+              "kind": "access",
+              "description": "The todo exists and is the caller's own. Another owner's todo, or a deleted one, gets the same answer as one that does not exist.",
+              "consumer_visible": true
+            },
+            {
+              "id": "STALE_TOKEN",
+              "kind": "concurrency",
+              "description": "The todo has not changed since the read token was issued. Read it again and decide again.",
+              "consumer_visible": true
+            },
+            {
+              "id": "TODO_NOT_DONE",
+              "kind": "integrity",
+              "description": "The todo is done: an open todo has nothing to reopen.",
+              "consumer_visible": true
+            }
+          ]
+        },
+        "outcomes": {
+          "accepted": {
+            "description": "The todo is open again.",
+            "result": {
+              "type": "object",
+              "required": [
+                "todo_id",
+                "status",
+                "read_token"
+              ],
+              "properties": {
+                "todo_id": {
+                  "type": "integer"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "OPEN",
+                    "DONE"
+                  ]
+                },
+                "read_token": {
+                  "type": "string",
+                  "description": "A fresh token for the todo as it is now."
+                }
+              }
+            }
+          },
+          "rejections": [
+            {
+              "rule_id": "TODO_NOT_FOUND",
+              "retryable": false,
+              "discloses_ids": false
+            },
+            {
+              "rule_id": "STALE_TOKEN",
+              "retryable": true,
+              "discloses_ids": true
+            },
+            {
+              "rule_id": "TODO_NOT_DONE",
+              "retryable": false,
+              "discloses_ids": true
+            }
+          ],
+          "non_disclosing": false
+        },
+        "audit": {
+          "record": "road_decisions",
+          "fields": [
+            "principal",
+            "action_id",
+            "contract_version",
+            "decision",
+            "rule_ids",
+            "record_ids",
+            "idempotency_key",
+            "decided_at"
+          ]
+        },
+        "events": {
+          "emitted": []
+        }
+      },
+      {
+        "id": "todos.delete",
+        "title": "Delete a todo",
+        "description": "Propose removing a todo from the caller's list. The row is kept (a soft delete); only the purge removes it.",
+        "action_resource": {
+          "rest": {
+            "method": "DELETE",
+            "path": "/todos/{id}/"
+          }
+        },
+        "authority": {
+          "operational_authority": "Todo demo, demo_todo_api",
+          "actor": {
+            "model": "authenticated",
+            "required_permissions": [
+              "todo.delete"
+            ],
+            "attribution_required": true
+          }
+        },
+        "changes_existing_record": true,
+        "request": {
+          "idempotency": {
+            "strategy": "natural_key",
+            "fields": [
+              "principal",
+              "id",
+              "read_token"
+            ],
+            "retention": "indefinitely",
+            "replays": "accepted_only"
+          },
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "read_token"
+            ],
+            "properties": {
+              "read_token": {
+                "type": "string",
+                "description": "The read token returned with the todo."
+              }
+            }
+          }
+        },
+        "preconditions": {
+          "current_state_recheck": true,
+          "evaluation": "first_failure",
+          "rules": [
+            {
+              "id": "TODO_NOT_FOUND",
+              "kind": "access",
+              "description": "The todo exists and is the caller's own. Another owner's todo, or a deleted one, gets the same answer as one that does not exist.",
+              "consumer_visible": true
+            },
+            {
+              "id": "STALE_TOKEN",
+              "kind": "concurrency",
+              "description": "The todo has not changed since the read token was issued. Read it again and decide again.",
+              "consumer_visible": true
+            }
+          ]
+        },
+        "outcomes": {
+          "accepted": {
+            "description": "The todo is deleted.",
+            "result": {
+              "type": "object",
+              "required": [
+                "todo_id"
+              ],
+              "properties": {
+                "todo_id": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "rejections": [
+            {
+              "rule_id": "TODO_NOT_FOUND",
+              "retryable": false,
+              "discloses_ids": false
+            },
+            {
+              "rule_id": "STALE_TOKEN",
+              "retryable": true,
+              "discloses_ids": true
+            }
+          ],
+          "non_disclosing": false
+        },
+        "audit": {
+          "record": "road_decisions",
+          "fields": [
+            "principal",
+            "action_id",
+            "contract_version",
+            "decision",
+            "rule_ids",
+            "record_ids",
+            "idempotency_key",
+            "decided_at"
+          ]
+        },
+        "events": {
+          "emitted": []
+        }
+      },
+      {
+        "id": "todos.purge",
+        "title": "Purge old todos",
+        "description": "Propose permanently deleting every done or deleted todo, of every owner, last changed before a cutoff. Irreversible, which is why todo.purge is a reserved permission held only by todo_admin.",
+        "action_resource": {
+          "rest": {
+            "method": "POST",
+            "path": "/todos/purges/"
+          }
+        },
+        "authority": {
+          "operational_authority": "Todo administration, demo_todo_api",
+          "actor": {
+            "model": "authenticated",
+            "required_permissions": [
+              "todo.purge"
+            ],
+            "attribution_required": true
+          }
+        },
+        "changes_existing_record": false,
+        "request": {
+          "idempotency": {
+            "strategy": "idempotency_key",
+            "header": "Idempotency-Key",
+            "retention": "indefinitely",
+            "replays": "accepted_only"
+          },
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "before"
+            ],
+            "properties": {
+              "before": {
+                "type": "string",
+                "format": "date-time",
+                "description": "The cutoff. Todos changed before it are purged."
+              }
+            }
+          }
+        },
+        "preconditions": {
+          "current_state_recheck": true,
+          "evaluation": "first_failure",
+          "rules": [
+            {
+              "id": "PURGE_CUTOFF_IN_FUTURE",
+              "kind": "integrity",
+              "description": "The cutoff is not in the future: a cutoff ahead of now would purge todos that were only just finished.",
+              "consumer_visible": true
+            }
+          ]
+        },
+        "outcomes": {
+          "accepted": {
+            "description": "The todos are purged.",
+            "result": {
+              "type": "object",
+              "required": [
+                "purged"
+              ],
+              "properties": {
+                "purged": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "rejections": [
+            {
+              "rule_id": "PURGE_CUTOFF_IN_FUTURE",
+              "retryable": false,
+              "discloses_ids": false
+            }
+          ],
+          "non_disclosing": false
+        },
+        "audit": {
+          "record": "road_decisions",
+          "fields": [
+            "principal",
+            "action_id",
+            "contract_version",
+            "decision",
+            "rule_ids",
+            "record_ids",
+            "idempotency_key",
+            "decided_at"
+          ]
+        },
+        "events": {
+          "emitted": []
+        }
+      }
+    ]
+  },
+  "publication": {
+    "provisional": true,
+    "views": [
+      {
+        "id": "todos.list",
+        "title": "List todos",
+        "meaning": "The caller's todos, newest first, with the read token a later action on any of them must carry. Deleted todos are left out unless asked for. Another owner's todos need todo.list_all.",
+        "resource": {
+          "rest": {
+            "method": "GET",
+            "path": "/todos/"
+          }
+        },
+        "authority": {
+          "actor": {
+            "model": "authenticated",
+            "required_permissions": [
+              "todo.list"
+            ],
+            "attribution_required": false
+          }
+        },
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "enum": [
+                "OPEN",
+                "DONE",
+                "DELETED"
+              ]
+            },
+            "query": {
+              "type": "string",
+              "description": "A word in the title. Not \"q\": ORDS reserves it."
+            },
+            "owner": {
+              "type": "integer",
+              "description": "Another principal's todos. Needs todo.list_all."
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        "result": {
+          "type": "object",
+          "required": [
+            "items",
+            "hasMore",
+            "limit",
+            "offset",
+            "count",
+            "read_token"
+          ],
+          "properties": {
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "todo_id",
+                  "title",
+                  "status",
+                  "created_at",
+                  "updated_at"
+                ],
+                "properties": {
+                  "todo_id": {
+                    "type": "integer",
+                    "description": "Database-issued id."
+                  },
+                  "owner_principal_id": {
+                    "type": "integer"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "notes": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "due_at": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date-time"
+                  },
+                  "status": {
+                    "enum": [
+                      "OPEN",
+                      "DONE",
+                      "DELETED"
+                    ]
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "updated_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            },
+            "hasMore": {
+              "type": "boolean"
+            },
+            "limit": {
+              "type": "integer"
+            },
+            "offset": {
+              "type": "integer"
+            },
+            "count": {
+              "type": "integer"
+            },
+            "read_token": {
+              "type": "string",
+              "description": "One token for this read: it covers every todo in items."
+            }
+          }
+        },
+        "keys": {
+          "identity": [
+            "todo_id"
+          ]
+        },
+        "time": {
+          "stated_as": "timestamp",
+          "granularity": "response",
+          "response_fields": [
+            "as_at"
+          ]
+        },
+        "scope": {
+          "access_rules_apply": true,
+          "statement_field": "scope"
+        },
+        "read_tokens": {
+          "field": "read_token",
+          "changed_by": [
+            "todos.revise",
+            "todos.complete",
+            "todos.reopen"
+          ]
+        }
+      },
+      {
+        "id": "todos.get",
+        "title": "Get a todo",
+        "meaning": "One todo as it is now, with the read token a later action on it must carry.",
+        "resource": {
+          "rest": {
+            "method": "GET",
+            "path": "/todos/{id}/"
+          }
+        },
+        "authority": {
+          "actor": {
+            "model": "authenticated",
+            "required_permissions": [
+              "todo.get"
+            ],
+            "attribution_required": false
+          }
+        },
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer"
+            }
+          }
+        },
+        "result": {
+          "type": "object",
+          "required": [
+            "todo",
+            "read_token"
+          ],
+          "properties": {
+            "todo": {
+              "type": "object",
+              "required": [
+                "todo_id",
+                "title",
+                "status",
+                "created_at",
+                "updated_at"
+              ],
+              "properties": {
+                "todo_id": {
+                  "type": "integer",
+                  "description": "Database-issued id."
+                },
+                "owner_principal_id": {
+                  "type": "integer"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "notes": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "due_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time"
+                },
+                "status": {
+                  "enum": [
+                    "OPEN",
+                    "DONE"
+                  ]
+                },
+                "created_at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "updated_at": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            },
+            "read_token": {
+              "type": "string"
+            }
+          }
+        },
+        "keys": {
+          "identity": [
+            "todo_id"
+          ]
+        },
+        "time": {
+          "stated_as": "timestamp",
+          "granularity": "response",
+          "response_fields": [
+            "as_at"
+          ]
+        },
+        "scope": {
+          "access_rules_apply": true,
+          "statement_field": "scope"
+        },
+        "read_tokens": {
+          "field": "read_token",
+          "changed_by": [
+            "todos.revise",
+            "todos.complete",
+            "todos.reopen"
+          ]
+        }
+      }
+    ]
+  }
+}

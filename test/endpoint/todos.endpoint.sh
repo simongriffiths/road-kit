@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# The demo application over HTTP (planning/spec-patch-08-road-kit-demo-app.md section 6, in
-# road-cal). Per-repo by design -- there is no road-cal counterpart to keep in step.
+# The demo application over HTTP (spec-patch-08, rebuilt as a governed surface by spec-patch-16;
+# test/agents/surface.test.mjs covers the surface in depth with agent and fixture tokens, and this
+# suite checks it with the real principals' tokens). Per-repo by design -- there is no road-cal counterpart to keep in step.
 #
 # The PL/SQL suite (demo_todo_api_test) already covers ownership isolation, the read_token
 # staleness path and the status rules against the package directly. What only an HTTP test can
@@ -16,12 +17,13 @@ set -euo pipefail
 #   2. Nobody can purge. todo.purge is reserved and seeded only onto todo_admin, which no test
 #      principal holds, so "the permission nobody holds by default" is a fact this suite checks
 #      rather than a claim the spec makes.
-#   3. A stale read_token comes back 409, not 200.
+#   3. A stale read token is a 200 refusal (STALE_TOKEN) with a decision record, not an error, and
+#      the todo is unchanged (spec-patch-16: the demo is a governed surface).
 
 source bin/assert-http.sh
 
 TODOS_URL="${ORDS_BASE_URL}/todos/"
-PURGE_URL="${ORDS_BASE_URL}/todos/purge/"
+PURGE_URL="${ORDS_BASE_URL}/todos/purges/"
 
 if [[ -z "${CONFORMANCE_USER_TOKEN:-}" ]]; then
   echo "[FAIL] CONFORMANCE_USER_TOKEN not set - the demo application cannot be verified" >&2
@@ -64,28 +66,34 @@ json_num() {
   printf '%s' "$1" | sed -n "s/.*\"$2\":\([0-9]*\).*/\1/p" | head -1
 }
 
-echo "[INFO] todos: the demo application (spec patch 08)"
+echo "[INFO] todos: the governed demo surface (spec-patch-16)"
+
+# Every governed action sends an Idempotency-Key or carries a read token. The key is unique per run.
+RUN="$(date +%s)"
+post_idem() { # description expected url auth body key
+  local result status
+  result="$(curl -s -o /tmp/todos.ep.body -w '%{http_code}' -X POST "$3" -H "Authorization: $4" \
+    -H "Content-Type: application/json" -H "Idempotency-Key: $6" -d "$5")"
+  assert_http "$1" "$2" "${result}" "$(cat /tmp/todos.ep.body)"
+  LAST_BODY="$(cat /tmp/todos.ep.body)"
+}
 
 # --- authentication ---
 
 check "GET /todos/ without a token returns 401" 401 GET "${TODOS_URL}" ""
 check "POST /todos/ without a token returns 401" 401 POST "${TODOS_URL}" "" '{"title":"x"}'
+check "the contract is public: GET /contract/ needs no token" 200 GET "${ORDS_BASE_URL}/contract/" ""
+assert_body_contains "and it is the demo's contract" "${LAST_BODY}" '"id":"hello_world"'
 
 # --- rule 2: the system administrator role is not a user role ---
 #
 # Asserted against the ROLE, through the permission catalogue, not by expecting a 403 from the
-# admin token.
-#
-# An earlier draft did the latter -- "road.system_admin cannot list todos", expecting 403 -- and it
-# failed with a 200. Not a model defect: road.system_admin composes no todo.* permission, exactly
-# as rule 2 requires. The bootstrap ADMIN principal simply holds the `user` role AS WELL, so it
-# reaches todos through that. A principal-level assertion tests which roles a fixture happens to
-# hold; a role-level one tests the invariant. Only the second is worth having.
+# admin token. The bootstrap ADMIN principal holds the `user` role as well, so it reaches todos
+# through that; a principal-level assertion tests which roles a fixture happens to hold, a
+# role-level one tests the invariant.
 
 check "the permission catalogue is readable by the admin" 200 GET \
   "${ORDS_BASE_URL}/admin/permissions/" "${ADMIN_AUTH}"
-# json_arrayagg orders role holders alphabetically, so a todo.* permission held by
-# road.system_admin would appear as that role name inside the same object. Assert the absence.
 if printf '%s' "${LAST_BODY}" | grep -q '"permission_name":"todo\.[a-z_]*"[^}]*road\.system_admin'; then
   echo "[FAIL] road.system_admin composes a todo.* permission - spec patch 06 rule 2 is broken" >&2
   exit 1
@@ -95,9 +103,10 @@ echo "[PASS] rule 2 holds in the permission catalogue"
 
 # --- the ordinary user path ---
 
-check "an ordinary user creates a todo" 201 POST "${TODOS_URL}" "${USER_AUTH}" \
-  '{"title":"endpoint fixture","notes":"created by todos.endpoint.sh"}'
-assert_body_contains "the created todo carries a status" "${LAST_BODY}" '"status":"OPEN"'
+post_idem "an ordinary user adds a todo: 200 accepted" 200 "${TODOS_URL}" "${USER_AUTH}" \
+  "{\"title\":\"endpoint fixture ${RUN}\",\"notes\":\"created by todos.endpoint.sh\"}" "ep-create-${RUN}"
+assert_body_contains "the decision is accepted" "${LAST_BODY}" '"decision":"accepted"'
+assert_body_contains "the answer states the contract version" "${LAST_BODY}" '"contract_version"'
 TODO_ID="$(json_num "${LAST_BODY}" todo_id)"
 if [[ -z "${TODO_ID}" ]]; then
   echo "[FAIL] could not read todo_id from the create response" >&2
@@ -106,75 +115,78 @@ fi
 echo "[INFO] fixture todo_id=${TODO_ID}"
 
 # Ownership comes from the session. A body that nominates someone else is refused outright, not
-# quietly ignored -- a caller probing for the hole should be told no.
-check "supplying owner_principal_id is a 400, not a silent ignore" 400 POST "${TODOS_URL}" \
-  "${USER_AUTH}" '{"title":"forged","owner_principal_id":1}'
+# quietly ignored, and the 400 still states the contract version.
+post_idem "supplying owner_principal_id is a 400, not a silent ignore" 400 "${TODOS_URL}" \
+  "${USER_AUTH}" '{"title":"forged","owner_principal_id":1}' "ep-forged-${RUN}"
 assert_body_contains "refusal carries VALIDATION_ERROR" "${LAST_BODY}" '"error":"VALIDATION_ERROR"'
+assert_body_contains "and the contract version" "${LAST_BODY}" '"contract_version"'
+
+post_idem "the same title again is a rule, not an error: 200 rejected" 200 "${TODOS_URL}" "${USER_AUTH}" \
+  "{\"title\":\"endpoint fixture ${RUN}\"}" "ep-dup-${RUN}"
+assert_body_contains "the rule is TITLE_TAKEN" "${LAST_BODY}" '"rule_id":"TITLE_TAKEN"'
+assert_body_contains "and the refusal is audited" "${LAST_BODY}" '"audit_id"'
 
 check "the user lists their own todos" 200 GET "${TODOS_URL}" "${USER_AUTH}"
 assert_body_contains "the collection wrapper is present" "${LAST_BODY}" '"hasMore"'
-assert_body_contains "a read_token is issued" "${LAST_BODY}" '"read_token"'
+assert_body_contains "the view states its point in time" "${LAST_BODY}" '"as_at"'
+assert_body_contains "and its scope" "${LAST_BODY}" '"scope"'
+LIST_TOKEN="$(json_field "${LAST_BODY}" read_token)"
 
 check "the user reads one todo" 200 GET "${TODOS_URL}${TODO_ID}/" "${USER_AUTH}"
-assert_body_contains "the single read carries a read_token" "${LAST_BODY}" '"read_token"'
 READ_TOKEN="$(json_field "${LAST_BODY}" read_token)"
 
 # --- concurrency ---
 
-check "a fresh read_token updates" 200 PATCH "${TODOS_URL}${TODO_ID}/" "${USER_AUTH}" \
-  "{\"read_token\":\"${READ_TOKEN}\",\"title\":\"updated by endpoint test\"}"
-assert_body_contains "the update landed" "${LAST_BODY}" '"title":"updated by endpoint test"'
+check "a fresh read token revises" 200 POST "${TODOS_URL}${TODO_ID}/revisions/" "${USER_AUTH}" \
+  "{\"read_token\":\"${READ_TOKEN}\",\"title\":\"updated by endpoint test ${RUN}\"}"
+assert_body_contains "the revision is accepted" "${LAST_BODY}" '"decision":"accepted"'
 
-# The same token again. The row moved when the PATCH above succeeded, so this one is stale.
-check "the same read_token a second time is 409, not 200" 409 PATCH "${TODOS_URL}${TODO_ID}/" \
-  "${USER_AUTH}" "{\"read_token\":\"${READ_TOKEN}\",\"title\":\"should not land\"}"
-assert_body_contains "staleness carries CONFLICT" "${LAST_BODY}" '"error":"CONFLICT"'
-# The wording is fixed and must read as a request to re-evaluate, never as an instruction to retry
-# (spec-patch-02-mcp.md section 5). An agent told to retry will retry, and the second write is the
-# one that destroys the change it could not see.
-assert_body_contains "the conflict message asks the caller to re-evaluate" "${LAST_BODY}" \
-  'decide whether the change is still appropriate'
+# A token from before the change is stale: a refusal with a decision record, and nothing changes.
+check "a token from before the change is a 200 refusal" 200 POST "${TODOS_URL}${TODO_ID}/revisions/" \
+  "${USER_AUTH}" "{\"read_token\":\"${LIST_TOKEN}\",\"title\":\"should not land\"}"
+assert_body_contains "the rule is STALE_TOKEN" "${LAST_BODY}" '"rule_id":"STALE_TOKEN"'
+assert_body_contains "and it is retryable after a re-read" "${LAST_BODY}" '"retryable":true'
 
-check "an update with no read_token is 400" 400 PATCH "${TODOS_URL}${TODO_ID}/" "${USER_AUTH}" \
+check "a revision with no read token is 400" 400 POST "${TODOS_URL}${TODO_ID}/revisions/" "${USER_AUTH}" \
   '{"title":"no token"}'
 
-check "another principal's todo is 404, not 403" 404 GET "${TODOS_URL}999999999/" "${USER_AUTH}"
+check "a todo that is not there is 404, not 403" 404 GET "${TODOS_URL}999999999/" "${USER_AUTH}"
 assert_body_contains "the miss carries NOT_FOUND" "${LAST_BODY}" '"error":"NOT_FOUND"'
+assert_body_contains "and the contract version" "${LAST_BODY}" '"contract_version"'
 
-# --- status rules ---
+# --- state rules ---
 
 check "reading back for a fresh token" 200 GET "${TODOS_URL}${TODO_ID}/" "${USER_AUTH}"
 READ_TOKEN="$(json_field "${LAST_BODY}" read_token)"
-
-check "PATCH cannot set DELETED" 400 PATCH "${TODOS_URL}${TODO_ID}/" "${USER_AUTH}" \
-  "{\"read_token\":\"${READ_TOKEN}\",\"status\":\"DELETED\"}"
-
-check "PATCH can set DONE" 200 PATCH "${TODOS_URL}${TODO_ID}/" "${USER_AUTH}" \
-  "{\"read_token\":\"${READ_TOKEN}\",\"status\":\"DONE\"}"
+check "the user completes the todo" 200 POST "${TODOS_URL}${TODO_ID}/completions/" "${USER_AUTH}" \
+  "{\"read_token\":\"${READ_TOKEN}\"}"
 assert_body_contains "status is DONE" "${LAST_BODY}" '"status":"DONE"'
+DONE_TOKEN="$(json_field "${LAST_BODY}" read_token)"
+check "revising a done todo is a 200 refusal" 200 POST "${TODOS_URL}${TODO_ID}/revisions/" "${USER_AUTH}" \
+  "{\"read_token\":\"${DONE_TOKEN}\",\"title\":\"too late\"}"
+assert_body_contains "the rule is TODO_DONE" "${LAST_BODY}" '"rule_id":"TODO_DONE"'
+check "reopening it" 200 POST "${TODOS_URL}${TODO_ID}/reopenings/" "${USER_AUTH}" "{\"read_token\":\"${DONE_TOKEN}\"}"
+assert_body_contains "status is OPEN again" "${LAST_BODY}" '"status":"OPEN"'
 
 # --- the reserved permission nobody holds ---
 #
 # todo.purge is seeded onto todo_admin alone, and no test principal holds that role. Both tokens
-# are therefore refused. This is what "the permission nobody holds by default" means in practice,
-# and it is the reason the demo application exists at all.
+# are therefore refused: "the permission nobody holds by default" is a fact this suite checks.
 
-check "an ordinary user cannot purge" 403 POST "${PURGE_URL}" "${USER_AUTH}" \
-  '{"before":"2999-01-01T00:00:00.000+00:00"}'
+post_idem "an ordinary user cannot purge" 403 "${PURGE_URL}" "${USER_AUTH}" \
+  '{"before":"2999-01-01T00:00:00Z"}' "ep-purge-user-${RUN}"
 assert_body_contains "purge denial carries FORBIDDEN" "${LAST_BODY}" '"error":"FORBIDDEN"'
 
-check "not even road.system_admin can purge" 403 POST "${PURGE_URL}" "${ADMIN_AUTH}" \
-  '{"before":"2999-01-01T00:00:00.000+00:00"}'
-assert_body_contains "purge denial carries FORBIDDEN for the admin too" "${LAST_BODY}" \
-  '"error":"FORBIDDEN"'
+post_idem "not even road.system_admin can purge" 403 "${PURGE_URL}" "${ADMIN_AUTH}" \
+  '{"before":"2999-01-01T00:00:00Z"}' "ep-purge-admin-${RUN}"
+assert_body_contains "purge denial carries FORBIDDEN for the admin too" "${LAST_BODY}" '"error":"FORBIDDEN"'
 
 # --- cleanup: soft delete the fixture ---
 
 check "reading back for a delete token" 200 GET "${TODOS_URL}${TODO_ID}/" "${USER_AUTH}"
 READ_TOKEN="$(json_field "${LAST_BODY}" read_token)"
-
-check "the user deletes their todo" 200 DELETE \
-  "${TODOS_URL}${TODO_ID}/?read_token=${READ_TOKEN}" "${USER_AUTH}"
-assert_body_contains "deleted is true" "${LAST_BODY}" '"deleted":true'
+check "the user deletes their todo" 200 DELETE "${TODOS_URL}${TODO_ID}/" "${USER_AUTH}" \
+  "{\"read_token\":\"${READ_TOKEN}\"}"
+assert_body_contains "the deletion is accepted" "${LAST_BODY}" '"decision":"accepted"'
 
 echo "[INFO] todos.endpoint.sh complete"

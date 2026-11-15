@@ -50,12 +50,18 @@ try {
   check('todo-done reads it, then marks it done', r.code === 0 && r.out.startsWith(`${id} done:`), r);
   r = cli(['api', 'GET', `/todos/${id}/`]);
   check('api gives the raw JSON', r.code === 0 && JSON.parse(r.out).todo?.status === 'DONE', r.out.slice(0, 100));
+  r = cli(['todo-reopen', id]);
+  check('todo-reopen makes it open again', r.code === 0 && r.out.startsWith(`${id} open again:`), r);
+  r = cli(['todo-add', `agent-test todo ${stamp}`]);
+  check('a rule refusal is one line and exit 3 (TITLE_TAKEN)', r.code === 3 && r.out.startsWith('refused: TITLE_TAKEN'), r);
+  r = cli(['todo-done', '999999999']);
+  check('a todo that is not there: not found, exit 1', r.code === 1 && r.out.includes('not found'), r);
   r = cli(['api', 'GET', '/agents/']);
   check('an agent cannot manage agents: exit 1', r.code === 1 && /not allowed|HTTP 40/.test(r.out), r);
   r = cli(['nonsense']);
   check('an unknown command: exit 2', r.code === 2, r);
   r = cli(['help']);
-  check('help lists the core and the demo commands', r.code === 0 && r.out.includes('login') && r.out.includes('todo-done'), r.out.slice(0, 120));
+  check('help lists the core and the demo commands', r.code === 0 && r.out.includes('login') && r.out.includes('todo-done') && r.out.includes('todo-reopen'), r.out.slice(0, 120));
 
   const list = await api('GET', '/agents/');
   const keyId = list.agents?.find((a) => a.agent_id === agent)?.keys?.[0]?.key_id;

@@ -1,0 +1,64 @@
+[INFO] START
+
+[INFO] RUN_ID=20261115_205504_deploy-demo-test_58473
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/deploy-demo-test.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/deploy-demo-test.sql
+[INFO] SCRIPT_SHA256=c3c947dd0877d8afca6f2c3276c8e78653d809b9f2b9ea8c4caa64e55ce7ef4a
+[INFO] GIT_COMMIT=19548b0
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261115_205504
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261115_205504_deploy-demo-test_58473.log
+
+[INTENT]
+Purpose: Recompile the demo package and its test after fixing the purge test; show compile errors.
+Approach: create or replace both bodies, then read USER_ERRORS.
+Reason: spec-patch-16 step 3 verification.
+Expected objects: DEMO_TODO_API, DEMO_TODO_API_TEST bodies replaced.
+Risk: Low.
+Prior history checked: step-3 deploy earlier in this run.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sun Nov 15 20:55:05 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+
+Package Body DEMO_TODO_API compiled
+
+Elapsed: 00:00:00.186
+Elapsed: 00:00:00.204
+
+Package Body DEMO_TODO_API_TEST compiled
+
+Elapsed: 00:00:00.183
+Elapsed: 00:00:00.199
+=== USER_ERRORS_CHECK ===
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.272
+Elapsed: 00:00:00.289
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.038
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

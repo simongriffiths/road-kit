@@ -20,5 +20,6 @@ prompt === drop ords modules ===
 @api/modules/session/module.drop.sql
 @api/modules/auth/privileges.drop.sql
 @api/modules/auth/module.drop.sql
+@api/modules/contract/module.drop.sql
 @api/modules/health/privileges.drop.sql
 @api/modules/health/module.drop.sql

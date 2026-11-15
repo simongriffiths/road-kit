@@ -1,0 +1,114 @@
+[INFO] START
+
+[INFO] RUN_ID=20261115_210521_read-deployed-surface_69876
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=test/contract/read-deployed-surface.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/test/contract/read-deployed-surface.sql
+[INFO] SCRIPT_SHA256=a362b6aa085b9ae9cc24aebea80cbc2951174f49ff1d97a7dc7ef2267c91ab25
+[INFO] GIT_COMMIT=19548b0
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261115_210521
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261115_210521_read-deployed-surface_69876.log
+
+[INTENT]
+Purpose: List the deployed ORDS handlers and the contract versions the database holds, for
+  test/contract/check-contract-coverage.mjs.
+Approach: Read-only selects on USER_ORDS_MODULES, USER_ORDS_TEMPLATES, USER_ORDS_HANDLERS and
+  ROAD_CONTRACT, one prefixed line each.
+Reason: Definition 9.5 (every handler has a contract entry and every entry a handler); spec-patch-16
+  section 3.5.
+Expected objects: None.
+Risk: None. Reads only.
+Prior history checked: deploy/create/90_rest.sql; road-tracker's test/contract/read-deployed-surface.sql.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sun Nov 15 21:05:21 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+HANDLER|DELETE|/api/v1/admin/|principals/:principal_id/roles/:role_name/    
+
+HANDLER|DELETE|/api/v1/admin/|roles/:role_name/permissions/:permission_name/    
+
+HANDLER|DELETE|/api/v1/agents/|:id/                             
+
+HANDLER|DELETE|/api/v1/agents/|:id/keys/:key_id/                
+
+HANDLER|DELETE|/api/v1/todos/|:id/                              
+
+HANDLER|GET|/api/v1/admin/|permissions/                         
+
+HANDLER|GET|/api/v1/admin/|principals/                          
+
+HANDLER|GET|/api/v1/admin/|principals/:principal_id/roles/      
+
+HANDLER|GET|/api/v1/admin/|roles/                               
+
+HANDLER|GET|/api/v1/agents/|/                                   
+
+HANDLER|GET|/api/v1/contract/|/                                 
+
+HANDLER|GET|/api/v1/session/|me/                                
+
+HANDLER|GET|/api/v1/todos/|/                                    
+
+HANDLER|GET|/api/v1/todos/|:id/                                 
+
+HANDLER|GET|/api/v1/|health/                                    
+
+HANDLER|GET|/jwt-auth/|.well-known/jwks.json                    
+
+HANDLER|GET|/ui/hello_world/|/                                  
+
+HANDLER|GET|/ui/hello_world/|:requested_path*                   
+
+HANDLER|POST|/api-auth/|tokens                                  
+
+HANDLER|POST|/api/v1/admin/|principals/:principal_id/roles/     
+
+HANDLER|POST|/api/v1/admin/|roles/                              
+
+HANDLER|POST|/api/v1/admin/|roles/:role_name/permissions/       
+
+HANDLER|POST|/api/v1/agents/|/                                  
+
+HANDLER|POST|/api/v1/agents/|:id/keys/                          
+
+HANDLER|POST|/api/v1/todos/|/                                   
+
+HANDLER|POST|/api/v1/todos/|:id/completions/                    
+
+HANDLER|POST|/api/v1/todos/|:id/reopenings/                     
+
+HANDLER|POST|/api/v1/todos/|:id/revisions/                      
+
+HANDLER|POST|/api/v1/todos/|purges/                             
+
+HANDLER|POST|/jwt-auth/|login                                   
+
+Elapsed: 00:00:00.292
+STORED|0.1.0                   
+
+Elapsed: 00:00:00.056
+SERVED|0.1.0                                                     
+
+Elapsed: 00:00:00.057
+Elapsed: 00:00:00.074
+[INFO] USER_ERRORS_CHECK
+Elapsed: 00:00:00.132
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

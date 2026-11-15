@@ -4,8 +4,9 @@
 `road_contract`; a public `GET /contract/` module; three scripts (`contract-to-sql.mjs`,
 `generate-modules.mjs`, `check-contract-coverage.mjs`); framework contract fragments; and the todo
 demo, rebuilt as a governed surface with its own contract.
-**Status:** ruled 15 November 2026, not built. Simon accepted every recommendation in section 6 as
-written. The build starts in a new session from `docs/HANDOFF.md`.
+**Status:** ruled 15 November 2026; **built the same day** on `ROAD_KIT_DEV`, not released. Simon
+accepted every recommendation in section 6 as written. Section 9 records where the build differs from
+the plan, and why.
 **Decisions it implements:** Simon's intent that road-kit is the reference implementation of the
 gsc definition (15 November 2026); road-atlas D-04 (one contract per surface), D-05 (decisions
 answer 200), D-07 (the definition lives in gsc, road-kit implements it), RK-14's "not done" list, and
@@ -214,3 +215,54 @@ it adopts.
 - **The MCP projector** reading 0.3.0 contracts (RK-11): its own patch, which this one's contract
   would feed.
 - **The admin API** (6.5), and **agents under `external_oidc`** (spec-patch-15 section 9).
+
+## 9. As built (15 November 2026)
+
+Everything in sections 3 to 5 is built and tested on `ROAD_KIT_DEV`: `road_surface_api` (8 PL/SQL
+tests), `demo_todo_api` (19), `road_agent_api` (8), `test/agents/surface.test.mjs` (26 HTTP checks),
+`agents.test.mjs` (19), `road-cli.test.mjs` (15), one browser test, the coverage check (15 handlers,
+15 contract entries), `bin/run-skill-acceptance.sh` (a fresh headless Claude Code session, 9 turns,
+0.16 USD), and `todos.endpoint.sh` with fixture tokens. The checklist, `contract/checklist.md`, passes
+29 of 35: three are not used (claims, events, batches) and three are not yet, all row-level access
+below the line (27, 28, 30; section 8).
+
+Where it differs from the plan:
+
+1. **`todos.create` has a rule, `TITLE_TAKEN`.** The schema requires every action to declare at least
+   one precondition, so "none" in 4.1 cannot validate. Section 6.4 had named `TITLE_TAKEN` as the
+   one integrity rule to add if wanted; it is the smallest that fits (the caller has no other open
+   todo with that title). Counting it, the demo has six rules.
+2. **`todos.delete` carries a read token and a body, and its key is natural.** The schema requires
+   an action that changes an existing record to declare a concurrency rule, which means a read token.
+   4.1 had given it an Idempotency-Key and only `TODO_NOT_FOUND`. It now has `TODO_NOT_FOUND` and
+   `STALE_TOKEN`, as `DELETE /todos/{id}/` with a JSON body, as road-tracker's claim release does.
+3. **The purge is `POST /todos/purges/`**, a noun like the other actions, not `/todos/purge/`.
+4. **The agents actions declare `changes_existing_record: false`.** Retiring an agent and revoking a
+   key are idempotent end states keyed on the Idempotency-Key, with no read token (spec-patch-15), and
+   the schema would otherwise demand a concurrency rule. Their request bodies are empty-object
+   schemas, because the schema requires a body.
+5. **`todos.get` answers 404, not a refusal, for a missing, hidden or deleted todo**, as every view
+   does (definition 7); the actions answer 200 `TODO_NOT_FOUND`. Both are non-disclosing: no ids.
+6. **`session.me` states `contract_version` and `as_at` but not `scope`.** Its body already has a
+   `scope` field, the token's OAuth scope, and the view describes only the caller, so it declares
+   `access_rules_apply: false`. `road_surface_api.envelope` leaves `scope` out when given a null.
+7. **`record_not_found` takes the rule id** (`record_not_found(action, rule, message, key)`), where
+   road-tracker's `item_not_found` and `project_not_found` were fixed. An accepted action returns a
+   fresh read token in its result, so a caller can act again without another read.
+8. **The contract is loaded by `97_demo.sql`, not the framework chain.** A framework-only deploy
+   has no contract: `GET /contract/` answers 404 and `road_surface_api.contract_version` falls back
+   to `c_framework_version` (`0.4.0`).
+9. **There is no scaffold todo page to govern.** The plan's "browser: the scaffold's todo page" was a
+   mistake: `hello_world/src` has no todos page. The browser test that exists is My agents, and it
+   passes against the regenerated agents module.
+10. **The session module stays hand-written** (one answer from several queries), but uses
+    `road_surface_api` for 401, `Accept-Version`, the envelope and failures. The agents and todos
+    modules are generated; `api/routes.mjs` lists only those.
+11. **`generate-skill.mjs` merges fragments** before reading a contract, and `roleData` accepts the
+    column aliases of a union's first row.
+
+Found while building, worth knowing next time: a private package function cannot be called in SQL
+(PLS-00231: `iso_or_null` and `principal_of` both hit it); `run-sql.sh` said SUCCESS twice with
+compile errors in the log; `updated_at` is trigger-maintained, so a test cannot backdate a row (the
+purge test waits a second instead); the same read token and todo replays the first accepted answer, so
+a stale-token test needs a token from an earlier read.

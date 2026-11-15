@@ -23,7 +23,7 @@ create or replace package body road_agent_api as
   function refuse(p_action in varchar2, p_rule in varchar2, p_message in varchar2, p_key in varchar2,
                   p_ids in json default null) return json is
   begin
-    return road_decision_api.reject(p_action, c_contract_version,
+    return road_surface_api.reject(p_action,
       road_decision_api.rejection(p_rule, p_message, false, p_ids), p_idempotency_key => p_key);
   end refuse;
 
@@ -108,7 +108,7 @@ create or replace package body road_agent_api as
     values (l_id, l_owner, road_ctx_pkg.principal_id);
     insert into road_principal_roles (principal_id, role_name, granted_by)
     values (l_id, l_role, road_ctx_pkg.principal_id);
-    return road_decision_api.accept(c_create_agent, c_contract_version,
+    return road_surface_api.accept(c_create_agent,
       json(json_object('agent_id' value l_id, 'subject' value 'AGENT_' || l_id, 'display_name' value l_name,
                        'shared' value case when l_owner is null then 'true' else 'false' end format json)),
       ids(l_id), l_key);
@@ -138,7 +138,7 @@ create or replace package body road_agent_api as
     update road_api_keys set revoked_at = systimestamp, revoked_by = road_ctx_pkg.principal_id
      where principal_id = p_agent_id and revoked_at is null;
     update road_principals set status = 'RETIRED', updated_at = systimestamp where principal_id = p_agent_id;
-    return road_decision_api.accept(c_retire_agent, c_contract_version,
+    return road_surface_api.accept(c_retire_agent,
       json(json_object('agent_id' value p_agent_id)), ids(p_agent_id), l_key);
   exception
     when dup_val_on_index then
@@ -193,7 +193,7 @@ create or replace package body road_agent_api as
     insert into road_api_keys (principal_id, name, key_prefix, key_hash, created_by, expires_at)
     values (p_agent_id, l_name, substr(l_secret, 1, 12), l_hash, road_ctx_pkg.principal_id, l_expires)
     returning key_id into l_id;
-    l_out := json_object_t(json_serialize(road_decision_api.accept(c_create_key, c_contract_version,
+    l_out := json_object_t(json_serialize(road_surface_api.accept(c_create_key,
       json(json_object('key_id' value l_id, 'agent_id' value p_agent_id, 'name' value l_name,
                        'key_prefix' value substr(l_secret, 1, 12))),
       ids(p_agent_id, l_id), l_key)));
@@ -230,7 +230,7 @@ create or replace package body road_agent_api as
       rollback to savepoint revoke_key;
       return refuse(c_delete_key, 'API_KEY_NOT_FOUND', 'The agent has no current key with this id.', l_key, ids(p_agent_id));
     end if;
-    return road_decision_api.accept(c_delete_key, c_contract_version,
+    return road_surface_api.accept(c_delete_key,
       json(json_object('key_id' value p_key_id)), ids(p_agent_id, p_key_id), l_key);
   exception
     when dup_val_on_index then
@@ -267,7 +267,7 @@ create or replace package body road_agent_api as
      where l_all = 1 or a.owner_principal_id = road_ctx_pkg.principal_id;
     l_obj.put('agents', json_array_t(nvl(l_list, '[]')));
     l_obj.put('self_serve', setting('agents.role') is not null);
-    return l_obj.to_clob;
+    return road_surface_api.envelope(json(l_obj.to_clob));
   end list_agents;
 
   procedure exchange(p_body in clob, p_status out number, p_response out clob) is

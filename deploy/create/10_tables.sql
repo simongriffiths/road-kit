@@ -35,3 +35,4 @@ prompt === deploy identity tables (spec patch 06) ===
 -- Agents and their API keys (spec-patch-15, ledger B-04). Framework-generic.
 @db/tables/road_agents.create.sql
 @db/tables/road_api_keys.create.sql
+@db/tables/road_contract.create.sql

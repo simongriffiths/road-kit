@@ -1,0 +1,62 @@
+[INFO] START
+
+[INFO] RUN_ID=20261115_204737_run-surface-tests_53821
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/run-surface-tests.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/run-surface-tests.sql
+[INFO] SCRIPT_SHA256=518bec789ae344bc9094e7cfbb1f5d4fb253a83b5ddc91e96361d95241c34bfb
+[INFO] GIT_COMMIT=19548b0
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261115_204737
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261115_204737_run-surface-tests_53821.log
+
+[INTENT]
+Purpose: Run road_surface_api_test on ROAD_KIT_DEV.
+Approach: Call run_all; the suite makes and removes its own fixture principal.
+Reason: spec-patch-16 step 1 verification.
+Expected objects: None changed.
+Risk: Low.
+Prior history checked: run-framework-tests.sql, same pattern.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sun Nov 15 20:47:37 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+PASS version
+PASS natural_key
+PASS token_raw_bad
+PASS token_freshness
+PASS hidden_and_missing
+PASS accept_version
+FAIL envelope: ORA-20000: items kept: expected [2] got []
+PASS with_version
+road_surface_api_test: 7 passed, 1 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.479
+Elapsed: 00:00:00.502
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.044
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

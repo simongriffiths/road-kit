@@ -1,0 +1,223 @@
+[INFO] START
+
+[INFO] RUN_ID=20261115_205405_deploy-patch16-step3_57487
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/deploy-patch16-step3.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/deploy-patch16-step3.sql
+[INFO] SCRIPT_SHA256=addc1ad01eb5e705bb9e7be8146b166b11b7562441f278f9a70e7fbc5f845e8c
+[INFO] GIT_COMMIT=19548b0
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261115_205405
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261115_205405_deploy-patch16-step3_57487.log
+
+[INTENT]
+Purpose: Deploy spec-patch-16 steps 2-3 to ROAD_KIT_DEV: the contract load, the road_agent_api and
+  road_surface_api changes, the rebuilt demo_todo_api and its tests, and the generated todos,
+  agents and session modules.
+Approach: Recreate the package specs and bodies (idempotent), load the contract with the generated
+  96_contract.sql, then recreate the three ORDS modules. demo_todos keeps its rows and columns.
+Reason: spec-patch-16 build plan steps 2 and 3.
+Expected objects: ROAD_CONTRACT row; DEMO_TODO_API (+ test), ROAD_AGENT_API, ROAD_SURFACE_API
+  replaced; ORDS modules hello_api.todos, hello_api.agents, hello_api.session replaced.
+Risk: Medium. Replaces the demo's API: the old 409 endpoints, PATCH /todos/{id}/ and /todos/purge/
+  go. Nothing outside the demo calls them (checked: hello_world/src uses the todos page only).
+Prior history checked: 15 Nov 2026 step-1 deploy (SUCCESS); the 20261115_120535 framework-tests
+  failure (road_agent_api_test, ORA-06550) predates this run and is investigated separately.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sun Nov 15 20:54:05 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+
+Package ROAD_SURFACE_API compiled
+
+Elapsed: 00:00:00.123
+Elapsed: 00:00:00.140
+
+Package Body ROAD_SURFACE_API compiled
+
+Elapsed: 00:00:00.120
+Elapsed: 00:00:00.134
+
+Package ROAD_AGENT_API compiled
+
+Elapsed: 00:00:00.090
+Elapsed: 00:00:00.105
+
+Package Body ROAD_AGENT_API compiled
+
+Elapsed: 00:00:00.158
+Elapsed: 00:00:00.173
+
+Package DEMO_TODO_API compiled
+
+Elapsed: 00:00:00.090
+Elapsed: 00:00:00.105
+
+Package DEMO_TODO_API_TEST compiled
+
+Elapsed: 00:00:00.062
+Elapsed: 00:00:00.077
+
+Package Body DEMO_TODO_API compiled
+
+
+Errors for PACKAGE BODY DEMO_TODO_API:
+
+LINE/COL ERROR
+-------- -----------------------------------------------------------------
+362/36   PLS-00103: Encountered the symbol "SELECT" when expecting one of the
+         following:
+         ( - + case for mod new not null <an identifier>
+         <a double-quoted delimited-identifier> <a bind variable>
+         continue avg count current exists max min prior sql stddev
+         sum variance execute forall merge time timestamp interval
+         date <a string literal with character set specification>
+         <a number> <a single-quoted SQL string> pipe
+         <an alternatively-quoted string literal with character set
+         specification>
+         <an alte
+362/90   PLS-00103: Encountered the symbol ")" when expecting one of the
+         following:
+         . ( * @ % & - + ; / at for mod remainder rem
+         <an exponent (**)> and or group having intersect minus order
+         start union where connect || multiset <=> <-> <#>
+Elapsed: 00:00:00.180
+Elapsed: 00:00:00.195
+
+Package Body DEMO_TODO_API_TEST compiled
+
+
+Errors for PACKAGE BODY DEMO_TODO_API_TEST:
+
+LINE/COL ERROR
+-------- -----------------------------------------------------------------
+165/15   PLS-00122: CURSOR as separator is allowed only with specific built-in
+         functions
+Elapsed: 00:00:00.164
+Elapsed: 00:00:00.179
+
+Package Body ROAD_SURFACE_API_TEST compiled
+
+Elapsed: 00:00:00.120
+Elapsed: 00:00:00.135
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.383
+
+[1m'CONTRACT'||CONTRACT_VERSION||''||DBMS_LOB.GETLENGTH(DOCUMENT)||'CHARS'[m    
+__________________________________________________________________________ 
+CONTRACT 0.1.0 25033 chars                                                 
+
+1 row selected. 
+
+Elapsed: 00:00:00.079
+Elapsed: 00:00:00.093
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.053
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.088
+Elapsed: 00:00:00.102
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.040
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.053
+Elapsed: 00:00:00.067
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.058
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.034
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.055
+Elapsed: 00:00:00.069
+=== USER_ERRORS_CHECK ===
+
+[1mNAME[m                  [1mTYPE[m               [1mLINE[m [1mTEXT[m                                                                               
+_____________________ _______________ _______ __________________________________________________________________________________ 
+DEMO_TODO_API         PACKAGE BODY        362 PLS-00103: Encountered the symbol "SELECT" when expecting one of the following:    
+                                                                                                                                 
+                                                 ( - + case for mod new not null <an identifier>                                 
+                                                 <a double-quoted delimited-identifier> <a bind variable>                        
+                                                 continue avg count current exists max min prior sql stddev                      
+                                                 sum variance execute forall merge time timestamp interval                       
+                                                 date <a string literal with character set specification>                        
+                                                 <a number> <a single-quoted SQL string> pipe                                    
+                                                 <an alternatively-quoted string literal with character set specification>       
+                                                 <an alte                                                                        
+DEMO_TODO_API         PACKAGE BODY        362 PLS-00103: Encountered the symbol ")" when expecting one of the following:         
+                                                                                                                                 
+                                                 . ( * @ % & - + ; / at for mod remainder rem                                    
+                                                 <an exponent (**)> and or group having intersect minus order                    
+                                                 start union where connect || multiset <=> <-> <#>                               
+DEMO_TODO_API_TEST    PACKAGE BODY        165 PLS-00122: CURSOR as separator is allowed only with specific built-in functions    
+
+3 rows selected. 
+
+Elapsed: 00:00:00.032
+=== invalid ===
+
+[1mOBJECT_TYPE[m     [1mOBJECT_NAME[m           
+_______________ _____________________ 
+PACKAGE BODY    DEMO_TODO_API         
+PACKAGE BODY    DEMO_TODO_API_TEST    
+
+2 rows selected. 
+
+Elapsed: 00:00:00.031
+Elapsed: 00:00:00.045
+[INFO] USER_ERRORS_CHECK
+
+[1mNAME[m                  [1mTYPE[m               [1mLINE[m    [1mPOSITION[m [1mTEXT[m                                                                               
+_____________________ _______________ _______ ___________ __________________________________________________________________________________ 
+DEMO_TODO_API         PACKAGE BODY        362          36 PLS-00103: Encountered the symbol "SELECT" when expecting one of the following:    
+                                                                                                                                             
+                                                             ( - + case for mod new not null <an identifier>                                 
+                                                             <a double-quoted delimited-identifier> <a bind variable>                        
+                                                             continue avg count current exists max min prior sql stddev                      
+                                                             sum variance execute forall merge time timestamp interval                       
+                                                             date <a string literal with character set specification>                        
+                                                             <a number> <a single-quoted SQL string> pipe                                    
+                                                             <an alternatively-quoted string literal with character set specification>       
+                                                             <an alte                                                                        
+DEMO_TODO_API         PACKAGE BODY        362          90 PLS-00103: Encountered the symbol ")" when expecting one of the following:         
+                                                                                                                                             
+                                                             . ( * @ % & - + ; / at for mod remainder rem                                    
+                                                             <an exponent (**)> and or group having intersect minus order                    
+                                                             start union where connect || multiset <=> <-> <#>                               
+DEMO_TODO_API_TEST    PACKAGE BODY        165          15 PLS-00122: CURSOR as separator is allowed only with specific built-in functions    
+
+3 rows selected. 
+
+Elapsed: 00:00:00.031
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

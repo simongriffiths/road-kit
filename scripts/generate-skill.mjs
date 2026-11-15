@@ -24,6 +24,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { resolveContract } from './lib/contract-merge.mjs';
 
 const [configArg, flag] = process.argv.slice(2);
 if (!configArg) {
@@ -36,7 +37,9 @@ const root = process.cwd();
 const outDir = path.resolve(path.dirname(configPath), cfg.out ?? '.');
 const fail = (msg) => { console.error(`[FAIL] ${msg}`); process.exit(1); };
 
-const contract = JSON.parse(fs.readFileSync(path.resolve(root, cfg.contract), 'utf8'));
+// The framework fragments the contract includes (x-road-include) are merged in: it is the document the
+// database serves.
+const contract = resolveContract(path.resolve(root, cfg.contract)).contract;
 const commandsFile = path.resolve(root, cfg.commands);
 const commands = (await import(pathToFileURL(commandsFile).href)).default ?? {};
 const commandsSource = fs.readFileSync(commandsFile, 'utf8');
@@ -45,7 +48,10 @@ const VERSION = contract.envelope.contract_version;
 let perms = cfg.agentPermissions;
 if (!perms && cfg.roleData) {
   const text = fs.readFileSync(path.resolve(root, cfg.roleData.file), 'utf8');
-  const re = new RegExp(`'${cfg.roleData.role.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}',\\s*'([a-z0-9_.]+)'`, 'g');
+  // The first row of a union may name its columns, so allow an alias after each value.
+  const alias = '(?:\\s+(?:as\\s+)?[a-z_]+)?';
+  const role = cfg.roleData.role.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`'${role}'${alias},\\s*'([a-z0-9_.]+)'`, 'g');
   perms = [...text.matchAll(re)].map((m) => m[1]);
 }
 if (!perms?.length) fail('no agent permissions: give agentPermissions or roleData in the config');

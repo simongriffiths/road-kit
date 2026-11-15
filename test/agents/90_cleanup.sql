@@ -28,6 +28,15 @@ begin
   delete from demo_todos where owner_principal_id in (select column_value from table(l_ids));
   delete from road_principal_roles where principal_id in (select column_value from table(l_ids));
   delete from road_principals where principal_id in (select column_value from table(l_ids));
+  -- What the governed-surface HTTP test (surface.test.mjs) and todos.endpoint.sh leave behind for
+  -- USER1: its fixture todos, by the titles those tests use, and the decisions about them.
+  delete from road_decisions
+   where principal_id in (select principal_id from road_principals where subject = 'USER1')
+     and action_id like 'todos.%';
+  delete from demo_todos
+   where owner_principal_id in (select principal_id from road_principals where subject = 'USER1')
+     and (title like 'surface %' or title like 'endpoint fixture%' or title like 'updated by endpoint test%'
+          or title like 'agent-test%');
   dbms_output.put_line('[INFO] removed ' || l_ids.count || ' test principals');
   commit;
 end;

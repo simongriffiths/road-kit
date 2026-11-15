@@ -3,6 +3,24 @@ whenever sqlerror exit sql.sqlcode rollback
 
 prompt === drop package bodies ===
 begin
+  execute immediate 'drop package body road_surface_api_test';
+exception
+  when others then
+    if sqlcode != -4043 then
+      raise;
+    end if;
+end;
+/
+begin
+  execute immediate 'drop package body road_surface_api';
+exception
+  when others then
+    if sqlcode != -4043 then
+      raise;
+    end if;
+end;
+/
+begin
   execute immediate 'drop package body road_decision_api_test';
 exception
   when others then

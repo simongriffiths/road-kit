@@ -58,15 +58,15 @@ begin
     p_source      => q'~
       declare
         l_response       json;
-        l_status_code    number;
-        l_error_response clob;
         l_principal_id   number;
         l_roles          json;
         l_permissions    json;
       begin
         if not road_ctx_pkg.begin_request(:current_user) then
-          owa_util.status_line(401);
-          htp.p('{"error":"UNAUTHORIZED","message":"No session could be established"}');
+          road_surface_api.unauthorized;
+          return;
+        end if;
+        if not road_surface_api.version_ok(:accept_version) then
           return;
         end if;
         -- No require_permission: reading your own identity is inherently self-scoped, and road-kit
@@ -118,22 +118,20 @@ begin
           into l_response
           from dual;
 
-        owa_util.status_line(200);
-        htp.p(json_serialize(l_response));
+        -- The standard fields (contract_version, as_at). Not scope: this body's own scope is the
+        -- token's OAuth scope, and the view describes only the caller, so no access rule limits it.
+        road_surface_api.respond(200, road_surface_api.envelope(l_response, null));
       exception
         when others then
-          if sqlcode between -20999 and -20000 then
-            error_api.handle_known(sqlcode, sqlerrm, l_status_code, l_error_response);
-          else
-            error_api.handle_unknown(sqlerrm, dbms_utility.format_error_backtrace,
-                                     'session.me', l_status_code, l_error_response);
-          end if;
-          owa_util.status_line(l_status_code);
-          htp.p(l_error_response);
+          road_surface_api.fail(sqlcode, sqlerrm, dbms_utility.format_error_backtrace, 'session.me');
       end;
     ~',
     p_comments    => 'Returns the authenticated session identity, roles and effective permissions'
   );
+
+  ords.define_parameter(p_module_name => 'hello_api.session', p_pattern => 'me/', p_method => 'GET',
+    p_name => 'Accept-Version', p_bind_variable_name => 'accept_version', p_source_type => 'HEADER',
+    p_param_type => 'STRING', p_access_method => 'IN');
 
   commit;
 end;

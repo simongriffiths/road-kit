@@ -112,6 +112,16 @@ SHARED_FILES=(
   # db/package_specs/road_agent_api_test.pks    db/package_bodies/road_agent_api_test.pkb
   # tools/road-cli/road-cli                     scripts/generate-skill.mjs
 
+  # spec-patch-16 (the governed surface pieces), added 2026-11-15 and commented out until the first
+  # consumer adopts them, as the spec-patch-15 files above are. road-tracker has its own tenancy-aware
+  # rt_action_pkg and rt_rest_pkg and replaces their generic half with these at its next upgrade
+  # (spec-patch-16 section 6.7). api/routes.mjs, contract/ and skills/ are the application's own.
+  # db/tables/road_contract.create.sql          db/tables/road_contract.drop.sql
+  # db/package_specs/road_surface_api.pks       db/package_bodies/road_surface_api.pkb
+  # db/package_specs/road_surface_api_test.pks  db/package_bodies/road_surface_api_test.pkb
+  # scripts/contract-to-sql.mjs                 scripts/generate-modules.mjs
+  # scripts/lib/contract-merge.mjs              test/contract/check-contract-coverage.mjs
+
   # Added 2026-08-29 with the B-01 back-port, per the rule in this header: a file becomes shared in
   # the same commit that lists it here. Every one of these is framework-shaped and was identical in
   # both repositories while being watched by nothing.

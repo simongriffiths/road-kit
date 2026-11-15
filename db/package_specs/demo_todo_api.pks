@@ -1,105 +1,94 @@
 create or replace package demo_todo_api as
 
-  -- The demo application (planning/spec-patch-08-road-kit-demo-app.md, in road-cal).
+  -- The reference governed surface (planning/spec-patch-16-gsc-reference-implementation.md): a
+  -- small todo list that shows each part of a Governed Surface Contract once. Its contract is
+  -- contract/hello_world.gsc.json, and everything below is an action or a view in it.
   --
-  -- This package exists to be READ, and to fail loudly when the framework breaks. It is the
-  -- smallest application that pulls on every seam an adopter will pull on: permission-gated
-  -- handlers, an application role, a RESERVED application permission, per-principal ownership, and
-  -- optimistic concurrency through road_audit_api.
+  -- It is a reference, not a product and not a starter template. Copy the WIRING and throw the
+  -- domain away: permission checks in the package, the owner taken from the session, one decision
+  -- shape in every action, read tokens for staleness, the standard fields on every view.
   --
-  -- It is not a product and not a starter template. Nobody should build on top of it.
+  -- Rule 1 of spec-patch-08, which keeps it honest: THE DEMO APP MAY NEVER CAUSE A FRAMEWORK CHANGE.
+  -- If it needs something road-kit lacks, that is a specification question for the framework, raised
+  -- separately -- never a change smuggled in under a demo.
   --
-  -- Rule 1 of the patch, which keeps it honest: THE DEMO APP MAY NEVER CAUSE A FRAMEWORK CHANGE.
-  -- If it needs something road-kit lacks, that is a specification question for the framework,
-  -- raised separately -- never a change smuggled in under a demo.
+  -- The shape of every action (spec-patch-12; road_decision_api's header): check the call is
+  -- well formed (a wrong call raises, and error_api answers 400), look for the prior outcome of the
+  -- same idempotency key, take a savepoint, re-read the record and lock it, test the rules in the
+  -- contract's order, then accept, or roll back to the savepoint and reject. A rule that fails is a
+  -- decision, not an error: the answer is 200 with a decision record, and refusals are audited.
   --
-  -- Signature convention matches road_admin_api and road-cal's event_api: native JSON in, native
-  -- JSON out, no ref cursors or PL/SQL collections across the package boundary. Never commits --
-  -- ORDS commits on success and tests roll back to a savepoint.
+  -- Never commits: ORDS commits on success, and the tests roll back to a savepoint. Authorisation is
+  -- enforced HERE, not only in the handler, so a second caller -- an MCP tool, a batch job, another
+  -- package -- cannot reach an operation by not being an ORDS handler.
   --
-  -- Authorisation is enforced HERE, not only in the handler, for the same reason road_admin_api
-  -- does it: a second caller -- an MCP tool, a batch job, another package -- must not reach a
-  -- privileged operation by not being an ORDS handler.
+  -- Handlers are generated from api/routes.mjs and call these functions and nothing else.
 
-  -- Error codes, matching error_api's fixed mapping exactly. Listed here so the demo reads as
-  -- documentation of the contract an adopter inherits.
-  c_validation constant number := -20001;  -- 400 VALIDATION_ERROR
-  c_not_found  constant number := -20004;  -- 404 NOT_FOUND
-  c_conflict   constant number := -20009;  -- 409 CONFLICT
+  -- Action ids, as in the contract.
+  c_create   constant varchar2(30) := 'todos.create';
+  c_revise   constant varchar2(30) := 'todos.revise';
+  c_complete constant varchar2(30) := 'todos.complete';
+  c_reopen   constant varchar2(30) := 'todos.reopen';
+  c_delete   constant varchar2(30) := 'todos.delete';
+  c_purge    constant varchar2(30) := 'todos.purge';
 
-  -- Fixed 409 wording. It must read as a request to RE-EVALUATE, never as an instruction to retry
-  -- (spec-patch-02-mcp.md section 5). An agent told to retry will retry, and the second write is
-  -- the one that silently destroys the change it could not see. Do not vary this text per call.
-  c_conflict_message constant varchar2(300) :=
-    'The todo changed since you read it. Call GET /todos/{todo_id}/ to see the current state, ' ||
-    'then decide whether the change is still appropriate.';
+  -- What every view says about withheld data (definition 7.4).
+  c_scope constant varchar2(200) :=
+    'Results are limited to your own todos unless you may list everyone''s. Deleted todos are left out unless asked for.';
 
-  -- GET /todos/   requires todo.list
-  -- p_request: { "status": "OPEN|DONE|DELETED", "q": "<term>", "owner": n,
-  --              "offset": n, "limit": n }  -- all optional
-  -- Returns:   { "items": [ <todo>, ... ], "hasMore": bool, "limit": n, "offset": n, "count": n,
-  --              "read_token": "<guid>" }
-  --
-  -- Scoped to the caller's own rows unless "owner" names someone else, which requires
-  -- todo.list_all. The same endpoint with permission-dependent scope, deliberately, rather than a
-  -- separate /todos/all/ route: it is the case adopters actually hit and the one that is easy to
-  -- get wrong. A route-shaped check teaches nothing transferable (spec-patch-08 section 6.1).
-  --
-  -- DELETED rows are excluded unless "status" asks for them by name.
-  --
-  -- hasMore comes from fetching limit+1 rows and discarding the extra. There is deliberately no
-  -- total count, which would be a second full scan to render a number nothing needs.
-  function get_todos(p_request in json default null) return json;
+  -- todos.list: GET /todos/   requires todo.list
+  -- Another owner's todos need todo.list_all as well. The check is on the VALUE: passing your own id
+  -- is not an escalation. DELETED rows are left out unless p_status asks for them by name. hasMore
+  -- comes from fetching limit+1 rows; there is deliberately no total, which would be a second scan.
+  -- Returns the view with its standard fields and ONE read token for the whole read: it covers every
+  -- todo in items, and an action on a todo carries it with the todo's id.
+  function list_todos(
+    p_offset in number   default null,
+    p_limit  in number   default null,
+    p_status in varchar2 default null,
+    p_query  in varchar2 default null,
+    p_owner  in number   default null
+  ) return clob;
 
-  -- POST /todos/   requires todo.create
-  -- p_request: { "title": "...", "notes": "...", "due_at": "<iso8601>" }
-  -- Returns:   the created todo object. NO read_token -- read it back via get_todo before
-  --            updating, matching road-cal's create endpoints.
-  --
-  -- owner_principal_id is taken from road_ctx_pkg.principal_id and is NEVER read from the body,
-  -- for the same reason granted_by is not on grant_role and attached_by is not on
-  -- attach_permission: a caller who could nominate it could forge the record of who owns what. A
-  -- body that supplies it is a 400, not a silently ignored field -- silently ignoring an attempt
-  -- to set ownership tells the caller their forgery worked.
-  function create_todo(p_request in json) return json;
+  -- todos.get: GET /todos/{id}/   requires todo.get
+  -- The caller's own todo, or any todo for a holder of todo.list_all. A missing todo, another
+  -- owner's and a deleted one are all 404: the permission is held and the ROW is out of scope, and a
+  -- 403 would confirm the row exists.
+  function get_todo(p_todo_id in number) return clob;
 
-  -- GET /todos/:todo_id/   requires todo.get
-  -- p_request: { "todo_id": n }
-  -- Returns:   { "todo": <todo>, "read_token": "<guid>" }
-  function get_todo(p_request in json) return json;
+  -- todos.create: POST /todos/   requires todo.create; Idempotency-Key
+  -- p_body: { "title": "...", "notes": "...", "due_at": "<iso8601>" }
+  -- The owner is the caller and is NEVER read from the body: a body that names one is a wrong call
+  -- (400), not silently ignored, because ignoring it would tell a prober the forgery worked.
+  -- Rule: TITLE_TAKEN.
+  function create_todo(p_body in json, p_idempotency_key in varchar2) return json;
 
-  -- PATCH /todos/:todo_id/   requires todo.update
-  -- p_request: { "todo_id": n, "read_token": "<guid>",
-  --              "title": "...", "notes": "...", "due_at": "...", "status": "OPEN|DONE" }
-  -- Returns:   the updated todo object.
-  --
-  -- status accepts OPEN and DONE only. DELETED is reachable through delete_todo alone, so
-  -- "I finished it" and "I want it gone" stay distinguishable.
-  --
-  -- read_token is required and checked with road_audit_api.check_fresh. Stale -> c_conflict.
-  function update_todo(p_request in json) return json;
+  -- The next four change a todo the caller read, so each carries the read token (p_body.read_token)
+  -- and its natural idempotency key is (principal, id, read token). Rules, in order:
+  -- TODO_NOT_FOUND, STALE_TOKEN, then the action's own. Only the owner may act: another owner's todo
+  -- looks missing.
 
-  -- DELETE /todos/:todo_id/   requires todo.delete
-  -- p_request: { "todo_id": n, "read_token": "<guid>" }
-  -- Returns:   { "todo_id": n, "deleted": true|false }
-  --            deleted=false when it was already DELETED -- idempotent, not an error, matching
-  --            grant_role and attach_permission.
-  --
-  -- Soft delete. The row survives; only purge removes it.
-  function delete_todo(p_request in json) return json;
+  -- todos.revise: POST /todos/{id}/revisions/   requires todo.update
+  -- p_body: { "read_token", and at least one of "title", "notes", "due_at" }. Rule: TODO_DONE.
+  function revise_todo(p_todo_id in number, p_body in json) return json;
 
-  -- POST /todos/purge/   requires todo.purge  -- RESERVED
-  -- p_request: { "before": "<iso8601>" }
-  -- Returns:   { "purged": n }
-  --
-  -- Hard-deletes DONE and DELETED rows older than the cutoff, ACROSS ALL OWNERS. Irreversible,
-  -- which is exactly what qualifies it to be the reserved permission's subject.
-  --
-  -- todo.purge is reserved and does NOT start with road. -- spec-patch-07 section 3.1's worked
-  -- example, and the whole reason road-kit needed an application: a prefix rule would let any
-  -- road.role.compose holder attach this from the composition UI, and the entire point of it is to
-  -- be the permission nobody holds by default.
-  function purge(p_request in json) return json;
+  -- todos.complete: POST /todos/{id}/completions/   requires todo.update. Rule: TODO_DONE.
+  function complete_todo(p_todo_id in number, p_body in json) return json;
+
+  -- todos.reopen: POST /todos/{id}/reopenings/   requires todo.update. Rule: TODO_NOT_DONE.
+  function reopen_todo(p_todo_id in number, p_body in json) return json;
+
+  -- todos.delete: DELETE /todos/{id}/   requires todo.delete
+  -- A soft delete: the row stays, and only the purge removes it.
+  function delete_todo(p_todo_id in number, p_body in json) return json;
+
+  -- todos.purge: POST /todos/purges/   requires todo.purge -- RESERVED; Idempotency-Key
+  -- p_body: { "before": "<iso8601>" }. Rule: PURGE_CUTOFF_IN_FUTURE.
+  -- Hard-deletes DONE and DELETED rows last changed before the cutoff, ACROSS ALL OWNERS.
+  -- Irreversible, which is what qualifies it to be the reserved permission's subject: todo.purge
+  -- does NOT start with road., so a prefix rule would let any road.role.compose holder attach it
+  -- (spec-patch-07 section 3.1's worked example).
+  function purge_todos(p_body in json, p_idempotency_key in varchar2) return json;
 
 end demo_todo_api;
 /

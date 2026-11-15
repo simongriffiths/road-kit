@@ -1,0 +1,583 @@
+{
+  "x-fragment": "road-agents",
+  "x-description": "road-kit's agents and API keys (spec-patch-15), served under the application's alias. An application lists this fragment in its contract's x-road-include and gets one contract (road-atlas D-04).",
+  "state": {
+    "actions": [
+      {
+        "id": "agents.create",
+        "title": "Create an agent",
+        "description": "Propose a new agent: a principal of its own that works the application through its API and never acts under a person's identity. A person with the self-serve permission makes an agent they own; a holder of road.api_key.manage may make a shared one.",
+        "action_resource": {
+          "rest": {
+            "method": "POST",
+            "path": "/agents/"
+          }
+        },
+        "authority": {
+          "operational_authority": "Agents, road_agent_api",
+          "actor": {
+            "model": "authenticated",
+            "required_permissions": [
+              "road.agents.rw"
+            ],
+            "attribution_required": true
+          }
+        },
+        "changes_existing_record": false,
+        "request": {
+          "idempotency": {
+            "strategy": "idempotency_key",
+            "header": "Idempotency-Key",
+            "retention": "indefinitely",
+            "replays": "accepted_only"
+          },
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "display_name"
+            ],
+            "properties": {
+              "display_name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "shared": {
+                "type": "boolean",
+                "description": "A shared agent has no owner. Needs road.api_key.manage."
+              }
+            }
+          }
+        },
+        "preconditions": {
+          "current_state_recheck": true,
+          "evaluation": "first_failure",
+          "rules": [
+            {
+              "id": "AGENT_LIMIT_REACHED",
+              "kind": "integrity",
+              "description": "The caller owns fewer active agents than the limit (road_config agents.limit_per_owner). Retire one first.",
+              "consumer_visible": true
+            }
+          ]
+        },
+        "outcomes": {
+          "accepted": {
+            "description": "The agent exists, with no key yet.",
+            "result": {
+              "type": "object",
+              "required": [
+                "agent_id",
+                "subject",
+                "display_name",
+                "shared"
+              ],
+              "properties": {
+                "agent_id": {
+                  "type": "integer"
+                },
+                "subject": {
+                  "type": "string"
+                },
+                "display_name": {
+                  "type": "string"
+                },
+                "shared": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "rejections": [
+            {
+              "rule_id": "AGENT_LIMIT_REACHED",
+              "retryable": false,
+              "discloses_ids": false
+            }
+          ],
+          "non_disclosing": false
+        },
+        "audit": {
+          "record": "road_decisions",
+          "fields": [
+            "principal",
+            "action_id",
+            "contract_version",
+            "decision",
+            "rule_ids",
+            "record_ids",
+            "idempotency_key",
+            "decided_at"
+          ]
+        },
+        "events": {
+          "emitted": []
+        }
+      },
+      {
+        "id": "agents.retire",
+        "title": "Retire an agent",
+        "description": "Propose retiring an agent the caller owns (or any agent, for a holder of road.api_key.manage). Its keys stop working at once.",
+        "action_resource": {
+          "rest": {
+            "method": "DELETE",
+            "path": "/agents/{id}/"
+          }
+        },
+        "authority": {
+          "operational_authority": "Agents, road_agent_api",
+          "actor": {
+            "model": "authenticated",
+            "required_permissions": [
+              "road.agents.rw"
+            ],
+            "attribution_required": true
+          }
+        },
+        "changes_existing_record": false,
+        "request": {
+          "idempotency": {
+            "strategy": "idempotency_key",
+            "header": "Idempotency-Key",
+            "retention": "indefinitely",
+            "replays": "accepted_only"
+          },
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "maxProperties": 0,
+            "description": "No body: the resource and the Idempotency-Key header say everything."
+          }
+        },
+        "preconditions": {
+          "current_state_recheck": true,
+          "evaluation": "first_failure",
+          "rules": [
+            {
+              "id": "AGENT_NOT_FOUND",
+              "kind": "access",
+              "description": "The agent exists and the caller owns it. Another owner's agent gets the same answer as a missing one.",
+              "consumer_visible": true
+            }
+          ]
+        },
+        "outcomes": {
+          "accepted": {
+            "description": "The agent is retired and its keys revoked.",
+            "result": {
+              "type": "object",
+              "required": [
+                "agent_id"
+              ],
+              "properties": {
+                "agent_id": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "rejections": [
+            {
+              "rule_id": "AGENT_NOT_FOUND",
+              "retryable": false,
+              "discloses_ids": false
+            }
+          ],
+          "non_disclosing": false
+        },
+        "audit": {
+          "record": "road_decisions",
+          "fields": [
+            "principal",
+            "action_id",
+            "contract_version",
+            "decision",
+            "rule_ids",
+            "record_ids",
+            "idempotency_key",
+            "decided_at"
+          ]
+        },
+        "events": {
+          "emitted": []
+        }
+      },
+      {
+        "id": "api_keys.create",
+        "title": "Make an API key",
+        "description": "Propose a new API key for an agent. The key is in the accepted result once and is never shown again; only its hash is kept.",
+        "action_resource": {
+          "rest": {
+            "method": "POST",
+            "path": "/agents/{id}/keys/"
+          }
+        },
+        "authority": {
+          "operational_authority": "Agents, road_agent_api",
+          "actor": {
+            "model": "authenticated",
+            "required_permissions": [
+              "road.agents.rw"
+            ],
+            "attribution_required": true
+          }
+        },
+        "changes_existing_record": false,
+        "request": {
+          "idempotency": {
+            "strategy": "idempotency_key",
+            "header": "Idempotency-Key",
+            "retention": "indefinitely",
+            "replays": "accepted_only"
+          },
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "description": "Where the key will be used."
+              },
+              "expires_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          }
+        },
+        "preconditions": {
+          "current_state_recheck": true,
+          "evaluation": "first_failure",
+          "rules": [
+            {
+              "id": "AGENT_NOT_FOUND",
+              "kind": "access",
+              "description": "The agent exists and the caller owns it.",
+              "consumer_visible": true
+            },
+            {
+              "id": "AGENT_RETIRED",
+              "kind": "integrity",
+              "description": "The agent is not retired.",
+              "consumer_visible": true
+            }
+          ]
+        },
+        "outcomes": {
+          "accepted": {
+            "description": "The key is made.",
+            "result": {
+              "type": "object",
+              "required": [
+                "key_id",
+                "agent_id",
+                "name",
+                "key_prefix",
+                "api_key"
+              ],
+              "properties": {
+                "key_id": {
+                  "type": "integer"
+                },
+                "agent_id": {
+                  "type": "integer"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "key_prefix": {
+                  "type": "string"
+                },
+                "api_key": {
+                  "type": "string",
+                  "description": "The secret. Shown once.",
+                  "x-mcp-exclude": true
+                }
+              }
+            }
+          },
+          "rejections": [
+            {
+              "rule_id": "AGENT_NOT_FOUND",
+              "retryable": false,
+              "discloses_ids": false
+            },
+            {
+              "rule_id": "AGENT_RETIRED",
+              "retryable": false,
+              "discloses_ids": true
+            }
+          ],
+          "non_disclosing": false
+        },
+        "audit": {
+          "record": "road_decisions",
+          "fields": [
+            "principal",
+            "action_id",
+            "contract_version",
+            "decision",
+            "rule_ids",
+            "record_ids",
+            "idempotency_key",
+            "decided_at"
+          ]
+        },
+        "events": {
+          "emitted": []
+        }
+      },
+      {
+        "id": "api_keys.delete",
+        "title": "Revoke an API key",
+        "description": "Propose revoking one key of an agent. A revoked key gets no new token; tokens already issued run out within minutes.",
+        "action_resource": {
+          "rest": {
+            "method": "DELETE",
+            "path": "/agents/{id}/keys/{key_id}/"
+          }
+        },
+        "authority": {
+          "operational_authority": "Agents, road_agent_api",
+          "actor": {
+            "model": "authenticated",
+            "required_permissions": [
+              "road.agents.rw"
+            ],
+            "attribution_required": true
+          }
+        },
+        "changes_existing_record": false,
+        "request": {
+          "idempotency": {
+            "strategy": "idempotency_key",
+            "header": "Idempotency-Key",
+            "retention": "indefinitely",
+            "replays": "accepted_only"
+          },
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "maxProperties": 0,
+            "description": "No body: the resource and the Idempotency-Key header say everything."
+          }
+        },
+        "preconditions": {
+          "current_state_recheck": true,
+          "evaluation": "first_failure",
+          "rules": [
+            {
+              "id": "AGENT_NOT_FOUND",
+              "kind": "access",
+              "description": "The agent exists and the caller owns it.",
+              "consumer_visible": true
+            },
+            {
+              "id": "API_KEY_NOT_FOUND",
+              "kind": "integrity",
+              "description": "The agent has a current key with this id.",
+              "consumer_visible": true
+            }
+          ]
+        },
+        "outcomes": {
+          "accepted": {
+            "description": "The key is revoked.",
+            "result": {
+              "type": "object",
+              "required": [
+                "key_id"
+              ],
+              "properties": {
+                "key_id": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "rejections": [
+            {
+              "rule_id": "AGENT_NOT_FOUND",
+              "retryable": false,
+              "discloses_ids": false
+            },
+            {
+              "rule_id": "API_KEY_NOT_FOUND",
+              "retryable": false,
+              "discloses_ids": true
+            }
+          ],
+          "non_disclosing": false
+        },
+        "audit": {
+          "record": "road_decisions",
+          "fields": [
+            "principal",
+            "action_id",
+            "contract_version",
+            "decision",
+            "rule_ids",
+            "record_ids",
+            "idempotency_key",
+            "decided_at"
+          ]
+        },
+        "events": {
+          "emitted": []
+        }
+      }
+    ]
+  },
+  "publication": {
+    "views": [
+      {
+        "id": "agents.list",
+        "title": "List agents",
+        "meaning": "The caller's agents with their keys, or every agent for a holder of road.api_key.manage who asks for all. Key secrets are never shown.",
+        "resource": {
+          "rest": {
+            "method": "GET",
+            "path": "/agents/"
+          }
+        },
+        "authority": {
+          "actor": {
+            "model": "authenticated",
+            "required_permissions": [
+              "road.agents.rw"
+            ],
+            "attribution_required": false
+          }
+        },
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "all": {
+              "type": "string",
+              "enum": [
+                "true"
+              ],
+              "description": "Every agent. Needs road.api_key.manage."
+            }
+          }
+        },
+        "result": {
+          "type": "object",
+          "required": [
+            "agents"
+          ],
+          "properties": {
+            "agents": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "agent_id",
+                  "subject",
+                  "display_name",
+                  "status",
+                  "created_at",
+                  "keys"
+                ],
+                "properties": {
+                  "agent_id": {
+                    "type": "integer"
+                  },
+                  "subject": {
+                    "type": "string"
+                  },
+                  "display_name": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "owner": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "keys": {
+                    "type": [
+                      "array",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "key_id",
+                        "name",
+                        "key_prefix",
+                        "created_at"
+                      ],
+                      "properties": {
+                        "key_id": {
+                          "type": "integer"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "key_prefix": {
+                          "type": "string"
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "last_used_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "expires_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "revoked_at": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "keys": {
+          "identity": [
+            "agent_id"
+          ]
+        },
+        "time": {
+          "stated_as": "timestamp",
+          "granularity": "response",
+          "response_fields": [
+            "as_at"
+          ]
+        },
+        "scope": {
+          "access_rules_apply": true,
+          "statement_field": "scope"
+        }
+      }
+    ]
+  }
+}

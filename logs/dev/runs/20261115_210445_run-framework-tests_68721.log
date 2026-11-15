@@ -1,0 +1,196 @@
+[INFO] START
+
+[INFO] RUN_ID=20261115_210445_run-framework-tests_68721
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=test/plsql/run-framework-tests.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/test/plsql/run-framework-tests.sql
+[INFO] SCRIPT_SHA256=e90f2f5fb66c471556f77a47b7f74f91e2aa966fdceca9d526befe5b0f522bc7
+[INFO] GIT_COMMIT=19548b0
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261115_210445
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261115_210445_run-framework-tests_68721.log
+
+[INTENT]
+Purpose: Run every framework PL/SQL test suite, and report invalid objects and compile errors.
+Approach: Each suite's run_all, committing between suites (each cleans up after itself).
+Reason: road-kit had no committed runner; road-tracker wrote this one during its build and
+  spec-patch-15 adds road_agent_api_test.
+Expected objects: None left behind.
+Risk: Low. Suites roll back their fixtures.
+Prior history checked: road-tracker test/plsql/run-framework-tests.sql.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sun Nov 15 21:04:46 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+=== invalid objects (expect none) ===
+
+Elapsed: 00:00:00.269
+=== user_errors (expect none) ===
+
+Elapsed: 00:00:00.053
+=== suites ===
+PASS test_handle_known_validation
+PASS test_business_rule_code_not_mapped
+PASS test_handle_known_not_found
+PASS test_handle_known_conflict
+PASS test_handle_known_forbidden
+PASS test_handle_known_unmapped_escalates
+PASS test_handle_unknown
+error_api_test: 7 passed, 0 failed
+
+Elapsed: 00:00:00.614
+Elapsed: 00:00:00.035
+PASS accept_outcome
+PASS reject_outcome
+PASS accept_rolls_back
+PASS reject_survives
+PASS replay_per_principal
+PASS rejection_keeps_key
+PASS second_accept_refused
+PASS undisclosed_truth
+PASS public_no_principal
+PASS reject_needs_one
+road_decision_api_test: 10 passed, 0 failed
+
+Elapsed: 00:00:00.212
+Elapsed: 00:00:00.032
+PASS version
+PASS natural_key
+PASS token_raw_bad
+PASS token_freshness
+PASS hidden_and_missing
+PASS accept_version
+PASS envelope
+PASS with_version
+road_surface_api_test: 8 passed, 0 failed
+
+Elapsed: 00:00:00.217
+Elapsed: 00:00:00.033
+PASS test_issue_read_token_creates_row
+PASS test_check_fresh_true_when_unchanged
+PASS test_check_fresh_false_when_stale
+PASS test_check_fresh_false_for_unknown_guid
+road_audit_api_test: 4 passed, 0 failed
+
+Elapsed: 00:00:00.094
+Elapsed: 00:00:00.035
+[PASS] road_ctx_pkg_test: 13 tests
+
+Elapsed: 00:00:00.942
+Elapsed: 00:00:00.035
+PASS test_user_admin_cannot_grant_reserved
+PASS test_system_admin_can_grant_reserved
+PASS test_granted_by_ignores_request_body
+PASS test_grant_is_idempotent
+PASS test_define_role_rejects_road_namespace
+PASS test_user_admin_cannot_define_roles
+PASS test_unauthenticated_denied
+PASS test_grant_all_app_permissions_is_explicit
+PASS test_get_principals_requires_permission
+PASS test_get_principals_search
+PASS test_get_principals_paging
+PASS test_attach_reserved_permission_refused
+PASS test_attach_to_reserved_role_refused
+PASS test_composition_takes_effect_on_next_request
+PASS test_attached_by_ignores_request_body
+PASS test_attach_detach_idempotent
+PASS test_compose_denied_without_permission
+PASS test_assertion_permits_ordinary_session_attach
+PASS test_assertion_refuses_reserved_session_attach
+PASS test_assertion_refuses_flip_under_session_attach
+PASS test_assertion_permits_reserved_deploy_attach
+PASS test_cannot_revoke_last_system_admin
+road_admin_api_test: 22 passed, 0 failed
+
+Elapsed: 00:00:01.674
+Elapsed: 00:00:00.034
+PASS test_self_serve_off
+PASS test_person_makes_an_agent
+PASS test_limit_per_owner
+PASS test_key_shown_once
+PASS test_others_cannot_touch_it
+PASS test_shared_agents
+PASS test_exchange
+PASS test_wrong_calls
+road_agent_api_test: 8 passed, 0 failed
+
+Elapsed: 00:00:00.945
+Elapsed: 00:00:00.033
+PASS test_rfc_vector_one_iteration
+PASS test_rfc_vector_two_iterations
+PASS test_rfc_vector_many_iterations
+PASS test_rfc_vector_two_blocks
+PASS test_deterministic
+PASS test_salt_changes_digest
+PASS test_iterations_change_digest
+PASS test_guards
+PASS test_random_salt
+PASS test_default_cost_not_weakened
+jwt_scaffold_crypto_test: 10 passed, 0 failed
+
+Elapsed: 00:00:00.170
+Elapsed: 00:00:00.034
+PASS test_valid_credentials_issue_a_token
+PASS test_wrong_password_refused
+PASS test_unknown_subject_refused
+PASS test_principal_without_credential_refused
+PASS test_suspended_principal_refused
+PASS test_retired_principal_refused
+PASS test_username_is_case_insensitive
+PASS test_missing_fields_are_400
+PASS test_row_iterations_are_honoured
+PASS test_admin_scope_includes_admin_rw
+PASS test_user_admin_scope_includes_admin_rw
+PASS test_plain_user_scope_excludes_admin_rw
+PASS test_no_roles_yields_no_scope_claim
+PASS test_operation_only_permission_excluded_from_scope
+PASS test_no_credential_constants_remain
+jwt_scaffold_auth_api_test: 15 passed, 0 failed
+
+Elapsed: 00:00:00.532
+Elapsed: 00:00:00.033
+PASS create_owner
+PASS create_named_owner
+PASS create_wrong
+PASS create_title_taken
+PASS create_replay
+PASS list_envelope
+PASS other_not_found
+PASS list_all_not_list
+PASS own_owner_param
+PASS other_owner_list
+PASS stale_token
+PASS cycle
+PASS one_token_many
+PASS same_token_replays
+PASS revise_wrong
+PASS delete_soft
+PASS purge_denied
+PASS purge_crosses
+PASS purge_future
+demo_todo_api_test: 19 passed, 0 failed
+
+Elapsed: 00:00:02.378
+Elapsed: 00:00:00.033
+Elapsed: 00:00:00.051
+[INFO] USER_ERRORS_CHECK
+
+Elapsed: 00:00:00.103
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

@@ -1,0 +1,95 @@
+[INFO] START
+
+[INFO] RUN_ID=20261115_205508_run-demo-tests_58682
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/run-demo-tests.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/run-demo-tests.sql
+[INFO] SCRIPT_SHA256=5a417098344c11a292049a52c8b99c11947f077f2d84d7269e58c2acca9c47cc
+[INFO] GIT_COMMIT=19548b0
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261115_205508
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261115_205508_run-demo-tests_58682.log
+
+[INTENT]
+Purpose: Run the rebuilt demo suite, then the agent suite, on ROAD_KIT_DEV.
+Approach: Call run_all in each; fixtures are made and removed by the suites.
+Reason: spec-patch-16 steps 3-4 verification; also checks the earlier road_agent_api_test failure.
+Expected objects: None changed.
+Risk: Low.
+Prior history checked: run-framework-tests.sql.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sun Nov 15 20:55:08 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+PASS create_owner
+PASS create_named_owner
+PASS create_wrong
+PASS create_title_taken
+PASS create_replay
+PASS list_envelope
+PASS other_not_found
+PASS list_all_not_list
+PASS own_owner_param
+PASS other_owner_list
+PASS stale_token
+PASS cycle
+PASS one_token_many
+PASS same_token_replays
+PASS revise_wrong
+PASS delete_soft
+PASS purge_denied
+PASS purge_crosses
+PASS purge_future
+demo_todo_api_test: 19 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:01.759
+
+Commit complete.
+
+Elapsed: 00:00:00.035
+PASS test_self_serve_off
+PASS test_person_makes_an_agent
+PASS test_limit_per_owner
+PASS test_key_shown_once
+PASS test_others_cannot_touch_it
+PASS test_shared_agents
+PASS test_exchange
+PASS test_wrong_calls
+road_agent_api_test: 8 passed, 0 failed
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:01.362
+
+Commit complete.
+
+Elapsed: 00:00:00.033
+Elapsed: 00:00:00.050
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.040
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

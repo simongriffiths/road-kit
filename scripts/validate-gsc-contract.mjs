@@ -5,10 +5,14 @@
 //
 //   node scripts/validate-gsc-contract.mjs path/to/surface.gsc.json
 //
+// A contract's x-road-include names framework fragments (contract/fragments/) that are merged in
+// before it is checked (spec-patch-16 section 3.6).
+//
 // Exit 0 when valid; exit 1 with one line per problem otherwise.
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { validate } from './lib/json-schema-subset.mjs';
+import { resolveContract } from './lib/contract-merge.mjs';
 
 const schemaUrl = new URL('../spec/governed-surface-contract.schema.json', import.meta.url);
 
@@ -100,7 +104,9 @@ async function main() {
     process.stderr.write('Usage: node scripts/validate-gsc-contract.mjs <contract.json>\n');
     process.exit(2);
   }
-  const contract = JSON.parse(await readFile(file, 'utf8'));
+  // The framework fragments the contract includes (x-road-include) are merged first, so the document
+  // that is checked is the one the database serves.
+  const { contract } = resolveContract(file);
   const problems = checkContract(await loadSchema(), contract);
   if (problems.length > 0) {
     for (const problem of problems) process.stderr.write(`[FAIL] ${problem}\n`);

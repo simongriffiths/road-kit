@@ -1,0 +1,200 @@
+[INFO] START
+
+[INFO] RUN_ID=20261115_205421_deploy-patch16-step3_57736
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/deploy-patch16-step3.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/deploy-patch16-step3.sql
+[INFO] SCRIPT_SHA256=addc1ad01eb5e705bb9e7be8146b166b11b7562441f278f9a70e7fbc5f845e8c
+[INFO] GIT_COMMIT=19548b0
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261115_205421
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261115_205421_deploy-patch16-step3_57736.log
+
+[INTENT]
+Purpose: Deploy spec-patch-16 steps 2-3 to ROAD_KIT_DEV: the contract load, the road_agent_api and
+  road_surface_api changes, the rebuilt demo_todo_api and its tests, and the generated todos,
+  agents and session modules.
+Approach: Recreate the package specs and bodies (idempotent), load the contract with the generated
+  96_contract.sql, then recreate the three ORDS modules. demo_todos keeps its rows and columns.
+Reason: spec-patch-16 build plan steps 2 and 3.
+Expected objects: ROAD_CONTRACT row; DEMO_TODO_API (+ test), ROAD_AGENT_API, ROAD_SURFACE_API
+  replaced; ORDS modules hello_api.todos, hello_api.agents, hello_api.session replaced.
+Risk: Medium. Replaces the demo's API: the old 409 endpoints, PATCH /todos/{id}/ and /todos/purge/
+  go. Nothing outside the demo calls them (checked: hello_world/src uses the todos page only).
+Prior history checked: 15 Nov 2026 step-1 deploy (SUCCESS); the 20261115_120535 framework-tests
+  failure (road_agent_api_test, ORA-06550) predates this run and is investigated separately.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sun Nov 15 20:54:21 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+
+Package ROAD_SURFACE_API compiled
+
+Elapsed: 00:00:00.144
+Elapsed: 00:00:00.161
+
+Package Body ROAD_SURFACE_API compiled
+
+Elapsed: 00:00:00.134
+Elapsed: 00:00:00.149
+
+Package ROAD_AGENT_API compiled
+
+Elapsed: 00:00:00.119
+Elapsed: 00:00:00.136
+
+Package Body ROAD_AGENT_API compiled
+
+Elapsed: 00:00:00.142
+Elapsed: 00:00:00.159
+
+Package DEMO_TODO_API compiled
+
+Elapsed: 00:00:00.126
+Elapsed: 00:00:00.143
+
+Package DEMO_TODO_API_TEST compiled
+
+Elapsed: 00:00:00.119
+Elapsed: 00:00:00.135
+
+Package Body DEMO_TODO_API compiled
+
+
+Errors for PACKAGE BODY DEMO_TODO_API:
+
+LINE/COL ERROR
+-------- -----------------------------------------------------------------
+58/5     PL/SQL: SQL Statement ignored
+63/41    PL/SQL: ORA-03066: invalid PL/SQL expression
+63/41    PLS-00231: function 'ISO_OR_NULL' may not be used in SQL
+Elapsed: 00:00:00.196
+Elapsed: 00:00:00.212
+
+Package Body DEMO_TODO_API_TEST compiled
+
+
+Errors for PACKAGE BODY DEMO_TODO_API_TEST:
+
+LINE/COL ERROR
+-------- -----------------------------------------------------------------
+204/5    PL/SQL: SQL Statement ignored
+205/33   PL/SQL: ORA-03066: invalid PL/SQL expression
+205/33   PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL
+218/5    PL/SQL: SQL Statement ignored
+218/96   PL/SQL: ORA-03066: invalid PL/SQL expression
+218/96   PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL
+Elapsed: 00:00:00.181
+Elapsed: 00:00:00.197
+
+Package Body ROAD_SURFACE_API_TEST compiled
+
+Elapsed: 00:00:00.128
+Elapsed: 00:00:00.144
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.179
+
+[1m'CONTRACT'||CONTRACT_VERSION||''||DBMS_LOB.GETLENGTH(DOCUMENT)||'CHARS'[m    
+__________________________________________________________________________ 
+CONTRACT 0.1.0 25033 chars                                                 
+
+1 row selected. 
+
+Elapsed: 00:00:00.066
+Elapsed: 00:00:00.083
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.044
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.062
+Elapsed: 00:00:00.078
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.038
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.053
+Elapsed: 00:00:00.069
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.059
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.038
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.053
+Elapsed: 00:00:00.068
+=== USER_ERRORS_CHECK ===
+
+[1mNAME[m                  [1mTYPE[m               [1mLINE[m [1mTEXT[m                                                         
+_____________________ _______________ _______ ____________________________________________________________ 
+DEMO_TODO_API         PACKAGE BODY         63 PLS-00231: function 'ISO_OR_NULL' may not be used in SQL     
+DEMO_TODO_API         PACKAGE BODY         63 PL/SQL: ORA-03066: invalid PL/SQL expression                 
+DEMO_TODO_API         PACKAGE BODY         58 PL/SQL: SQL Statement ignored                                
+DEMO_TODO_API_TEST    PACKAGE BODY        205 PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL    
+DEMO_TODO_API_TEST    PACKAGE BODY        205 PL/SQL: ORA-03066: invalid PL/SQL expression                 
+DEMO_TODO_API_TEST    PACKAGE BODY        204 PL/SQL: SQL Statement ignored                                
+DEMO_TODO_API_TEST    PACKAGE BODY        218 PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL    
+DEMO_TODO_API_TEST    PACKAGE BODY        218 PL/SQL: ORA-03066: invalid PL/SQL expression                 
+DEMO_TODO_API_TEST    PACKAGE BODY        218 PL/SQL: SQL Statement ignored                                
+
+9 rows selected. 
+
+Elapsed: 00:00:00.033
+=== invalid ===
+
+[1mOBJECT_TYPE[m     [1mOBJECT_NAME[m           
+_______________ _____________________ 
+PACKAGE BODY    DEMO_TODO_API         
+PACKAGE BODY    DEMO_TODO_API_TEST    
+
+2 rows selected. 
+
+Elapsed: 00:00:00.034
+Elapsed: 00:00:00.050
+[INFO] USER_ERRORS_CHECK
+
+[1mNAME[m                  [1mTYPE[m               [1mLINE[m    [1mPOSITION[m [1mTEXT[m                                                         
+_____________________ _______________ _______ ___________ ____________________________________________________________ 
+DEMO_TODO_API         PACKAGE BODY         63          41 PLS-00231: function 'ISO_OR_NULL' may not be used in SQL     
+DEMO_TODO_API         PACKAGE BODY         63          41 PL/SQL: ORA-03066: invalid PL/SQL expression                 
+DEMO_TODO_API         PACKAGE BODY         58           5 PL/SQL: SQL Statement ignored                                
+DEMO_TODO_API_TEST    PACKAGE BODY        205          33 PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL    
+DEMO_TODO_API_TEST    PACKAGE BODY        205          33 PL/SQL: ORA-03066: invalid PL/SQL expression                 
+DEMO_TODO_API_TEST    PACKAGE BODY        204           5 PL/SQL: SQL Statement ignored                                
+DEMO_TODO_API_TEST    PACKAGE BODY        218          96 PLS-00231: function 'PRINCIPAL_OF' may not be used in SQL    
+DEMO_TODO_API_TEST    PACKAGE BODY        218          96 PL/SQL: ORA-03066: invalid PL/SQL expression                 
+DEMO_TODO_API_TEST    PACKAGE BODY        218           5 PL/SQL: SQL Statement ignored                                
+
+9 rows selected. 
+
+Elapsed: 00:00:00.034
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

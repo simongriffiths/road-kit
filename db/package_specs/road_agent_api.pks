@@ -13,7 +13,6 @@ create or replace package road_agent_api as
   -- Settings in road_config: agents.role (unset: self-serve is off), agents.limit_per_owner
   -- (default 5), api_keys.prefix (default rk), api_keys.token_minutes (default 15).
 
-  c_contract_version constant varchar2(20) := '0.4.0';  -- road-kit's version, for framework actions
   c_create_agent     constant varchar2(30) := 'agents.create';
   c_retire_agent     constant varchar2(30) := 'agents.retire';
   c_create_key       constant varchar2(30) := 'api_keys.create';

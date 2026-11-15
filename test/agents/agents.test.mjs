@@ -51,8 +51,8 @@ check('the key buys a 15-minute token for the agent', r.status === 200 && r.json
 const agentToken = r.json?.access_token;
 r = await call('GET', '/session/me/', null, { bearer: agentToken });
 check('the token is the agent, its own principal', r.status === 200 && JSON.stringify(r.json).includes(subject), r.json);
-r = await call('POST', '/todos/', null, { bearer: agentToken, body: { title: 'agent-test todo' } });
-check('the agent works todos with its agent role', r.status === 200 || r.status === 201, { status: r.status, body: r.json });
+r = await call('POST', '/todos/', null, { bearer: agentToken, body: { title: `agent-test todo ${Date.now()}` }, idem: key('t') });
+check('the agent works todos with its agent role', r.status === 200 && r.json?.decision === 'accepted', { status: r.status, body: r.json });
 r = await call('GET', '/agents/', null, { bearer: agentToken });
 check('the agent cannot manage agents', r.status === 401 || r.status === 403, r.status);
 r = await exchange('rk_' + '0'.repeat(48));

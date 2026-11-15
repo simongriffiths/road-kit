@@ -346,6 +346,32 @@ exception
 end;
 ```
 
+### 8.2.1 Generated Handlers (governed surfaces)
+
+An application that publishes a Governed Surface Contract does not write handlers by hand. `scripts/generate-modules.mjs` writes `module.create.sql` and `module.drop.sql` from a route list in `api/routes.mjs` (module, base path, and per route the pattern, method, contract id, package call and headers). Every generated handler has one shape:
+
+```sql
+declare
+  l_out clob;
+begin
+  if not road_ctx_pkg.begin_request(:current_user) then
+    road_surface_api.unauthorized;
+    return;
+  end if;
+  if not road_surface_api.version_ok(:accept_version) then
+    return;
+  end if;
+  l_out := json_serialize(<package>.<function>(...) returning clob);   -- an action
+  -- or: l_out := <package>.<function>(...);                           -- a view
+  road_surface_api.respond(200, l_out);
+exception
+  when others then
+    road_surface_api.fail(sqlcode, sqlerrm, dbms_utility.format_error_backtrace, '<contract id>');
+end;
+```
+
+`road_surface_api.fail` does what 8.2 does with `error_api` and adds the contract version. No rule can live in a handler, because there is nowhere to put one. `node scripts/generate-modules.mjs --check` fails when a generated file was edited by hand, and `test/contract/check-contract-coverage.mjs` fails unless every handler has a contract entry and every entry a handler. Privileges stay hand-written. Public modules and handlers that assemble one answer from several queries (such as `session`) stay hand-written, and the coverage check lists the endpoints outside the surface with a reason.
+
 ### 8.3 Package Responsibility
 
 The called package procedure is responsible for:

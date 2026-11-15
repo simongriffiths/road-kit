@@ -45,7 +45,21 @@ The rules for this file are in `road-atlas/patterns/SPEC.md`. Check it with
 - **Summary:** A governed action returns an outcome with HTTP 200, accepted or rejected, and never raises a business rejection. `road_decision_api` writes the decision record and builds the outcome: accepted records in the caller's transaction, rejected records in an autonomous one so they survive the rollback. The same table replays an earlier outcome for a repeated idempotency key.
 - **Location:** `db/tables/road_decisions.create.sql`, `db/indexes/road_decisions_idempotency.create.sql`, `db/package_specs/road_decision_api.pks`, `db/package_bodies/road_decision_api.pkb`, `db/package_bodies/road_decision_api_test.pkb`, `planning/spec-patch-12-business-decisions-and-decision-record.md`
 - **Status:** experimental
-- **Notes:** Implements GSC definition 0.1.0 sections 6.4 to 6.7 and ledger D-05. Tested in PL/SQL only: no governed action in road-kit uses it over HTTP yet. Depends on `road-session-context` for the principal. Records decisions, not field changes (ledger F-12).
+- **Notes:** Implements GSC definition 0.1.0 sections 6.4 to 6.7 and ledger D-05. `demo_todo_api` and `road_agent_api` use it over HTTP, through `road_surface_api` (`surface-contract-served`). Depends on `road-session-context` for the principal. Records decisions, not field changes (ledger F-12).
+
+### Contract served from the database, version on every response
+- **Slug:** surface-contract-served
+- **Summary:** `scripts/contract-to-sql.mjs` validates the application's contract (with the framework fragments it includes) and loads it into `road_contract`. `GET /contract/` serves that document without a token. `road_surface_api` reads the version from the same row and stamps it on every body, errors included, and answers a wrong `Accept-Version` major with a 400. The file, the table, the served document and the responses cannot disagree.
+- **Location:** `db/tables/road_contract.create.sql`, `db/package_specs/road_surface_api.pks`, `db/package_bodies/road_surface_api.pkb`, `scripts/contract-to-sql.mjs`, `scripts/lib/contract-merge.mjs`, `contract/fragments/`, `api/modules/contract/module.create.sql`
+- **Status:** in-use
+- **Notes:** From road-tracker's `rt_rest_pkg`, `rt_contract` and `rt_action_pkg` (ledger B-05). `error_api` is unchanged: `road_surface_api.fail` wraps it. Framework fragments (`road-agents`, `road-session`) are merged by the application's `x-road-include`, so a surface has one contract (ledger D-04). Depends on `governed-decision-record`.
+
+### Read-token natural key
+- **Slug:** read-token-natural-key
+- **Summary:** An action on an existing record is idempotent on (principal, record id, read token). One read returns one token for many records, so a key made from the token alone would treat two proposals on different records from one read as a repeat. The same token and record replays the first accepted answer; a token from before a change gets `STALE_TOKEN`.
+- **Location:** `db/package_specs/road_surface_api.pks`, `db/package_bodies/road_surface_api.pkb`, `db/package_bodies/demo_todo_api.pkb`, `db/package_bodies/road_surface_api_test.pkb`
+- **Status:** in-use
+- **Notes:** Extends `read-token-concurrency` and `governed-decision-record`. `demo_todo_api.decide` is the worked example: one shared decision shape for revise, complete, reopen and delete.
 
 ### Key-value framework settings
 - **Slug:** road-config-table
@@ -124,9 +138,9 @@ The rules for this file are in `road-atlas/patterns/SPEC.md`. Check it with
 ### Agent skill generated from the contract
 - **Slug:** skill-from-contract
 - **Summary:** `scripts/generate-skill.mjs` writes an application's Claude Code skill around its road-cli commands from its Governed Surface Contract and the agent role's permissions. It fails when a command calls a resource the contract lacks or the agent may not use, leaves out what the contract keeps from consumers, and `--check` fails when the skill is stale.
-- **Location:** `scripts/generate-skill.mjs`, `test/skill/generate-skill.test.mjs`
-- **Status:** experimental
-- **Notes:** Meets the gsc checklist's items 33 and 34 without MCP. In road-tracker a fresh headless Claude Code session using the skill worked an item end to end for about 0.31 USD; the cost of an agent task is mostly its number of turns.
+- **Location:** `scripts/generate-skill.mjs`, `test/skill/generate-skill.test.mjs`, `skills/hello_world/skill.config.mjs`, `skills/hello_world/SKILL.md`, `bin/run-skill-acceptance.sh`
+- **Status:** in-use
+- **Notes:** Meets the gsc checklist's items 33 and 34 without MCP. `bin/run-skill-acceptance.sh` is the acceptance test: a fresh headless session uses the generated skill (about 0.16 USD, 9 turns, 25 seconds on the demo). In road-tracker a fresh headless Claude Code session using the skill worked an item end to end for about 0.31 USD; the cost of an agent task is mostly its number of turns.
 
 ### Check that every handler loads the session context
 - **Slug:** handler-coverage-check
@@ -134,6 +148,20 @@ The rules for this file are in `road-atlas/patterns/SPEC.md`. Check it with
 - **Location:** `bin/check-handler-coverage.sh`
 - **Status:** in-use
 - **Notes:** Needed because ORDS gives a schema no pre-dispatch hook. Pairs with `road-session-context`.
+
+### Check that every handler has a contract entry and every entry a handler
+- **Slug:** contract-handler-coverage
+- **Summary:** Reads the deployed ORDS handlers from `USER_ORDS_HANDLERS` and the contract, and fails unless each handler has a contract entry and each entry a handler. It also checks that the contract version is the same in the file, the table and the served document. Public and framework endpoints are listed as outside the surface, each with a reason.
+- **Location:** `test/contract/check-contract-coverage.mjs`, `test/contract/read-deployed-surface.sql`
+- **Status:** in-use
+- **Notes:** GSC definition 9.5. From road-tracker. Read-only, through `bin/run-sql.sh`. Pairs with `generated-thin-handlers`.
+
+### Thin ORDS handlers generated from a route list
+- **Slug:** generated-thin-handlers
+- **Summary:** `scripts/generate-modules.mjs` writes an application's ORDS modules from `api/routes.mjs`. Every handler has one shape: establish the session or answer 401, check `Accept-Version`, make one package call, respond, and send any failure through `road_surface_api.fail`. No business rule can live in a handler. `--check` fails when a generated file was edited by hand.
+- **Location:** `scripts/generate-modules.mjs`, `api/routes.mjs`, `api/modules/todos/module.create.sql`, `api/modules/agents/module.create.sql`
+- **Status:** in-use
+- **Notes:** GSC definition 6.3. Privileges stay hand-written. Handlers that build one answer from several queries (`session`) and the public ones stay hand-written too. `bin/check-handler-coverage.sh` still checks the generated files.
 
 ### Schema user setup
 - **Slug:** schema-user-setup
@@ -231,7 +259,7 @@ The rules for this file are in `road-atlas/patterns/SPEC.md`. Check it with
 
 ### Demo app that tests the framework
 - **Slug:** framework-canary-app
-- **Summary:** A to-do app built to exercise every part of the framework an adopter uses: permission checks, an app role, a reserved permission, per-user ownership and optimistic concurrency. If the framework breaks, the demo fails.
-- **Location:** `db/package_specs/demo_todo_api.pks`, `db/package_bodies/demo_todo_api.pkb`, `db/package_bodies/demo_todo_api_test.pkb`, `api/modules/todos/module.create.sql`, `deploy/create/97_demo.sql`, `test/endpoint/todos.endpoint.sh`
+- **Summary:** A to-do app, built as a governed surface with its own contract, that exercises every part of the framework an adopter uses: permission checks, an app role, a reserved permission, per-user ownership, read tokens, decision records, agents and a generated skill. If the framework breaks, the demo fails. It is the reference implementation of the Governed Surface Contract.
+- **Location:** `db/package_specs/demo_todo_api.pks`, `db/package_bodies/demo_todo_api.pkb`, `db/package_bodies/demo_todo_api_test.pkb`, `api/routes.mjs`, `api/modules/todos/module.create.sql`, `contract/hello_world.gsc.json`, `contract/checklist.md`, `skills/hello_world/SKILL.md`, `deploy/create/97_demo.sql`, `test/endpoint/todos.endpoint.sh`, `test/agents/surface.test.mjs`
 - **Status:** demo
 - **Notes:** By its own rule the demo may never cause a framework change. Nobody should build on it.

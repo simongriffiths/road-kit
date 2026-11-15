@@ -17,6 +17,8 @@ prompt === deploy ords modules ===
 @api/modules/health/module.create.sql
 @api/modules/health/privileges.create.sql
 
+@api/modules/contract/module.create.sql
+
 -- The scaffold's public login surface -- /jwt-auth/login and its JWKS document -- is the one
 -- ORDS-level object spec-patch-09 section 2 actually needs to be ABSENT, not merely unused, under
 -- external_oidc: everything else in the scaffold's namespace (its packages, its tables) is inert

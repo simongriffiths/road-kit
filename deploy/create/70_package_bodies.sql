@@ -33,3 +33,5 @@ prompt === deploy package bodies ===
 @db/package_bodies/road_audit_api_test.pkb
 @db/package_bodies/road_decision_api.pkb
 @db/package_bodies/road_decision_api_test.pkb
+@db/package_bodies/road_surface_api.pkb
+@db/package_bodies/road_surface_api_test.pkb

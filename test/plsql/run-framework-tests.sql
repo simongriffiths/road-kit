@@ -25,6 +25,9 @@ commit;
 begin road_decision_api_test.run_all; end;
 /
 commit;
+begin road_surface_api_test.run_all; end;
+/
+commit;
 begin road_audit_api_test.run_all; end;
 /
 commit;

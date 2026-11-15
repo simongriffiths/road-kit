@@ -1,0 +1,53 @@
+[INFO] START
+
+[INFO] RUN_ID=20261115_210306_count-todos_63897
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/count-todos.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/count-todos.sql
+[INFO] SCRIPT_SHA256=5bdaeaaf33faa5475cf1bde0fb3f1707e4c9e0c9f1407a53c0903405dd38acbc
+[INFO] GIT_COMMIT=19548b0
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261115_210306
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261115_210306_count-todos_63897.log
+
+[INTENT]
+Purpose: Count the demo todos left in ROAD_KIT_DEV after the tests, per status.
+Approach: Read-only select on DEMO_TODOS.
+Reason: Check the tests clean up after themselves.
+Expected objects: None.
+Risk: None.
+Prior history checked: n/a, read only.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sun Nov 15 21:03:07 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.250
+Elapsed: 00:00:00.266
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.036
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

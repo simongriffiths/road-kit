@@ -1,0 +1,78 @@
+[INFO] START
+
+[INFO] RUN_ID=20261115_205445_run-demo-tests_58229
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/run-demo-tests.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/run-demo-tests.sql
+[INFO] SCRIPT_SHA256=3ec2bc7d31f3390501a3f3bea0e668693714a9f71776f4bfc9e767e9ec44f488
+[INFO] GIT_COMMIT=19548b0
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261115_205445
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261115_205445_run-demo-tests_58229.log
+
+[INTENT]
+Purpose: Run the rebuilt demo suite and the agent suite on ROAD_KIT_DEV.
+Approach: Call run_all in each; fixtures are made and removed by the suites.
+Reason: spec-patch-16 steps 3-4 verification; also checks the earlier road_agent_api_test failure.
+Expected objects: None changed.
+Risk: Low.
+Prior history checked: run-framework-tests.sql.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sun Nov 15 20:54:46 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+PASS create_owner
+PASS create_named_owner
+PASS create_wrong
+PASS create_title_taken
+PASS create_replay
+PASS list_envelope
+PASS other_not_found
+PASS list_all_not_list
+PASS own_owner_param
+PASS other_owner_list
+PASS stale_token
+PASS cycle
+PASS one_token_many
+PASS same_token_replays
+PASS revise_wrong
+PASS delete_soft
+PASS purge_denied
+FAIL purge_crosses: ORA-20000: done gone: expected [0] got [2]
+PASS purge_future
+demo_todo_api_test: 18 passed, 1 failed
+
+Rollback
+begin demo_todo_api_test.run_all; end;
+*
+ERROR at line 1:
+ORA-20000: 1 demo_todo_api test(s) failed
+ORA-06512: at "ROAD_KIT_DEV.DEMO_TODO_API_TEST", line 506
+ORA-06512: at line 1
+
+https://docs.oracle.com/error-help/db/ora-20000/
+
+
+More Details :
+https://docs.oracle.com/error-help/db/ora-20000/
+https://docs.oracle.com/error-help/db/ora-06512/
+Elapsed: 00:00:01.134
+Elapsed: 00:00:01.153
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=FAILURE
+SQLCL_EXIT=32
+
+[INFO] SQLCL_EXIT=32
+[INFO] END

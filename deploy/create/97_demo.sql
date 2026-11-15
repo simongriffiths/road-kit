@@ -177,19 +177,22 @@ select 'todo_agent', 'Todo agent',
  where not exists (select 1 from road_roles where role_name = 'todo_agent');
 commit;
 
+-- Pairs, so scripts/generate-skill.mjs can read the role's permissions from this file (roleData in
+-- skills/hello_world/skill.config.mjs) and the skill names only what the agent may do. It has
+-- session.me.read so an agent can read its own identity (road-cli whoami): an agent role should
+-- always include it. It has no todo.delete: an agent adds, revises and completes, and a person
+-- removes.
 insert into road_role_permissions (role_name, permission_name)
--- session.me.read too, so an agent can read its own identity (road-cli whoami): an agent role
--- should always include it.
-select 'todo_agent', p.name from (
-  select 'session.me.read' as name from dual union all
-  select 'todo.rw' from dual union all
-  select 'todo.list' from dual union all
-  select 'todo.get' from dual union all
-  select 'todo.create' from dual union all
-  select 'todo.update' from dual
+select p.role_name, p.permission_name from (
+  select 'todo_agent' as role_name, 'session.me.read' as permission_name from dual union all
+  select 'todo_agent', 'todo.rw' from dual union all
+  select 'todo_agent', 'todo.list' from dual union all
+  select 'todo_agent', 'todo.get' from dual union all
+  select 'todo_agent', 'todo.create' from dual union all
+  select 'todo_agent', 'todo.update' from dual
 ) p
  where not exists (select 1 from road_role_permissions x
-                    where x.role_name = 'todo_agent' and x.permission_name = p.name);
+                    where x.role_name = p.role_name and x.permission_name = p.permission_name);
 
 insert into road_role_permissions (role_name, permission_name)
 select 'user', p.name from (
@@ -217,6 +220,12 @@ update jwt_scaffold_config
    and scope_name not like '%todo.rw%';
 
 commit;
+
+prompt --- the demo's contract, served at GET /contract/ (spec-patch-16) ---
+
+-- Generated: node scripts/contract-to-sql.mjs validates contract/hello_world.gsc.json and the
+-- framework fragments it includes, and writes this file.
+@deploy/create/generated/96_contract.sql
 
 prompt --- verify the demo model ---
 

@@ -1,0 +1,240 @@
+[INFO] START
+
+[INFO] RUN_ID=20261115_205716_deploy-patch16-step4_59606
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/deploy-patch16-step4.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/deploy-patch16-step4.sql
+[INFO] SCRIPT_SHA256=7514f2b2235e3d96dbae5b586f2405de5030fcc1b1ad21630e0248bd91b8a169
+[INFO] GIT_COMMIT=19548b0
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261115_205716
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261115_205716_deploy-patch16-step4_59606.log
+
+[INTENT]
+Purpose: Apply the 97_demo.sql permission rewrite for todo_agent (no change in effect) to ROAD_KIT_DEV,
+  and recreate the three modules after the generator header change.
+Approach: Rerun the idempotent demo deploy script: tables exist, packages are replaced, permissions
+  and roles are inserted only when missing, the contract is reloaded, modules recreated.
+Reason: spec-patch-16 steps 3-4; proves 97_demo.sql runs as one script after the changes.
+Expected objects: no new objects; ORDS modules hello_api.todos recreated.
+Risk: Medium: reruns the demo script on a schema that already has it.
+Prior history checked: step-3 deploy earlier in this run; 97_demo.sql runs on road_kit_dev before.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Sun Nov 15 20:57:17 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+=== demo application (spec patch 08) ===
+--- table, index, trigger --
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.046
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.261
+Elapsed: 00:00:00.279
+
+Trigger DEMO_TODOS_UPDATED_AT_TRG compiled
+
+Elapsed: 00:00:00.106
+Elapsed: 00:00:00.122
+--- package --
+
+Package DEMO_TODO_API compiled
+
+Elapsed: 00:00:00.085
+Elapsed: 00:00:00.101
+
+Package DEMO_TODO_API_TEST compiled
+
+Elapsed: 00:00:00.070
+Elapsed: 00:00:00.087
+
+Package Body DEMO_TODO_API compiled
+
+Elapsed: 00:00:00.097
+Elapsed: 00:00:00.112
+
+Package Body DEMO_TODO_API_TEST compiled
+
+Elapsed: 00:00:00.092
+Elapsed: 00:00:00.108
+--- permissions --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.129
+
+0 rows updated.
+
+Elapsed: 00:00:00.045
+--- todo_admin role --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.130
+
+Commit complete.
+
+Elapsed: 00:00:00.039
+--- role composition --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.057
+
+0 rows inserted.
+
+Elapsed: 00:00:00.042
+
+0 rows inserted.
+
+Elapsed: 00:00:00.045
+
+Commit complete.
+
+Elapsed: 00:00:00.039
+--- ORDS module and scope --
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.056
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.066
+Elapsed: 00:00:00.082
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.041
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.044
+Elapsed: 00:00:00.061
+
+0 rows inserted.
+
+Elapsed: 00:00:00.071
+
+0 rows inserted.
+
+Elapsed: 00:00:00.043
+
+0 rows inserted.
+
+Elapsed: 00:00:00.042
+
+Commit complete.
+
+Elapsed: 00:00:00.036
+--- agents for the todo demo (spec-patch-15) --
+
+0 rows inserted.
+
+Elapsed: 00:00:00.062
+
+Commit complete.
+
+Elapsed: 00:00:00.037
+
+0 rows inserted.
+
+Elapsed: 00:00:00.056
+
+0 rows inserted.
+
+Elapsed: 00:00:00.055
+
+0 rows updated.
+
+Elapsed: 00:00:00.043
+
+Commit complete.
+
+Elapsed: 00:00:00.039
+
+0 rows updated.
+
+Elapsed: 00:00:00.040
+
+Commit complete.
+
+Elapsed: 00:00:00.037
+--- the demo's contract, served at GET /contract/ (spec-patch-16) --
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.113
+
+[1m'CONTRACT'||CONTRACT_VERSION||''||DBMS_LOB.GETLENGTH(DOCUMENT)||'CHARS'[m    
+__________________________________________________________________________ 
+CONTRACT 0.1.0 25033 chars                                                 
+
+1 row selected. 
+
+Elapsed: 00:00:00.065
+Elapsed: 00:00:00.082
+--- verify the demo model --
+[INFO] Demo application verified: 7 permissions (1 reserved), todo_admin correctly restricted
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.080
+Elapsed: 00:00:00.096
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.041
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.058
+Elapsed: 00:00:00.074
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.061
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.040
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.058
+Elapsed: 00:00:00.075
+=== USER_ERRORS_CHECK ===
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.036
+Elapsed: 00:00:00.054
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.038
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

@@ -30,6 +30,7 @@ export ORDS_BASE_URL="${ROAD_ORDS_HOST%/}/ords/${API_BASE_PATH}/api/v1"
 export AUTH_URL="${ROAD_ORDS_HOST%/}/ords/${API_BASE_PATH}/api-auth/tokens"
 
 node test/agents/agents.test.mjs
+node test/agents/surface.test.mjs
 node test/agents/road-cli.test.mjs
 
 # My agents in a browser, against the deployed scaffold app.
