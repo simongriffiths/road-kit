@@ -29,6 +29,13 @@ export function HomePage() {
           </p>
           <Link className="button" to="/session">View Session</Link>
         </div>
+        <div className="card">
+          <h3>Todos</h3>
+          <p className="muted">
+            A todo list that uses the same governed API as the agents. Sign in to use it.
+          </p>
+          <Link className="button" to="/todos">Go To Todos</Link>
+        </div>
       </div>
       <dl className="kv">
         <div>

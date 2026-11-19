@@ -176,6 +176,14 @@ The rules for this file are in `road-atlas/patterns/SPEC.md`. Check it with
 - **Summary:** A React starter with a fetch client that attaches the bearer token, a login page, and a route guard that redirects to login when there is no token. Runtime settings come from one config module.
 - **Location:** `hello_world/src/api/client.ts`, `hello_world/src/api/auth.ts`, `hello_world/src/components/RequireAuth.tsx`, `hello_world/src/config/runtime.ts`, `hello_world/src/router.tsx`, `hello_world/src/pages/LoginPage.tsx`
 - **Status:** in-use
+- **Notes:** Since spec-patch-17 the client sends `Accept-Version` (from `config/runtime.ts`) and, on a 401 for a call that carried a token, clears the token and redirects to Login with no banner (`spec/error-handling-contract-v1.md` 6.5).
+
+### React client for a governed surface
+- **Slug:** react-governed-client
+- **Summary:** A page that proposes governed actions and reads the answers in one place. `utils/outcome.ts` reads a decision; `hooks/useTodos.ts` holds the list, its read token and one `settle` function: accepted reloads the list, a rejection shows the database's own message, a stale token keeps the person's edit in the form and says so. A create keeps its Idempotency-Key until an accepted answer replaces it.
+- **Location:** `hello_world/src/api/todos.ts`, `hello_world/src/hooks/useTodos.ts`, `hello_world/src/utils/outcome.ts`, `hello_world/src/components/todos/`, `hello_world/src/pages/TodosPage.tsx`, `hello_world/e2e/todos.smoke.spec.ts`
+- **Status:** in-use
+- **Notes:** spec-patch-17. Follows road-tracker's `settle`. Depends on `governed-decision-record` and `read-token-concurrency`. The browser test covers the stale-token path, a keyboard-only add and a 320-pixel width.
 
 ### Theme tokens and their check
 - **Slug:** theme-token-check

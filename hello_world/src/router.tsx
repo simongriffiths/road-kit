@@ -6,6 +6,7 @@ import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { SessionPage } from './pages/SessionPage';
 import { AgentsPage } from './pages/AgentsPage';
+import { TodosPage } from './pages/TodosPage';
 
 const appName = import.meta.env.VITE_APP_NAME;
 const uiBasePath = import.meta.env.VITE_UI_BASE_PATH;
@@ -38,6 +39,10 @@ export const router = createBrowserRouter(
             {
               path: 'agents',
               element: <AgentsPage />
+            },
+            {
+              path: 'todos',
+              element: <TodosPage />
             }
           ]
         }
