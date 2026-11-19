@@ -33,8 +33,8 @@ node test/agents/agents.test.mjs
 node test/agents/surface.test.mjs
 node test/agents/road-cli.test.mjs
 
-# My agents and Todos in a browser, against the deployed scaffold app.
+# My agents, Todos and the app shell in a browser, against the deployed scaffold app.
 export ROAD_APP_URL="${ROAD_ORDS_HOST%/}/ords/${UI_BASE_PATH}/ui/${APP_NAME}/"
 # An existing browser folder may be given; otherwise road-kit's own (npx playwright install).
 export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-${PROJECT_ROOT}/.playwright-browsers}"
-(cd hello_world && npx playwright test e2e/agents.smoke.spec.ts e2e/todos.smoke.spec.ts --config playwright.config.ts --reporter=line)
+(cd hello_world && npx playwright test e2e/agents.smoke.spec.ts e2e/todos.smoke.spec.ts e2e/shell.smoke.spec.ts --config playwright.config.ts --reporter=line)

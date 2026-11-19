@@ -4,6 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>hello_world</title>
+    <script>
+      // Sets the theme before the first paint so a dark-theme user sees no white flash.
+      // The same rule is in src/hooks/useTheme.ts (spec-patch-18 section 4).
+      (function () {
+        try {
+          var c = localStorage.getItem('road-theme');
+          var dark = c === 'dark' || (c !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.toggle('dark', dark);
+          document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

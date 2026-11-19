@@ -1,0 +1,17 @@
+/* This app's look (ADR 02). Owned by the app: edit this file, not tokens.css.
+ *
+ * It may set only tokens that tokens.css defines; scripts/check-theme-tokens.mjs fails the build
+ * on any other name. The shades derived in tokens.css (--ink-soft, --hover, --primary-soft,
+ * --primary-strong) follow from what is set here, so changing --primary also changes the hover,
+ * the selected tint and the focus ring.
+ *
+ * The values below repeat road-kit's house look. Delete a line to take the default again.
+ * Dark values go under :root.dark: a value set only in :root does not reach the dark theme,
+ * because tokens.css sets its own dark values there.
+ */
+:root {
+  --primary: #2c6f5b;
+  --font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --radius-control: 0.35rem;
+  --radius-panel: 0.5rem;
+}

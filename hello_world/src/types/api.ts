@@ -43,6 +43,7 @@ export interface SessionIdentity {
   authenticated: string;
   current_user: string;
   db_user: string;
+  contract_version?: string;
 }
 
 export function isApiError(value: unknown): value is ApiError {

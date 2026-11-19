@@ -38,8 +38,8 @@ export const newKey = () => crypto.randomUUID();
 
 const json = { 'Content-Type': 'application/json' };
 
-export function listTodos(status: TodoStatus, query: string, offset: number) {
-  const p = new URLSearchParams({ status, limit: String(PAGE_SIZE), offset: String(offset) });
+export function listTodos(status: TodoStatus, query: string, offset: number, limit = PAGE_SIZE) {
+  const p = new URLSearchParams({ status, limit: String(limit), offset: String(offset) });
   if (query.trim()) p.set('query', query.trim());
   return apiRequest<TodoList>(`/todos/?${p.toString()}`);
 }

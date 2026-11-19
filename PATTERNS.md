@@ -176,7 +176,7 @@ The rules for this file are in `road-atlas/patterns/SPEC.md`. Check it with
 - **Summary:** A React starter with a fetch client that attaches the bearer token, a login page, and a route guard that redirects to login when there is no token. Runtime settings come from one config module.
 - **Location:** `hello_world/src/api/client.ts`, `hello_world/src/api/auth.ts`, `hello_world/src/components/RequireAuth.tsx`, `hello_world/src/config/runtime.ts`, `hello_world/src/router.tsx`, `hello_world/src/pages/LoginPage.tsx`
 - **Status:** in-use
-- **Notes:** Since spec-patch-17 the client sends `Accept-Version` (from `config/runtime.ts`) and, on a 401 for a call that carried a token, clears the token and redirects to Login with no banner (`spec/error-handling-contract-v1.md` 6.5).
+- **Notes:** The sign-in page (`LoginPage.tsx`) sits outside the app shell and lands on Home. Since spec-patch-17 the client sends `Accept-Version` (from `config/runtime.ts`) and, on a 401 for a call that carried a token, clears the token and redirects to Login with no banner (`spec/error-handling-contract-v1.md` 6.5).
 
 ### React client for a governed surface
 - **Slug:** react-governed-client
@@ -187,10 +187,31 @@ The rules for this file are in `road-atlas/patterns/SPEC.md`. Check it with
 
 ### Theme tokens and their check
 - **Slug:** theme-token-check
-- **Summary:** Colours and fonts live only in `tokens.css`, and the Tailwind and shadcn theme reads from them. A script fails the build if a colour or font literal appears anywhere else.
-- **Location:** `hello_world/src/tokens.css`, `hello_world/src/theme.css`, `hello_world/scripts/check-theme-tokens.mjs`
+- **Summary:** Colours and fonts live only in `tokens.css` and the app's `brand.css`, and the Tailwind and shadcn theme reads from them. `tokens.css` holds the light and dark values, the derived shades and the chart colours. A script fails the build if a colour appears anywhere else, if `brand.css` sets a name `tokens.css` does not define, if `tokens.css` or `theme.css` differs from road-kit's, or if a text, status or chart colour falls below its contrast ratio in either theme.
+- **Location:** `hello_world/src/tokens.css`, `hello_world/src/theme.css`, `hello_world/src/brand.css`, `hello_world/scripts/check-theme-tokens.mjs`
 - **Status:** in-use
-- **Notes:** Written after quorate's stylesheet drifted to nearly twice the size of road-kit's while the standard said they were identical. Ledger D-02.
+- **Notes:** Written after quorate's stylesheet drifted to nearly twice the size of road-kit's while the standard said they were identical. Ledger D-02. Extended by spec-patch-18 (ADR 02). The contrast check computes the `color-mix()` shades itself, in OKLab, so it needs no browser.
+
+### Per-app look in one file
+- **Slug:** road-brand-override
+- **Summary:** An app changes its colours, fonts and corner radius in `src/brand.css`, which may set only tokens that `tokens.css` defines. The derived shades (hover, selected tint, primary hover) follow from what it sets. The app's name, mark, layout and nav are in `src/config/app.ts` and `components/road/AppMark.tsx`.
+- **Location:** `hello_world/src/brand.css`, `hello_world/src/config/app.ts`, `hello_world/src/components/road/AppMark.tsx`
+- **Status:** in-use
+- **Notes:** ADR 02. ai-live-hub's `theme/brand.ts` does the same job from a database row. Dark values go under `:root.dark` in `brand.css`; a value set only in `:root` does not reach the dark theme.
+
+### App shell with top bar or sidebar
+- **Slug:** road-app-shell
+- **Summary:** The frame around every signed-in screen: a top bar or a sidebar (set in `config/app.ts`), a bottom tab bar below 768 px, a skip link, the account menu, the session drawer and a toaster. Pages render into it. Shared page parts: page header, stat tile, status badge, notice, empty state, data list and segmented control.
+- **Location:** `hello_world/src/components/road/`, `hello_world/src/router.tsx`, `hello_world/e2e/shell.smoke.spec.ts`
+- **Status:** in-use
+- **Notes:** ADR 02, spec-patch-18. The theme switch is `hooks/useTheme.ts` (light, dark or system, kept in localStorage; `index.html` sets the class before first paint). Browser tests cover keyboard use, the theme, 320 px and an axe scan in both themes.
+
+### Session details behind the account menu
+- **Slug:** road-account-menu-session-drawer
+- **Summary:** The signed-in person's menu (session details, agents, theme, sign out) opens a side panel with the principal, token and connection facts read from `/session/me/`, each with a copy button. Focus returns to the menu button when the panel closes.
+- **Location:** `hello_world/src/components/road/AccountMenu.tsx`, `hello_world/src/components/road/SessionDrawer.tsx`, `hello_world/src/components/road/SessionSections.tsx`, `hello_world/src/hooks/useSession.ts`, `hello_world/src/pages/SessionPage.tsx`
+- **Status:** in-use
+- **Notes:** ADR 02. Replaces the build settings and session data that the old home page showed. The `/session` route renders the same facts as a page.
 
 ## AI
 

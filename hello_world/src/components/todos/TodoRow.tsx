@@ -2,7 +2,10 @@ import { useState } from 'react';
 
 import type { Todo, TodoFields } from '../../api/todos';
 import type { Settled } from '../../hooks/useTodos';
-import { dateToDueAt, dueAtToDate, showDate } from '../../utils/dates';
+import { dateToDueAt, dueAtToDate, dueBucket, showDate, showShortDate } from '../../utils/dates';
+import { DataRow } from '../road/DataList';
+import { StatusBadge } from '../road/StatusBadge';
+import { Button } from '../ui/button';
 import { TodoForm } from './TodoForm';
 import type { TodoDraft } from './TodoForm';
 
@@ -41,7 +44,7 @@ export function TodoRow({ todo, onComplete, onReopen, onRemove, onRevise }: Todo
 
   if (editing) {
     return (
-      <li className="panel" data-testid={`todo-${todo.todo_id}`}>
+      <li className="border-b border-divider bg-raised px-5 py-4 last:border-b-0" data-testid={`todo-${todo.todo_id}`}>
         <TodoForm
           idPrefix={`edit-${todo.todo_id}`}
           initial={{ title: todo.title, notes: todo.notes ?? '', date: dueAtToDate(todo.due_at) }}
@@ -54,23 +57,32 @@ export function TodoRow({ todo, onComplete, onReopen, onRemove, onRevise }: Todo
   }
 
   const firstLine = todo.notes ? todo.notes.split('\n')[0] : '';
+  const bucket = dueBucket(todo.due_at);
+  const secondary = [firstLine, todo.due_at ? `Due ${showDate(todo.due_at)}` : ''].filter(Boolean).join(' · ');
 
   return (
-    <li className="panel" data-testid={`todo-${todo.todo_id}`}>
-      <div className="stack">
-        <div>
-          <strong>{todo.title}</strong>
-          {firstLine ? <p className="muted">{firstLine}</p> : null}
-          {todo.due_at ? <p className="muted">Due {showDate(todo.due_at)}</p> : null}
-        </div>
-        <div className="row">
+    <DataRow
+      actions={(
+        <>
           {done
-            ? <button className="button" onClick={() => void onReopen(todo.todo_id)} type="button">Reopen</button>
-            : <button className="button" onClick={() => void onComplete(todo.todo_id)} type="button">Done</button>}
-          <button className="button ghost" onClick={() => setEditing(true)} type="button">Edit</button>
-          <button className="button ghost" onClick={handleDelete} type="button">Delete</button>
-        </div>
-      </div>
-    </li>
+            ? <Button onClick={() => void onReopen(todo.todo_id)} size="sm" variant="outline">Reopen</Button>
+            : <Button onClick={() => void onComplete(todo.todo_id)} size="sm" variant="outline">Done</Button>}
+          <Button onClick={() => setEditing(true)} size="sm" variant="ghost">Edit</Button>
+          <Button onClick={handleDelete} size="sm" variant="ghost">Delete</Button>
+        </>
+      )}
+      badge={done
+        ? <StatusBadge kind="success">Finished</StatusBadge>
+        : bucket === 'overdue'
+          ? <StatusBadge kind="error">Overdue · {showShortDate(todo.due_at!)}</StatusBadge>
+          : bucket === 'today'
+            ? <StatusBadge kind="info">Today</StatusBadge>
+            : bucket === 'later'
+              ? <StatusBadge>{showShortDate(todo.due_at!)}</StatusBadge>
+              : undefined}
+      secondary={secondary || undefined}
+      testId={`todo-${todo.todo_id}`}
+      title={todo.title}
+    />
   );
 }

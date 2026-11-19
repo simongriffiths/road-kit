@@ -2,6 +2,16 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 
 import { createAgent, createKey, listAgents, newKey, retireAgent, revokeKey } from '../api/agents';
 import type { Agent, AgentKey } from '../api/agents';
+import { Bot } from 'lucide-react';
+
+import { EmptyState } from '../components/road/EmptyState';
+import { Notice } from '../components/road/Notice';
+import { PageHeader } from '../components/road/PageHeader';
+import { StatusBadge } from '../components/road/StatusBadge';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Skeleton } from '../components/ui/skeleton';
+import { pageTitle } from '../config/app';
 import { getOrdsBaseUrl } from '../config/runtime';
 import { isApiError } from '../types/api';
 import type { GovernedOutcome } from '../types/api';
@@ -34,6 +44,8 @@ export function AgentsPage() {
       setAgents([]);
     }
   }, [all]);
+
+  useEffect(() => { document.title = pageTitle(all ? 'All agents' : 'My agents'); }, [all]);
 
   useEffect(() => {
     void load();
@@ -85,79 +97,77 @@ export function AgentsPage() {
   }
 
   return (
-    <div className="stack">
-      <div className="section-heading">
-        <h2>{all ? 'All agents' : 'My agents'}</h2>
-        <p className="muted">
-          An agent, such as Claude Code, is its own identity that you own. Give it an API key for its command-line tool,
-          one key for each place it runs, so you can revoke one without the others.
-        </p>
-        {canSeeAll ? (
-          <label className="row">
-            <input checked={all} onChange={(e) => setAll(e.target.checked)} type="checkbox" />
-            Show every agent
-          </label>
-        ) : null}
-      </div>
+    <>
+      <PageHeader
+        description="An agent, such as Claude Code, is its own identity that you own. Give it an API key for its command-line tool, one key for each place it runs, so you can revoke one without the others."
+        title={all ? 'All agents' : 'My agents'}
+      />
+      {canSeeAll ? (
+        <label className="flex items-center gap-2 text-sm">
+          <input checked={all} className="size-4 accent-primary" onChange={(e) => setAll(e.target.checked)} type="checkbox" />
+          Show every agent
+        </label>
+      ) : null}
 
-      {notice ? <p className="notice notice--warning" role="status">{notice}</p> : null}
+      {notice ? <Notice kind="warning">{notice}</Notice> : null}
 
       {made ? (
-        <section className="notice notice--warning" data-testid="new-key">
-          <p><strong>Key "{made.name}" for {made.agent}: copy it now. It will not be shown again.</strong></p>
-          <p><code data-testid="new-key-value">{made.key}</code></p>
-          <p className="row">
-            <button className="button" onClick={() => void navigator.clipboard.writeText(made.key)} type="button">Copy key</button>
-            <button className="button ghost" onClick={() => setMade(null)} type="button">Done</button>
-          </p>
-          <p className="muted">Where the agent runs, run this and paste the key when it asks:</p>
-          <p><code>road-cli login --url {getOrdsBaseUrl()}</code></p>
-        </section>
+        <Notice kind="warning" testId="new-key">
+          <div className="flex flex-col gap-2">
+            <p className="m-0 font-semibold">Key "{made.name}" for {made.agent}: copy it now. It will not be shown again.</p>
+            <code className="block rounded-md bg-card p-2 font-mono text-xs text-foreground [overflow-wrap:anywhere]" data-testid="new-key-value">{made.key}</code>
+            <div className="flex gap-2">
+              <Button onClick={() => void navigator.clipboard.writeText(made.key)} size="sm">Copy key</Button>
+              <Button onClick={() => setMade(null)} size="sm" variant="outline">Done</Button>
+            </div>
+            <p className="m-0">Where the agent runs, run this and paste the key when it asks:</p>
+            <code className="block rounded-md bg-card p-2 font-mono text-xs text-foreground [overflow-wrap:anywhere]">road-cli login --url {getOrdsBaseUrl()}</code>
+          </div>
+        </Notice>
       ) : null}
 
       {selfServe && !all ? (
-        <form className="row" onSubmit={(e) => void handleAgent(e)}>
-          <label className="field">
-            <span>New agent</span>
-            <input maxLength={80} onChange={(e) => setName(e.target.value)} placeholder="My Claude Code" required value={name} />
+        <form className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-5" onSubmit={(e) => void handleAgent(e)}>
+          <label className="flex min-w-56 flex-1 flex-col gap-1.5 text-sm font-medium">
+            New agent
+            <Input maxLength={80} onChange={(e) => setName(e.target.value)} placeholder="My Claude Code" required value={name} />
           </label>
-          <button className="button" type="submit">Make agent</button>
+          <Button type="submit">Make agent</Button>
         </form>
       ) : null}
-      {!selfServe ? <p className="muted">Agents are not switched on in this application.</p> : null}
+      {!selfServe ? <p className="m-0 text-sm text-muted-foreground">Agents are not switched on in this application.</p> : null}
 
-      {agents === null ? <p className="muted">Loading...</p> : null}
-      {agents?.length === 0 ? <p className="muted">No agents yet.</p> : null}
+      {agents === null ? <Skeleton className="h-32 w-full rounded-xl" /> : null}
+      {agents?.length === 0 ? (
+        <div className="rounded-xl border border-border bg-card"><EmptyState icon={<Bot className="size-5" />}>No agents yet.</EmptyState></div>
+      ) : null}
       {agents?.map((a) => (
-        <section className="panel" data-testid={`agent-${a.agent_id}`} key={a.agent_id}>
-          <div className="row">
-            <h3>{a.display_name}</h3>
-            <span className="muted">{a.subject}{a.owner ? `, owned by ${a.owner}` : ', shared'} · {a.status.toLowerCase()}</span>
-            {a.status === 'ACTIVE' ? (
-              <button className="button ghost" onClick={() => handleRetire(a)} type="button">Retire</button>
-            ) : null}
+        <section className="flex flex-col gap-4 rounded-xl border border-border bg-card p-5" data-testid={`agent-${a.agent_id}`} key={a.agent_id}>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h2 className="m-0 text-base font-semibold [overflow-wrap:anywhere]">{a.display_name}</h2>
+            <StatusBadge kind={a.status === 'ACTIVE' ? 'success' : 'neutral'}>{a.status.toLowerCase()}</StatusBadge>
+            <span className="min-w-0 flex-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">{a.subject}{a.owner ? `, owned by ${a.owner}` : ', shared'}</span>
+            {a.status === 'ACTIVE' ? <Button onClick={() => handleRetire(a)} size="sm" variant="outline">Retire</Button> : null}
           </div>
-          <table>
-            <tbody>
+          {(a.keys ?? []).length > 0 ? (
+            <ul className="m-0 list-none overflow-hidden rounded-lg border border-divider p-0">
               {(a.keys ?? []).map((k) => (
-                <tr key={k.key_id}>
-                  <td>{k.name}</td>
-                  <td><code>{k.key_prefix}...</code></td>
-                  <td className="muted">last used {when(k.last_used_at)}</td>
-                  <td>
-                    {k.revoked_at
-                      ? <span className="muted">revoked</span>
-                      : <button className="button ghost" onClick={() => handleRevoke(a, k)} type="button">Revoke</button>}
-                  </td>
-                </tr>
+                <li className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-divider px-3.5 py-2.5 text-sm last:border-b-0" key={k.key_id}>
+                  <span className="min-w-0 flex-1 basis-40 font-medium [overflow-wrap:anywhere]">{k.name}</span>
+                  <code className="font-mono text-xs">{k.key_prefix}...</code>
+                  <span className="text-xs text-muted-foreground">last used {when(k.last_used_at)}</span>
+                  {k.revoked_at
+                    ? <StatusBadge>revoked</StatusBadge>
+                    : <Button onClick={() => handleRevoke(a, k)} size="sm" variant="ghost">Revoke</Button>}
+                </li>
               ))}
-            </tbody>
-          </table>
+            </ul>
+          ) : null}
           {a.status === 'ACTIVE' ? (
-            <form className="row" onSubmit={(e) => void handleKey(e, a)}>
-              <label className="field">
-                <span>Where the key will be used</span>
-                <input
+            <form className="flex flex-wrap items-end gap-3" onSubmit={(e) => void handleKey(e, a)}>
+              <label className="flex min-w-56 flex-1 flex-col gap-1.5 text-sm font-medium">
+                Where the key will be used
+                <Input
                   aria-label={`Key name for ${a.display_name}`}
                   maxLength={80}
                   onChange={(e) => setKeyNames({ ...keyNames, [a.agent_id]: e.target.value })}
@@ -166,11 +176,11 @@ export function AgentsPage() {
                   value={keyNames[a.agent_id] ?? ''}
                 />
               </label>
-              <button className="button" type="submit">Make a key</button>
+              <Button type="submit">Make a key</Button>
             </form>
           ) : null}
         </section>
       ))}
-    </div>
+    </>
   );
 }

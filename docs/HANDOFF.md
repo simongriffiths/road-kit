@@ -31,7 +31,7 @@ What exists now:
 Next, in order:
 
 1. **Release.** Tag `v0.4.0` covers spec-patches 15 to 17. Then close B-05 in the atlas.
-2. **Spec-patch 18** (below).
+2. **Spec-patch 18** (below): review and merge; it is built.
 3. **Adoption.** road-tracker replaces the generic half of its `rt_action_pkg` and `rt_rest_pkg`,
    `rt_contract` and its scripts with road-kit's at its next upgrade (spec-patch-16 section 6.7).
    Uncomment the spec-patch-15 and 16 lines in `bin/check-road-kit-parity.sh` in that commit.
@@ -39,15 +39,16 @@ Next, in order:
    road-kit now ships the app shell, components and palette, and each app overrides the look in
    `src/brand.css`. Spec-patch 18 (`planning/spec-patch-18-default-look-and-shell.md`) builds it
    in `hello_world`, from the design canvas https://claude.ai/artifact/4wztTJzttNDT1pLH6Mp2ks.
-   Ruled 19 November (all eight recommendations in section 11 accepted); build status is in its
-   section 12. Atlas D-02 is amended; copying ADR 02 into the other repos is not done.
+   Ruled 19 November (all eight recommendations in section 11 accepted) and **built** the same day,
+   tested on dev (build, theme check, nine browser tests); section 12 lists where the build differs.
+   `login.smoke.spec.ts` was updated but not run: it needs `ROAD_TEST_PASSWORD`. Atlas D-02 is amended; copying ADR 02 into the other repos is not done.
 5. **Later patches:** the admin API converted to decisions (6.5); row-level access (checklist 27, 28,
    30); the MCP projector for 0.3.0 contracts (RK-11); batches (spec-patch-14, unruled).
 
 ## How to test
 
 - Framework PL/SQL, all suites: `bin/run-sql.sh --env dev --script test/plsql/run-framework-tests.sql`.
-- Agents, the governed surface, `road-cli` and the My agents and Todos pages, with fixtures made and removed, no
+- Agents, the governed surface, `road-cli` and the My agents, Todos and app shell pages, with fixtures made and removed, no
   password: `bin/run-agent-tests.sh --env dev`. It reuses a Playwright browser folder if
   `PLAYWRIGHT_BROWSERS_PATH` names one (road-tracker's `.playwright-browsers` has version 1217).
 - A fresh Claude Code session using the generated skill (costs about 0.16 USD):

@@ -19,3 +19,17 @@ export function dueAtToDate(dueAt: string | null): string {
 }
 
 export const showDate = (dueAt: string) => new Date(dueAt).toLocaleDateString();
+
+// Where a due date falls against today, in the browser's time zone (spec-patch-18 section 7.3).
+export type DueBucket = 'overdue' | 'today' | 'later' | 'none';
+
+export function dueBucket(dueAt: string | null, now = new Date()): DueBucket {
+  if (!dueAt) return 'none';
+  const due = dueAtToDate(dueAt);
+  const today = dueAtToDate(now.toISOString());
+  if (due < today) return 'overdue';
+  return due === today ? 'today' : 'later';
+}
+
+export const showShortDate = (dueAt: string) =>
+  new Date(dueAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });

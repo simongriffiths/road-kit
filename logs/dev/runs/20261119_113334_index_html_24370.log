@@ -1,0 +1,47 @@
+[INFO] START
+
+[INFO] RUN_ID=20261119_113334_index_html_24370
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=/var/folders/zq/vz__y9m90n92dh_3fs7lbgqw0000gn/T/tmp.vramvpb8Wo/index_html.sql
+[INFO] SCRIPT_PATH=/var/folders/zq/vz__y9m90n92dh_3fs7lbgqw0000gn/T/tmp.vramvpb8Wo/index_html.sql
+[INFO] SCRIPT_SHA256=d71e342f87907daf376ebd56960a0015a2c58ad51b801a64cbd597acc5d29a39
+[INFO] GIT_COMMIT=4d59af6
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261119_113334
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261119_113334_index_html_24370.log
+
+[INTENT]
+
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Thu Nov 19 11:33:35 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.323
+Elapsed: 00:00:00.343
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.047
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

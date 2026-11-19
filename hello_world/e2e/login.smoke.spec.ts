@@ -19,7 +19,7 @@ test('protected route redirects to login when no token is present', async ({ pag
 
   await page.goto(buildUrl(appUrl, 'session'));
   await expect(page).toHaveURL(/\/login$/);
-  await expect(page.getByRole('heading', { name: 'Login' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
 });
 
 test('browser login reaches the protected session page', async ({ page }) => {
@@ -28,14 +28,19 @@ test('browser login reaches the protected session page', async ({ page }) => {
   const password = requiredEnv('ROAD_TEST_PASSWORD');
 
   await page.goto(buildUrl(appUrl, 'login'));
-  await page.getByLabel('Username').fill(username);
+  await page.getByLabel('User name').fill(username);
   await page.getByLabel('Password').fill(password);
-  await page.getByRole('button', { name: 'Sign In' }).click();
+  await page.getByRole('button', { name: 'Sign in' }).click();
 
-  await expect(page).toHaveURL(/\/session$/);
-  await expect(page.getByRole('heading', { name: 'Protected Session' })).toBeVisible();
-  await expect(page.locator('.kv div').filter({ has: page.getByText('Principal') }).locator('dd')).toHaveText(username);
-  await expect(page.locator('.kv div').filter({ has: page.getByText('Current User') }).locator('dd')).toHaveText(username);
+  // After sign-in the person lands on Home (spec-patch-18 7.1), and finds the session facts in the
+  // account menu, in the session drawer.
+  await expect(page).toHaveURL(/\/(hello_world\/)?$/);
+  await expect(page.getByRole('heading', { level: 1 })).toContainText(/Good (morning|afternoon|evening)/);
+  await page.getByRole('button', { name: /Account menu/ }).click();
+  await page.getByRole('menuitem', { name: 'Session details' }).click();
+  const drawer = page.getByRole('dialog', { name: 'Session details' });
+  await expect(drawer.locator('dt', { hasText: 'Principal' }).locator('xpath=following-sibling::dd')).toContainText(username);
+  await expect(drawer.locator('dt', { hasText: 'Current user' }).locator('xpath=following-sibling::dd')).toContainText(username);
 
   const token = await page.evaluate(() => window.sessionStorage.getItem('auth_token'));
   expect(token).toBeTruthy();

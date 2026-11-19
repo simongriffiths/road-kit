@@ -1,5 +1,10 @@
 import { FormEvent, useState } from 'react';
 
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
+
 // The fields of a todo, shared by the add form and the row's edit form (spec-patch-17 3.2, 3.3).
 // It keeps what the person typed until the owner of the form says it was accepted, so a refusal or
 // a stale token never loses their text.
@@ -33,39 +38,41 @@ export function TodoForm({ idPrefix, initial, submitLabel, onSubmit, onCancel, c
   }
 
   return (
-    <form className="stack" onSubmit={(e) => void handleSubmit(e)}>
-      <label className="field" htmlFor={`${idPrefix}-title`}>
-        <span>Title</span>
-        <input
+    <form className="flex flex-col gap-3" onSubmit={(e) => void handleSubmit(e)}>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor={`${idPrefix}-title`}>Title</Label>
+        <Input
           id={`${idPrefix}-title`}
           maxLength={200}
           onChange={(e) => setDraft({ ...draft, title: e.target.value })}
           required
           value={draft.title}
         />
-      </label>
-      <label className="field" htmlFor={`${idPrefix}-notes`}>
-        <span>Notes (optional)</span>
-        <textarea
-          id={`${idPrefix}-notes`}
-          maxLength={4000}
-          onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
-          rows={2}
-          value={draft.notes}
-        />
-      </label>
-      <label className="field" htmlFor={`${idPrefix}-due`}>
-        <span>Due date (optional)</span>
-        <input
-          id={`${idPrefix}-due`}
-          onChange={(e) => setDraft({ ...draft, date: e.target.value })}
-          type="date"
-          value={draft.date}
-        />
-      </label>
-      <div className="row">
-        <button className="button" disabled={busy} type="submit">{submitLabel}</button>
-        {onCancel ? <button className="button ghost" onClick={onCancel} type="button">Cancel</button> : null}
+      </div>
+      <div className="flex flex-wrap gap-3">
+        <div className="flex min-w-48 flex-[3_1_16rem] flex-col gap-1.5">
+          <Label htmlFor={`${idPrefix}-notes`}>Notes (optional)</Label>
+          <Textarea
+            id={`${idPrefix}-notes`}
+            maxLength={4000}
+            onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+            rows={2}
+            value={draft.notes}
+          />
+        </div>
+        <div className="flex flex-[1_1_10rem] flex-col gap-1.5">
+          <Label htmlFor={`${idPrefix}-due`}>Due date (optional)</Label>
+          <Input
+            id={`${idPrefix}-due`}
+            onChange={(e) => setDraft({ ...draft, date: e.target.value })}
+            type="date"
+            value={draft.date}
+          />
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button disabled={busy} type="submit">{submitLabel}</Button>
+        {onCancel ? <Button onClick={onCancel} type="button" variant="ghost">Cancel</Button> : null}
       </div>
     </form>
   );

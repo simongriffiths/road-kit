@@ -36,4 +36,67 @@
 
   --divider: #e4eae5;
   --scrim: rgba(29, 37, 34, 0.35);
+
+  /* Derived from the tokens above, so an app that changes --ink, --surface or --primary in
+     brand.css moves these with it. ADR 02. */
+  --ink-soft: color-mix(in oklab, var(--ink) 78%, var(--ink-muted));
+  --raised: color-mix(in oklab, var(--surface), var(--ink) 4%);
+  --hover: color-mix(in oklab, var(--surface), var(--ink) 4%);
+  --primary-soft: color-mix(in oklab, var(--primary) 12%, var(--surface));
+  --primary-strong: color-mix(in oklab, var(--primary), var(--ink) 25%);
+  --on-primary: var(--surface);
+
+  --success-bg: #eef6f0;
+  --success-fg: #1f5135;
+  --success-border: #b9d7c3;
+
+  --info-bg: #eef3f9;
+  --info-fg: #24456b;
+  --info-border: #bccde2;
+
+  --chart-1: #2c6f5b;
+  --chart-2: #2f5d8a;
+  --chart-3: #b26a1c;
+  --chart-4: #7a4f9a;
+  --chart-5: #a23b3b;
+}
+
+/* The dark theme (ADR 02). Applied only through the .dark class on <html>, which useTheme sets. The
+   derived tokens above are not repeated: they are computed from these. */
+:root.dark {
+  --ink: #e6ece8;
+  --ink-muted: #9aaaa3;
+  --ink-eyebrow: #9fb0a8;
+  --bg: #121715;
+  --surface: #1a211e;
+  --border: #2d3833;
+  --border-strong: #41504a;
+  --primary: #5fb596;
+
+  --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.4);
+
+  --warning-bg: #2b2312;
+  --warning-fg: #f0d9a0;
+  --warning-border: #6b5424;
+
+  --error-bg: #2f1a19;
+  --error-fg: #f2b4b0;
+  --error-border: #6e3a38;
+
+  --success-bg: #14281d;
+  --success-fg: #a8dcbc;
+  --success-border: #2f5c41;
+
+  --info-bg: #15222f;
+  --info-fg: #b2cfee;
+  --info-border: #2f4a66;
+
+  --chart-1: #5fb596;
+  --chart-2: #7fa8d9;
+  --chart-3: #d9a05a;
+  --chart-4: #b99ad6;
+  --chart-5: #e08080;
+
+  --divider: #26302c;
+  --scrim: rgba(0, 0, 0, 0.6);
 }

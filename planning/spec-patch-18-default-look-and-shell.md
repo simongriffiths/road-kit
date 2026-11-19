@@ -3,7 +3,7 @@
 **Applies to:** the demo UI only (`hello_world/`): its styles, components, screens, browser tests
 and build checks. No database, ORDS or contract change.
 **Status:** ruled 19 November 2026: Simon accepted every recommendation in section 11 as written.
-Not built.
+Built 19 November 2026 (not released); section 12 records where the build differs from the plan.
 **Depends on:** ADR 02 (`planning/adr-02-default-look-and-components.md`, accepted 19 November
 2026), spec-patch-17 (the Todos page), spec-patch-15 (the My agents page).
 **Rule it keeps:** spec-patch-08 rule 1. The demo may not cause a framework change. Where a screen
@@ -375,7 +375,52 @@ which files came from road-kit and which from shadcn, and lets the parity check 
 
 ## 12. Where the build differs from this plan
 
-Empty until the build. The builder records each difference here.
+Built and tested on `ROAD_KIT_DEV` on 19 November 2026. `npm run build` passes, including the
+extended theme check. `bin/run-agent-tests.sh --env dev` passes: the agents, surface and road-cli
+suites and all nine browser tests (todos and agents unchanged, plus the five new shell
+tests, one of which runs twice, once for each theme). Not run: `login.smoke.spec.ts`, which needs
+`ROAD_TEST_PASSWORD` (HANDOFF, "Waiting on Simon"); it was updated for the new sign-in page and is
+untested.
+
+1. **Files.** The plan's `TopBar.tsx`, `SideNav.tsx` and `TabBar.tsx` are one `AppShell.tsx` and a
+   `NavLinks.tsx` (row, column or tab bar), plus `TopSearch.tsx`. shadcn's `sidebar` component was
+   not used: it needs its own provider and adds nothing the plain markup lacks. It and its
+   `use-mobile` hook were removed after the CLI added them. The sidebar layout was built and looked at
+   in a screenshot, but no browser test runs it.
+2. **Date picking.** The due date keeps the native date input from spec-patch-17. shadcn's
+   `calendar` in a popover was not built; the keyboard test in `todos.smoke.spec.ts` counts the date
+   input's tab stops. `calendar`, `command`, `chart`, `dialog` and `input-group` were added by the
+   CLI and no screen uses them. `cmdk`, `react-day-picker`, `date-fns` and `recharts` are
+   installed for the apps that copy this template.
+3. **Add form.** It is always on the Todos page, inline, on every width, not in a sheet on a phone,
+   and there is no "New todo" header action. The unchanged test needs `#add-title` in the page.
+4. **No toast on Todos.** A toast has `role="status"`, and the unchanged test counts status
+   elements to know a notice has gone. Toasts are used only for copy buttons.
+5. **Segmented control.** It has no counts, because the unchanged test finds the tabs by their
+   exact names "Open" and "Done".
+6. **The session is read once** by the shell, for the account button and the drawer, and not each
+   time the drawer opens. "Read again" in the drawer reads it again. The Contract tab shows
+   `contract_version` if the session body carries it and "not reported" if not; this was not checked
+   against the deployed API.
+7. **Top bar search** is on every signed-in page at 1024 px and wider, and opens Todos with `?q=`.
+8. **Colour check.** shadcn's vendored components carried colours that are in no token. Fixed in
+   `theme.css` (the four Tailwind shadows now take the ink colour) and in the vendored source (`sheet`
+   and `dialog` overlays use `bg-scrim`; `chart` matches `[stroke$='ccc']`, which is not a colour
+   literal). Any component added later may do the same, and the check will name it.
+9. **next-themes.** The shadcn CLI installed it for `sonner`. It was removed, and `sonner.tsx` reads
+   `useTheme` from road-kit's hook.
+10. **Parity.** `bin/check-road-kit-parity.sh` lists framework files, not `hello_world`'s, so
+    nothing was added there. `theme.css` parity is checked by `check-theme-tokens.mjs` instead.
+    `brand.css` is not compared.
+11. **`import.meta.env`.** The plan said it stays in `runtime.ts`. `validate-build.mjs` restricts only
+    `VITE_ORDS_BASE_URL`. `runtime.ts` now exports `APP_NAME`, `UI_BASE_PATH` and
+    `ROUTER_BASENAME`; `client.ts` still reads `BASE_URL`.
+12. **Accessibility findings fixed in the build,** found by axe on the first run: the account button's
+    label did not contain its visible text; two `role="search"` forms on one page had no names; the
+    sign-in page had no `<main>` and its app name had no contrast on the primary panel; the drawer's
+    inactive tabs were too light and its `dl` held a button outside a `dd`.
+13. **Contrast.** Every pair in test 6 passes in both themes as written; no colour value in section
+    3.1 had to change. The dark values are the builder's choice, as section 3.2 said.
 
 ## 13. Out of scope
 
