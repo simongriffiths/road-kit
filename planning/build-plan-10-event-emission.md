@@ -3,7 +3,8 @@
 **Design:** `planning/spec-patch-10-event-emission.md`. Read it first; this file sequences the
 work and records what each phase actually cost.
 
-**Status: not started.**
+**Status: withdrawn 19 November 2026. Will not be built in road-kit.** See the status in
+`spec-patch-10-event-emission.md`.
 
 **Standing discipline for every phase below**, per `AGENTS.md`: search the engineering history
 before touching the database, include an INTENT block in every script, execute through

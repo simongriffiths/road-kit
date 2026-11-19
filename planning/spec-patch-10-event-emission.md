@@ -2,9 +2,11 @@
 
 **Applies to:** new framework capability. No existing spec section owns this; once built it
 becomes its own entry in `spec/framework-spec-index-v1.md` §3.
-**Status:** design, 2026-09-04. Not built. **On hold since 2026-11-19:** its only caller in road-kit was
-spec-patch 11, which is withdrawn. It stays designed for the apps that want events (atlas RK-12 is
-still open); no work is planned.
+**Status:** **withdrawn, 2026-11-19. Will not be built in road-kit.** (Was: design, 2026-09-04.) Its only
+caller in road-kit was spec-patch 11, which is withdrawn, and Simon ruled that the simple todo demo
+is enough for the proof plan's W3. If one of the more complex apps needs after-commit events, that
+app designs and builds them, starting from this document, and the framework takes the result back on
+road-atlas section 5's test. Kept for the record.
 **Canonical location.** Framework work, built in road-kit.
 
 **Related:**

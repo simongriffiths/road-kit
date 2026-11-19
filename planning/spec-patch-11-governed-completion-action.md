@@ -3,7 +3,7 @@
 **Applies to:** the demo application (`demo_todo_api`, `demo_todos`), deployed via
 `deploy/create/97_demo.sql`. No framework surface changes here.
 **Status:** **withdrawn, 2026-11-19. Will not be built.** See the note below. (Was: design, 2026-09-04.)
-**Depends on:** `planning/spec-patch-10-event-emission.md`, built and deployed first.
+**Depends on:** `planning/spec-patch-10-event-emission.md`, built and deployed first. (Patch 10 is also withdrawn.)
 
 > **Withdrawn 19 November 2026.** Simon ruled that a multi-user control rule (contributors, and
 > refusing a proposal because a person was removed) stretches the todo demo too far. The demo stays a
