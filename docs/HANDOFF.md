@@ -42,7 +42,11 @@ Next, in order:
    Ruled 19 November (all eight recommendations in section 11 accepted) and **built** the same day,
    tested on dev (build, theme check, nine browser tests); section 12 lists where the build differs.
    The login smoke test and the endpoint suite also pass on dev (19 November). Atlas D-02 is amended, and ADR 02 is copied into the six repos that hold ADR 01 (committed there, not pushed).
-5. **Later patches:** the admin API converted to decisions (6.5); row-level access (checklist 27, 28,
+5. **Spec-patch 9 (provider profiles).** Ruled 19 November: finish under the self-issued JWT only. The
+   §12 conformance rows already pass under the scaffold (build plan 09, phase 6). Left: a from-empty
+   drop-and-rebuild of `ROAD_KIT_DEV`, which also removes the dev test passwords (set `ADMIN`'s again
+   with `bin/set-principal-password.sh`). The `external_oidc` position and phase 7 adoption are deferred.
+6. **Later patches:** the admin API converted to decisions (6.5); row-level access (checklist 27, 28,
    30); the MCP projector for 0.3.0 contracts (RK-11); batches (spec-patch-14, unruled).
 
 ## How to test

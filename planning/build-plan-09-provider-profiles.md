@@ -3,7 +3,8 @@
 **Design:** `planning/spec-patch-09-provider-profiles-and-credentials.md`. Read it first; this file
 sequences the work and records what each phase actually cost.
 
-**Status: phases 1-5 complete. Phases 6-7 not started.**
+**Status: phases 1-5 complete. Phase 6 is done under the scaffold profile except the from-empty
+rebuild; its `external_oidc` position is deferred (19 November 2026). Phase 7 not started.**
 
 ---
 
@@ -352,19 +353,30 @@ reason `ROAD_ORDS_HOST` already is one.
 
 ---
 
-## Phase 6 — Conformance under both profiles
+## Phase 6 — Conformance under both profiles — **scaffold position, 19 November 2026**
 
 Design: spec patch §6. `authentication-spec-v1.md` §12's table, passing under each profile, with the
 profile as an input rather than a variant of the tests. Includes the full drop-and-rebuild phase 1
 deferred, in each position of the switch.
 
-Proving `external_oidc` needs Auth0 console objects and reuses the shared SPA application; the
-analysis is in road-cal's superseded `auth0-manual-setup.md` §0.
+**Ruled 19 November 2026 (spec patch §6.1): finished under the self-issued JWT only.** The
+`external_oidc` position, which needs Auth0 console objects and the shared SPA application (the
+analysis is in road-cal's superseded `auth0-manual-setup.md` §0), is deferred to the last act, as
+atlas D-01 already says, because of F-01's 1,000-token monthly cap.
+
+| Item | State |
+|---|---|
+| §12 rows under the scaffold: no token 401, login 200, valid token 200, malformed token 401, bad signature 401, expired 401, wrong issuer 401, wrong audience 401, missing scope 401, authenticated without permission 403 (with `FORBIDDEN` and the missing permission named), and the same principal admitted where entitled | **Pass.** `bin/run-endpoint-tests.sh --env dev`, run `20261119_190224`: 122 passed, 0 failed. `test/endpoint/auth-conformance.endpoint.sh` carries one assertion per row and names the row. |
+| Phase-1 files in the parity array | Done: `check-road-kit-parity.sh` lists `jwt_scaffold_crypto`, its test, `jwt_scaffold_credentials` and its trigger. |
+| `AUTH_PROFILE` has no default | Done (phase 5), `bin/render-auth-config.sh`. |
+| Full drop-and-rebuild of `ROAD_KIT_DEV` from empty, scaffold position | **Not done.** `deploy/create/00_full.sql` was run twice on 14 November (runs `20261114_204129` and `20261114_204155`, clean, F-10), which proves it re-runs; it does not prove the drop chain followed by the create chain. A rebuild also removes the dev test passwords, so the `ADMIN` password must be set again (`bin/set-principal-password.sh --env dev --subject ADMIN`). |
+| The suite takes the profile as an input | **Not done, by the ruling.** `bin/run-endpoint-tests.sh` is scaffold-only (spec patch §6.1). |
+| `external_oidc` position and its rebuild | **Deferred.** |
 
 ---
 
 ## Phase 7 — Adoption
 
-road-cal copies the shared surface — see its `spec-patch-09-adoption-note.md` — and adds its own
+Unchanged by the 19 November ruling, and not started. road-cal copies the shared surface — see its `spec-patch-09-adoption-note.md` — and adds its own
 four privilege names as permissions. road-blogger already runs `external_oidc` and takes the switch,
 not the scaffold. Add the phase-1 files to the parity array in the same commit.

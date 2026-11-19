@@ -1,7 +1,10 @@
 # Specification Patch 09 — Provider Profiles and Principal Credentials
 
 **Applies to:** `spec/authentication-spec-v1.md` §8, §11 and §12.
-**Status:** design, 2026-08-26. Not built.
+**Status:** built under the self-issued JWT (scaffold) profile, and proven there; the `external_oidc`
+position is **deferred** (19 November 2026, section 6.1). Sections 3, 4 and the scaffold half of the
+switch in section 2 are built and tested (build plan 09, phases 1 to 5). The Auth0 half of the proof
+in section 6 is not run.
 **Canonical location.** This is framework work and road-kit is where it is built. See §1.3.
 
 **Related, in other repositories:**
@@ -369,6 +372,29 @@ acceptable; it applies here unchanged. Adding road-kit's callback URL is an appe
 Under `external_oidc` the suite spends the 1,000-token monthly allowance, so it fetches **one token
 per run**, not per assertion — road-blogger's `run-endpoint-tests.sh` line 123 is the shape. Under
 the scaffold there is no such limit, which is the whole reason development uses it.
+
+### 6.1 Ruling, 19 November 2026: finish under the self-issued JWT only
+
+Simon ruled that this patch is finished under `ords_local_jwt_scaffold`, and that the
+`external_oidc` position of the switch is proven later, as the last act. The reasons are the ones
+already on record: atlas F-01 (Auth0's free plan meters development at 1,000 machine-to-machine
+tokens a month, tenant-wide) and D-01 (quorate develops on the scaffold and switches to Auth0 last).
+
+What this changes:
+
+- Section 6's requirement that the suite passes under both profiles is met for one profile. The
+  `external_oidc` position, the Auth0 console objects it needs and the shared SPA application are
+  not built or run.
+- The `external_oidc` profile is still in the framework (`80_standalone.external_oidc.sql.tmpl`,
+  `bin/render-auth-config.sh`) and road-blogger, the live system, still runs it. Nothing about
+  road-blogger changes.
+- `bin/run-endpoint-tests.sh` reads `jwt_scaffold_config` and mints its token through the scaffold,
+  so it is scaffold-only today. It does not check `AUTH_PROFILE`; run under `external_oidc` it would
+  fail in its first database read, not with a clear message. The script is under the parity check
+  with road-cal, so a guard is left until that is revisited.
+
+What still has to happen before this patch is called finished under the scaffold: the from-empty
+drop-and-rebuild of `ROAD_KIT_DEV` in the scaffold position (build plan 09, phase 6).
 
 ---
 
