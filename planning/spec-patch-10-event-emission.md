@@ -2,7 +2,9 @@
 
 **Applies to:** new framework capability. No existing spec section owns this; once built it
 becomes its own entry in `spec/framework-spec-index-v1.md` §3.
-**Status:** design, 2026-09-04. Not built.
+**Status:** design, 2026-09-04. Not built. **On hold since 2026-11-19:** its only caller in road-kit was
+spec-patch 11, which is withdrawn. It stays designed for the apps that want events (atlas RK-12 is
+still open); no work is planned.
 **Canonical location.** Framework work, built in road-kit.
 
 **Related:**

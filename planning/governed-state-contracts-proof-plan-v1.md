@@ -1,7 +1,7 @@
 # Governed State Contracts Proof Plan
 
 **Version:** 1.0  
-**Status:** In progress. W1 and W2 released; the Governed Surface Contract schema and decision record released in v0.3.0; W3 designed, not built; W4 not started (updated 14 November 2026)  
+**Status:** In progress. W1 and W2 released; the Governed Surface Contract schema and decision record released in v0.3.0; W3 under review after spec-patch 11 was withdrawn (19 November 2026); W4 not started  
 **Scope:** road-kit engineering only
 
 ## Progress
@@ -12,7 +12,7 @@
 | W2 — Deterministic descriptor projection | Released 4 September 2026 | Tag `v0.2.0` (commit `69e0b32`); `planning/action-w2-mcp-descriptor-projection.md`; road-atlas `RK-11` |
 | Decision record and 200 outcomes | Released 14 November 2026 | Tag `v0.3.0`; `planning/spec-patch-12-business-decisions-and-decision-record.md`; road-atlas `D-05`, `RK-13` |
 | Governed Surface Contract schema | Released as a draft 14 November 2026 | Tag `v0.3.0`; `planning/spec-patch-13-governed-surface-contract-schema.md`; road-atlas `D-04`, `D-07`, `RK-14` |
-| W3 — Reference governed action | Designed 4–6 September 2026, amended by spec-patch-12, not built | `planning/spec-patch-11-governed-completion-action.md`, `planning/build-plan-11-governed-completion-action.md`, `planning/build-plan-10-event-emission.md`; road-atlas `RK-12` |
+| W3 — Reference governed action | Spec-patch 11 (its design) withdrawn 19 November 2026. The simple todo demo (patches 12, 15, 16, 17) stands as the governed action; its after-commit event hand-off is not built. W3's wording needs Simon's ruling | `planning/spec-patch-11-governed-completion-action.md`, `planning/build-plan-11-governed-completion-action.md`, `planning/build-plan-10-event-emission.md`; road-atlas `RK-12` |
 | W4 — End-to-end proof | Not started | — |
 
 The name has changed. On 29 September 2026 the contract became the Governed Surface Contract, with a governed state contract (proposals inward) and a governed publication contract (data outward). The W1 schema describes one governed action, which is part of the governed state contract. `spec/governed-surface-contract.schema.json` (schema `0.3.0`, tag `v0.3.0`) describes a whole surface and implements the GSC definition 0.1.0, which lives in the `gsc` repository. The `v0.1.0` and `v0.2.0` tags are unchanged.
@@ -69,4 +69,4 @@ The website may later link to that tag. It remains responsible for checking that
 
 ## Next action
 
-W3 is the next technical action. Its design is in `planning/spec-patch-11-governed-completion-action.md`, amended by spec-patch-12, and its build plans are 10 and 11, neither started. W3 should write its contract against the 0.3.0 schema and record its decisions through `road_decision_api`. The batch and database-user identity path (spec-patch-14) wait for Simon's ruling on its open points. No ROAD Blogger change is authorised by this plan.
+Spec-patch 11, W3's design, was withdrawn on 19 November 2026: the demo is a simple todo list, with no multi-user control rule. The governed todo surface built by spec-patches 12, 15, 16 and 17 is what exists. W3 as written also asks for an after-commit event hand-off (spec-patch 10, on hold), so whether W3 is met, reworded or dropped is for Simon to rule. Build plans 10 and 11 are not going ahead. W3 should write its contract against the 0.3.0 schema and record its decisions through `road_decision_api`. The batch and database-user identity path (spec-patch-14) wait for Simon's ruling on its open points. No ROAD Blogger change is authorised by this plan.

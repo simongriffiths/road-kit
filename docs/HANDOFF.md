@@ -46,7 +46,11 @@ Next, in order:
    §12 conformance rows already pass under the scaffold (build plan 09, phase 6). Left: a from-empty
    drop-and-rebuild of `ROAD_KIT_DEV`, which also removes the dev test passwords (set `ADMIN`'s again
    with `bin/set-principal-password.sh`). The `external_oidc` position and phase 7 adoption are deferred.
-6. **Later patches:** the admin API converted to decisions (6.5); row-level access (checklist 27, 28,
+6. **Spec-patch 11 is withdrawn** (19 November): the todo demo stays a simple list, with its contract
+   describing only what that app needs. Patch 10 (events) is on hold with it. Open for Simon: what W3
+   in the proof plan now means, since it asked for an event hand-off, and whether the three
+   row-level access items (checklist 27, 28, 30) matter for a simple per-user todo list.
+7. **Later patches:** the admin API converted to decisions (6.5); row-level access (checklist 27, 28,
    30); the MCP projector for 0.3.0 contracts (RK-11); batches (spec-patch-14, unruled).
 
 ## How to test

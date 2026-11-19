@@ -2,8 +2,18 @@
 
 **Applies to:** the demo application (`demo_todo_api`, `demo_todos`), deployed via
 `deploy/create/97_demo.sql`. No framework surface changes here.
-**Status:** design, 2026-09-04. Not built.
+**Status:** **withdrawn, 2026-11-19. Will not be built.** See the note below. (Was: design, 2026-09-04.)
 **Depends on:** `planning/spec-patch-10-event-emission.md`, built and deployed first.
+
+> **Withdrawn 19 November 2026.** Simon ruled that a multi-user control rule (contributors, and
+> refusing a proposal because a person was removed) stretches the todo demo too far. The demo stays a
+> simple todo list, and its contract describes what that app needs. This patch will not be built as
+> written. What the demo already has, from spec-patch-12 and 16, is the governed completion
+> (`/todos/{id}/completions/`, with a read token, a decision record and `TODO_DONE` and
+> `TODO_NOT_FOUND` rules). What this patch would have added and the demo does not have: the contributors
+> table, the owner-not-contributor assertion, `todo.complete`, `NOT_A_CONTRIBUTOR` and the completion
+> event. Kept for the record; do not build from it.
+>
 
 > **Amended by spec-patch-12 (14 November 2026, ledger D-05).** Read
 > `planning/spec-patch-12-business-decisions-and-decision-record.md` before building this. In

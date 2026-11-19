@@ -3,7 +3,9 @@
 **Design:** `planning/spec-patch-11-governed-completion-action.md`. Read it first; this file
 sequences the work and records what each phase actually cost.
 
-**Status: not started.**
+**Status: withdrawn 19 November 2026. Will not be built.** Spec patch 11 is withdrawn: the todo demo
+stays a simple todo list, with no contributors and no multi-user control rule. See the note at the top of
+`spec-patch-11-governed-completion-action.md`.
 
 > **Amended by spec-patch-12 (14 November 2026).** Phase 1's spike is no longer needed: rejections
 > are recorded by `road_decision_api.reject` in an autonomous transaction, which does not depend on
