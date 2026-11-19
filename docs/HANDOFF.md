@@ -41,7 +41,7 @@ Next, in order:
    in `hello_world`, from the design canvas https://claude.ai/artifact/4wztTJzttNDT1pLH6Mp2ks.
    Ruled 19 November (all eight recommendations in section 11 accepted) and **built** the same day,
    tested on dev (build, theme check, nine browser tests); section 12 lists where the build differs.
-   The login smoke test and the endpoint suite also pass on dev (19 November). Atlas D-02 is amended; copying ADR 02 into the other repos is not done.
+   The login smoke test and the endpoint suite also pass on dev (19 November). Atlas D-02 is amended, and ADR 02 is copied into the six repos that hold ADR 01 (committed there, not pushed).
 5. **Later patches:** the admin API converted to decisions (6.5); row-level access (checklist 27, 28,
    30); the MCP projector for 0.3.0 contracts (RK-11); batches (spec-patch-14, unruled).
 
