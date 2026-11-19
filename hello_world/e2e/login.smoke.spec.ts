@@ -34,7 +34,7 @@ test('browser login reaches the protected session page', async ({ page }) => {
 
   // After sign-in the person lands on Home (spec-patch-18 7.1), and finds the session facts in the
   // account menu, in the session drawer.
-  await expect(page).toHaveURL(/\/(hello_world\/)?$/);
+  await expect(page).toHaveURL(/\/ui\/[^/]+\/?$/);
   await expect(page.getByRole('heading', { level: 1 })).toContainText(/Good (morning|afternoon|evening)/);
   await page.getByRole('button', { name: /Account menu/ }).click();
   await page.getByRole('menuitem', { name: 'Session details' }).click();

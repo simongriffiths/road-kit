@@ -1,0 +1,50 @@
+
+Running 2 tests using 1 worker
+
+[1A[2K[1/2] e2e/login.smoke.spec.ts:17:1 › protected route redirects to login when no token is present
+[1A[2K[2/2] e2e/login.smoke.spec.ts:25:1 › browser login reaches the protected session page
+[1A[2K  1) e2e/login.smoke.spec.ts:25:1 › browser login reaches the protected session page ───────────────
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/\/(hello_world\/)?$/[39m
+    Received string:  [31m"https://geb0d0f36a9a4b0-quoratedb.adb.uk-cardiff-1.oraclecloudapps.com/ords/hello_api/ui/hello_world"[39m
+    Timeout: 5000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 5000ms[22m
+    [2m    3 × unexpected value "https://geb0d0f36a9a4b0-quoratedb.adb.uk-cardiff-1.oraclecloudapps.com/ords/hello_api/ui/hello_world/login"[22m
+    [2m    6 × unexpected value "https://geb0d0f36a9a4b0-quoratedb.adb.uk-cardiff-1.oraclecloudapps.com/ords/hello_api/ui/hello_world"[22m
+
+
+      35 |   // After sign-in the person lands on Home (spec-patch-18 7.1), and finds the session facts in the
+      36 |   // account menu, in the session drawer.
+    > 37 |   await expect(page).toHaveURL(/\/(hello_world\/)?$/);
+         |                      ^
+      38 |   await expect(page.getByRole('heading', { level: 1 })).toContainText(/Good (morning|afternoon|evening)/);
+      39 |   await page.getByRole('button', { name: /Account menu/ }).click();
+      40 |   await page.getByRole('menuitem', { name: 'Session details' }).click();
+        at /Users/simon/Projects/road-kit/hello_world/e2e/login.smoke.spec.ts:37:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/login.smoke-browser-login-reaches-the-protected-session-page/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/login.smoke-browser-login-reaches-the-protected-session-page/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/login.smoke-browser-login-reaches-the-protected-session-page/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/login.smoke-browser-login-reaches-the-protected-session-page/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/login.smoke-browser-login-reaches-the-protected-session-page/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  1 failed
+    e2e/login.smoke.spec.ts:25:1 › browser login reaches the protected session page ────────────────
+  1 passed (7.1s)

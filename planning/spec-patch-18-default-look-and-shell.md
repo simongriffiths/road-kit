@@ -378,9 +378,10 @@ which files came from road-kit and which from shadcn, and lets the parity check 
 Built and tested on `ROAD_KIT_DEV` on 19 November 2026. `npm run build` passes, including the
 extended theme check. `bin/run-agent-tests.sh --env dev` passes: the agents, surface and road-cli
 suites and all nine browser tests (todos and agents unchanged, plus the five new shell
-tests, one of which runs twice, once for each theme). Not run: `login.smoke.spec.ts`, which needs
-`ROAD_TEST_PASSWORD` (HANDOFF, "Waiting on Simon"); it was updated for the new sign-in page and is
-untested.
+tests, one of which runs twice, once for each theme). `login.smoke.spec.ts`, updated for the new
+sign-in page, and `bin/run-endpoint-tests.sh` were run later the same day, after the ADMIN test
+password was reset, and both pass. The first run of the login test failed on its own landing-URL
+check, which expected a trailing slash the router does not add; the test was corrected.
 
 1. **Files.** The plan's `TopBar.tsx`, `SideNav.tsx` and `TabBar.tsx` are one `AppShell.tsx` and a
    `NavLinks.tsx` (row, column or tab bar), plus `TopSearch.tsx`. shadcn's `sidebar` component was

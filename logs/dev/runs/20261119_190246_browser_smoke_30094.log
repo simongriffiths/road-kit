@@ -1,0 +1,54 @@
+
+Running 2 tests using 1 worker
+
+[1A[2K[1/2] e2e/login.smoke.spec.ts:17:1 › protected route redirects to login when no token is present
+[1A[2K  1) e2e/login.smoke.spec.ts:17:1 › protected route redirects to login when no token is present ────
+
+    Error: browserType.launch: Executable doesn't exist at /Users/simon/Projects/road-kit/.playwright-browsers/chromium_headless_shell-1217/chrome-headless-shell-mac-arm64/chrome-headless-shell
+    ╔════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright was just installed or updated.       ║
+    ║ Please run the following command to download new browsers: ║
+    ║                                                            ║
+    ║     npx playwright install                                 ║
+    ║                                                            ║
+    ║ <3 Playwright Team                                         ║
+    ╚════════════════════════════════════════════════════════════╝
+
+    Error Context: test-results/login.smoke-protected-rout-a50e5-in-when-no-token-is-present/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/login.smoke-protected-rout-a50e5-in-when-no-token-is-present/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/login.smoke-protected-rout-a50e5-in-when-no-token-is-present/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[2/2] e2e/login.smoke.spec.ts:25:1 › browser login reaches the protected session page
+[1A[2K  2) e2e/login.smoke.spec.ts:25:1 › browser login reaches the protected session page ───────────────
+
+    Error: browserType.launch: Executable doesn't exist at /Users/simon/Projects/road-kit/.playwright-browsers/chromium_headless_shell-1217/chrome-headless-shell-mac-arm64/chrome-headless-shell
+    ╔════════════════════════════════════════════════════════════╗
+    ║ Looks like Playwright was just installed or updated.       ║
+    ║ Please run the following command to download new browsers: ║
+    ║                                                            ║
+    ║     npx playwright install                                 ║
+    ║                                                            ║
+    ║ <3 Playwright Team                                         ║
+    ╚════════════════════════════════════════════════════════════╝
+
+    Error Context: test-results/login.smoke-browser-login-reaches-the-protected-session-page/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/login.smoke-browser-login-reaches-the-protected-session-page/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/login.smoke-browser-login-reaches-the-protected-session-page/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  2 failed
+    e2e/login.smoke.spec.ts:17:1 › protected route redirects to login when no token is present ─────
+    e2e/login.smoke.spec.ts:25:1 › browser login reaches the protected session page ────────────────

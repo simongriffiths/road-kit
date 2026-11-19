@@ -79,7 +79,7 @@ if [[ -z "${ROAD_TEST_PASSWORD:-}" ]]; then
   exit 2
 fi
 export ROAD_TEST_PASSWORD
-export PLAYWRIGHT_BROWSERS_PATH="${PROJECT_ROOT}/.playwright-browsers"
+export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-${PROJECT_ROOT}/.playwright-browsers}"
 
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"
 LOG_DIR="${PROJECT_ROOT}/logs/${ENV_NAME}/runs"

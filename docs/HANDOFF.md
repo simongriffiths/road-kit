@@ -41,7 +41,7 @@ Next, in order:
    in `hello_world`, from the design canvas https://claude.ai/artifact/4wztTJzttNDT1pLH6Mp2ks.
    Ruled 19 November (all eight recommendations in section 11 accepted) and **built** the same day,
    tested on dev (build, theme check, nine browser tests); section 12 lists where the build differs.
-   `login.smoke.spec.ts` was updated but not run: it needs `ROAD_TEST_PASSWORD`. Atlas D-02 is amended; copying ADR 02 into the other repos is not done.
+   The login smoke test and the endpoint suite also pass on dev (19 November). Atlas D-02 is amended; copying ADR 02 into the other repos is not done.
 5. **Later patches:** the admin API converted to decisions (6.5); row-level access (checklist 27, 28,
    30); the MCP projector for 0.3.0 contracts (RK-11); batches (spec-patch-14, unruled).
 
@@ -66,15 +66,14 @@ Next, in order:
 
 ## Open
 
-- **`bin/run-endpoint-tests.sh` has not been run** since spec-patch 15: it needs `ROAD_TEST_PASSWORD`
-  in `config/local.env` (gitignored; it holds only `ROAD_ORDS_HOST` and `AUTH_PROFILE`). Simon's to add.
-  `test/endpoint/todos.endpoint.sh` was rewritten for the governed demo and passes when run by hand with
-  fixture tokens.
+- **The endpoint and login tests need `config/local.env` loaded.** `bin/run-endpoint-tests.sh` and
+  `bin/run-browser-smoke.sh` do not source it themselves: run `source config/local.env` first. Both
+  passed on dev on 19 November, after the ADMIN test password was reset
+  (`bin/set-principal-password.sh --env dev --subject ADMIN`) and `ROAD_TEST_PASSWORD` was added.
 - **Agents work under the scaffold profile only** (`spec/authentication-spec-v1.md` 11.6).
 - **Parity:** the new framework files are listed, commented, in `bin/check-road-kit-parity.sh`.
 
 ## Waiting on Simon
 
 - Spec-patch 14 (batches and the database-user identity path): written 14 November, not ruled.
-- `ROAD_TEST_PASSWORD` for the endpoint suite.
-- A release tag, and whether spec-patch 15 and 16 go in one.
+- Pushing `main` and the `v0.4.0` tag (local, on the commit before spec-patch 18).
