@@ -6,8 +6,8 @@ Read this after `AGENTS.md`. It records where road-kit stands and where the next
 
 Simon reviewed the batch design and ruled it too much for the framework: a batch is application PL/SQL
 with local variables and a savepoint. Spec-patch 14 now covers only `road_ctx_pkg.begin_database_request`
-(built, `road_ctx_pkg_test` 15 tests and all framework suites pass on dev). Not tested: the accepted path,
-which needs a second database user. Not committed. Atlas B-02 is updated (road-kit `partial`).
+(built, `road_ctx_pkg_test` 15 tests and all framework suites pass on dev). The accepted path was tested with `ADMIN`
+as a stand-in agent (spec-patch-14 section 5). The test run is not committed. Atlas B-02 is updated (road-kit `partial`).
 
 ## Start here: spec-patches 15 to 17 are committed; spec-patch 18 is next
 

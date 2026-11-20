@@ -102,10 +102,18 @@ Rules, all from road-planner AG-10:
 - `begin_database_request` run as the schema owner is refused and clears a previously established
   identity.
 
-**Not covered on dev:** the accepted path (a mapped user is established; an unmapped user is not,
-and no principal is created). It needs a second database user, and `ROAD_KIT_DEV` has no
-`CREATE USER`. It is covered where a real agent user exists, for example road-planner's
-`ROAD_PLANNER_DEV_AGENT`, when it adopts this.
+**The accepted path, run on 20 November 2026.** `ROAD_KIT_DEV` has no `CREATE USER`, so the `ADMIN`
+login stood in for an agent: it is neither `ORDS_PUBLIC_USER` nor the schema owner. A temporary
+principal (`urn:oracle-db`, `ADMIN`) was added, and `ADMIN` called `begin_database_request` three times:
+
+| State | Result |
+|---|---|
+| Principal ACTIVE | true; authenticated; issuer `urn:oracle-db`; subject `ADMIN` |
+| Principal SUSPENDED | false; nothing established |
+| No principal, `auto_provision_principals` = `Y` | false; no principal created (0 rows afterwards) |
+
+The principal, the grant to `ADMIN` and the config change were all removed afterwards. The scripts
+are in `scratch/p14/` (not committed; the run logs are). This was a one-off, not a repeatable test.
 
 ## 6. Batches: deferred
 

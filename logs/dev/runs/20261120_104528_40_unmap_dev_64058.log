@@ -1,0 +1,60 @@
+[INFO] START
+
+[INFO] RUN_ID=20261120_104528_40_unmap_dev_64058
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/p14/40_unmap_dev.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/p14/40_unmap_dev.sql
+[INFO] SCRIPT_SHA256=73255f109c90bae1386fd6497df5205ef2c7a152a0ea8c72ae8ef867fbf3a795
+[INFO] GIT_COMMIT=9943c74
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261120_104528
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261120_104528_40_unmap_dev_64058.log
+
+[INTENT]
+Purpose: Phase 3: remove the principal and turn auto-provisioning ON, to prove a database user is still not provisioned.
+Approach: Use the ADMIN login as a stand-in database-user agent against ROAD_KIT_DEV.ROAD_CTX_PKG.BEGIN_DATABASE_REQUEST; ROAD_KIT_DEV holds one temporary principal (urn:oracle-db, ADMIN) that is removed at the end.
+Reason: ROAD_KIT_DEV has no CREATE USER, so the accepted path of spec-patch-14 was untested. ADMIN is neither ORDS_PUBLIC_USER nor the owner, and no user is created on the shared database.
+Expected objects: Only rows in ROAD_KIT_DEV.ROAD_PRINCIPALS and one grant of EXECUTE on ROAD_CTX_PKG to ADMIN, all removed by 90_cleanup_dev.sql.
+Risk: Low. Dev schema only. Config row auto_provision_principals is changed in phase 3 and restored in cleanup.
+Prior history checked: No earlier run used a stand-in user; 20 Nov check-create-user-priv.sql showed no CREATE USER.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Fri Nov 20 10:45:29 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+
+1 row deleted.
+
+Elapsed: 00:00:00.048
+
+1 row updated.
+
+Elapsed: 00:00:00.049
+
+Commit complete.
+
+Elapsed: 00:00:00.037
+Elapsed: 00:00:00.135
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.265
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

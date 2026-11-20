@@ -1,0 +1,54 @@
+[INFO] START
+
+[INFO] RUN_ID=20261120_104525_20_probe_admin_63888
+[INFO] ENV=admin
+[INFO] CONNECTION=quorate_admin
+[INFO] SCRIPT=scratch/p14/20_probe_admin.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/p14/20_probe_admin.sql
+[INFO] SCRIPT_SHA256=5423958d9e95410287969bc1e4354fccdfaf8bde5a13e31599573f3e8496c111
+[INFO] GIT_COMMIT=9943c74
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261120_104525
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/admin/runs/20261120_104525_20_probe_admin_63888.log
+
+[INTENT]
+Purpose: Probe: ADMIN calls begin_database_request and reports what was established.
+Approach: Use the ADMIN login as a stand-in database-user agent against ROAD_KIT_DEV.ROAD_CTX_PKG.BEGIN_DATABASE_REQUEST; ROAD_KIT_DEV holds one temporary principal (urn:oracle-db, ADMIN) that is removed at the end.
+Reason: ROAD_KIT_DEV has no CREATE USER, so the accepted path of spec-patch-14 was untested. ADMIN is neither ORDS_PUBLIC_USER nor the owner, and no user is created on the shared database.
+Expected objects: Only rows in ROAD_KIT_DEV.ROAD_PRINCIPALS and one grant of EXECUTE on ROAD_CTX_PKG to ADMIN, all removed by 90_cleanup_dev.sql.
+Risk: Low. Dev schema only. Config row auto_provision_principals is changed in phase 3 and restored in cleanup.
+Prior history checked: No earlier run used a stand-in user; 20 Nov check-create-user-priv.sql showed no CREATE USER.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Fri Nov 20 10:45:26 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+PROBE result=FALSE authenticated=N issuer= subject= session_user=ADMIN
+
+
+PL/SQL procedure successfully completed.
+
+Elapsed: 00:00:00.305
+Elapsed: 00:00:00.326
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.050
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END
