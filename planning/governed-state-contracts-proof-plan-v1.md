@@ -1,7 +1,7 @@
 # Governed State Contracts Proof Plan
 
 **Version:** 1.0  
-**Status:** In progress. W1 and W2 released; the Governed Surface Contract schema and decision record released in v0.3.0; W3 met by the todo demo (ruled 19 November 2026); W4 not started  
+**Status:** In progress. W1 and W2 released; the Governed Surface Contract schema and decision record released in v0.3.0; W3 met by the todo demo (ruled 19 November 2026); W4 reworded 20 November 2026 to end at the audit; not started  
 **Scope:** road-kit engineering only
 
 ## Progress
@@ -13,7 +13,7 @@
 | Decision record and 200 outcomes | Released 14 November 2026 | Tag `v0.3.0`; `planning/spec-patch-12-business-decisions-and-decision-record.md`; road-atlas `D-05`, `RK-13` |
 | Governed Surface Contract schema | Released as a draft 14 November 2026 | Tag `v0.3.0`; `planning/spec-patch-13-governed-surface-contract-schema.md`; road-atlas `D-04`, `D-07`, `RK-14` |
 | W3 — Reference governed action | **Met by the simple todo demo, ruled 19 November 2026.** Spec-patches 11 and 10 are withdrawn. The event hand-off is not part of road-kit's W3; one of the more complex apps can demonstrate it | `planning/spec-patch-12-business-decisions-and-decision-record.md` (v0.3.0), `planning/spec-patch-15-agent-api-keys-and-cli.md`, `planning/spec-patch-16-gsc-reference-implementation.md`, `planning/spec-patch-17-todo-page.md` (v0.4.0); road-atlas `RK-12` |
-| W4 — End-to-end proof | Not started | — |
+| W4 — End-to-end proof | Reworded 20 November 2026 to end at the audit; not started | — |
 
 The name has changed. On 29 September 2026 the contract became the Governed Surface Contract, with a governed state contract (proposals inward) and a governed publication contract (data outward). The W1 schema describes one governed action, which is part of the governed state contract. `spec/governed-surface-contract.schema.json` (schema `0.3.0`, tag `v0.3.0`) describes a whole surface and implements the GSC definition 0.1.0, which lives in the `gsc` repository. The `v0.1.0` and `v0.2.0` tags are unchanged.
 
@@ -56,7 +56,7 @@ Implement one complete governed action in road-kit: a proposal resource, authori
 
 ## W4 — End-to-end proof
 
-Demonstrate the stated loop from contract through generated descriptor and proposal to authoritative decision, audit, and event. Verification must be automated or repeatable, documented in the repository, and suitable for external readers to reproduce within its stated environment assumptions.
+Demonstrate the stated loop from contract through generated descriptor and proposal to authoritative decision and audit. **Ruled 20 November 2026:** the loop ends at the audit. An application may add an after-commit event hand-off for itself, but road-kit does not provide one and W4 does not require it. Verification must be automated or repeatable, documented in the repository, and suitable for external readers to reproduce within its stated environment assumptions.
 
 ## Release and evidence interface
 
@@ -71,4 +71,4 @@ The website may later link to that tag. It remains responsible for checking that
 
 ## Next action
 
-W3 is met by the simple todo demo (ruled 19 November 2026); spec-patches 10 and 11 are withdrawn and build plans 10 and 11 are not going ahead. W4 describes a loop that ends in an event, so its wording needs a ruling: it can be demonstrated in one of the more complex apps, or reworded to end at the audit. The batch and database-user identity path (spec-patch-14) wait for Simon's ruling on its open points. No ROAD Blogger change is authorised by this plan.
+W3 is met by the simple todo demo (ruled 19 November 2026); spec-patches 10 and 11 are withdrawn and build plans 10 and 11 are not going ahead. W4 was reworded on 20 November 2026 to end at the audit; an event is an optional addition by individual apps. The batch and database-user identity path (spec-patch-14) wait for Simon's ruling on its open points. No ROAD Blogger change is authorised by this plan.
