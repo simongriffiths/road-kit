@@ -14,6 +14,7 @@ shows each part of a governed surface once, so items about parts it does not use
 | Declared | Required by the contract and checked there, but not yet shown running |
 | Not yet | Neither declared nor built; what would build it is named |
 | Not used | Does not apply to this surface |
+| Deferred | Wanted, and left until a named condition is met |
 
 Tests named below: `demo_todo_api_test` (PL/SQL, 19), `road_surface_api_test` (PL/SQL, 8),
 `road_agent_api_test` (PL/SQL, 8), `test/agents/surface.test.mjs` (HTTP, 26), `agents.test.mjs` (HTTP, 19),
@@ -60,15 +61,15 @@ ones with `bin/run-sql.sh --env dev --script test/plsql/run-framework-tests.sql`
 | 24 | Every response states its point in time | Pass | `as_at` on every view (`test_list_envelope`, `surface.test.mjs`); no view states a change number |
 | 25 | Limited results say so without revealing what was withheld | Pass | `scope` on every view that access rules limit: "limited to your own todos unless you may list everyone's". `session.me` describes only the caller and declares no limit |
 | 26 | Changeable records come with read tokens | Pass | `todos.list` (one token for the read) and `todos.get` return `read_token`; every action test uses one; an accepted action returns a fresh one |
-| 27 | View access enforced below the line; no tenant, no rows | Not yet | Ownership is a predicate in `demo_todo_api`, not a database policy. road-kit has no row-level pattern (`planning/identity-model-gaps.md` section 2; spec-patch-16 section 8); quorate and road-tracker each have one |
+| 27 | View access enforced below the line; no tenant, no rows | Deferred | Ownership is a predicate in `demo_todo_api`, not a database policy. road-kit has no row-level pattern (`planning/identity-model-gaps.md` section 2; spec-patch-16 section 8); quorate and road-tracker each have one |
 
 ## D. Below the line
 
 | # | Item | Status | Evidence |
 |---|---|---|---|
-| 28 | Integrity and access rules enforced at the data, named separately | Not yet | Rules are named separately in the contract (`access`, `concurrency`, `integrity`), but enforced in packages; only the status values are a table constraint. Same cause as 27 |
+| 28 | Integrity and access rules enforced at the data, named separately | Deferred | Rules are named separately in the contract (`access`, `concurrency`, `integrity`), but enforced in packages; only the status values are a table constraint. Same cause as 27 |
 | 29 | Every rule that can reject has an identifier | Pass | Ten rule ids, each declared in a contract precondition; the validator refuses a rejection that names an undeclared rule |
-| 30 | Access rules fail closed | Not yet | No policy functions. In the package a missing session is a 401 and a null principal matches no rows, but that is not the pattern the item asks for. Same cause as 27 |
+| 30 | Access rules fail closed | Deferred | No policy functions. In the package a missing session is a 401 and a null principal matches no rows, but that is not the pattern the item asks for. Same cause as 27 |
 | 31 | A test per rule proving a violating call is refused | Pass | `TITLE_TAKEN`, `TODO_NOT_FOUND`, `STALE_TOKEN`, `TODO_DONE`, `TODO_NOT_DONE`, `PURGE_CUTOFF_IN_FUTURE` in `demo_todo_api_test`; `AGENT_LIMIT_REACHED`, `AGENT_NOT_FOUND`, `AGENT_RETIRED`, `API_KEY_NOT_FOUND` in `road_agent_api_test` |
 
 ## E. Machine-readable form
@@ -86,5 +87,6 @@ ones with `bin/run-sql.sh --env dev --script test/plsql/run-framework-tests.sql`
 |---|---|
 | Pass | 29 |
 | Declared | 0 |
-| Not yet | 3 (27, 28, 30: row-level access, its own patch) |
+| Not yet | 0 |
+| Deferred | 3 (27, 28, 30: row-level access; Simon, 20 November 2026: return to it when Oracle Deep Data Security is available for customer OAuth2, the identity model road-kit is built on) |
 | Not used | 3 (19, 21, 22) |

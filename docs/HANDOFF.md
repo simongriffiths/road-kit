@@ -56,10 +56,10 @@ Next, in order:
 6. **Spec-patches 10 and 11 are withdrawn** (19 November): the todo demo stays a simple list, with its
    contract describing only what that app needs, and Simon ruled that it satisfies the proof plan's
    W3. Events are left to one of the more complex apps. W4 was reworded on 20 November to end at the audit (an event is an optional
-   addition by individual apps). Open for Simon: whether the three row-level access items (checklist 27, 28, 30) matter for a
-   simple per-user todo list.
+   addition by individual apps). The three row-level access items (checklist 27, 28, 30) are
+   deferred (20 November) until Oracle Deep Data Security is available for customer OAuth2.
 7. **Later patches:** the admin API converted to decisions (6.5); row-level access (checklist 27, 28,
-   30); the MCP projector for 0.3.0 contracts (RK-11); batches (deferred 20 November; spec-patch-14 section 6 lists what is open).
+   30; deferred until Deep Data Security supports customer OAuth2); the MCP projector for 0.3.0 contracts (RK-11); batches (deferred 20 November; spec-patch-14 section 6 lists what is open).
 
 ## How to test
 
