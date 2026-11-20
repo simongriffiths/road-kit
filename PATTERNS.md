@@ -10,7 +10,7 @@ The rules for this file are in `road-atlas/patterns/SPEC.md`. Check it with
 - **Summary:** Each ORDS handler calls `begin_request` to load the caller's identity, roles and permissions into an application context that only one package can write to. Handlers then call `require_permission`. If the context was never loaded, every check fails.
 - **Location:** `db/package_specs/road_ctx_pkg.pks`, `db/package_bodies/road_ctx_pkg.pkb`, `deploy/create/65_contexts.sql`, `spec/database-session-context-v1.md`
 - **Status:** in-use
-- **Notes:** Application contexts are database-wide, not per schema. `namespace()` gives each schema its own context name, so two apps on one ADB don't take over each other's context. Handler coverage is checked by `bin/check-handler-coverage.sh` (see `handler-coverage-check`).
+- **Notes:** Application contexts are database-wide, not per schema. `namespace()` gives each schema its own context name, so two apps on one ADB don't take over each other's context. Handler coverage is checked by `bin/check-handler-coverage.sh` (see `handler-coverage-check`). `begin_database_request` is the database-user entry (see `database-user-identity`).
 
 ### Principals, roles and permissions
 - **Slug:** road-rbac
@@ -99,6 +99,13 @@ The rules for this file are in `road-atlas/patterns/SPEC.md`. Check it with
 - **Location:** `db/package_specs/jwt_scaffold_crypto.pks`, `db/package_bodies/jwt_scaffold_crypto.pkb`, `db/package_bodies/jwt_scaffold_crypto_test.pkb`
 - **Status:** in-use
 - **Notes:** `set-password-offline` holds a second implementation that must agree with this one. Both are pinned to the same published test vector.
+
+### Database-user identity for agents and batch processes
+- **Slug:** database-user-identity
+- **Summary:** An agent that connects as its own database user calls a definer's-rights wrapper, which calls `road_ctx_pkg.begin_database_request`. That maps `SESSION_USER` to the principal with issuer `urn:oracle-db`. Identity is never a parameter, ORDS's own users are refused, and a database user is never auto-provisioned as a principal.
+- **Location:** `db/package_specs/road_ctx_pkg.pks`, `db/package_bodies/road_ctx_pkg.pkb`, `db/package_bodies/road_ctx_pkg_test.pkb`, `planning/spec-patch-14-batch-and-database-identity.md`
+- **Status:** experimental
+- **Notes:** From road-planner's `plan_agent_api` (ledger B-02). Each application writes its own wrapper; the pattern is in section 4 of the patch. The accepted path is not tested in road-kit because its dev schema cannot create a user. Depends on `road-session-context`.
 
 ### Setting a password without sending it to the database
 - **Slug:** set-password-offline

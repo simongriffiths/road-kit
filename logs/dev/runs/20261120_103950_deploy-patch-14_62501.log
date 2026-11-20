@@ -1,0 +1,85 @@
+[INFO] START
+
+[INFO] RUN_ID=20261120_103950_deploy-patch-14_62501
+[INFO] ENV=dev
+[INFO] CONNECTION=road_kit_dev
+[INFO] SCRIPT=scratch/deploy-patch-14.sql
+[INFO] SCRIPT_PATH=/Users/simon/Projects/road-kit/scratch/deploy-patch-14.sql
+[INFO] SCRIPT_SHA256=abc9e1636d7c83d996e350857015b9450859737db06bee79b70373edc7a66edc
+[INFO] GIT_COMMIT=1b33940
+[INFO] GIT_DIRTY=true
+[INFO] LOG_LEVEL=normal
+[INFO] TIMESTAMP=20261120_103950
+[INFO] LOG_FILE=/Users/simon/Projects/road-kit/logs/dev/runs/20261120_103950_deploy-patch-14_62501.log
+
+[INTENT]
+Purpose: Deploy spec-patch-14 (identity path only): road_ctx_pkg with begin_database_request, and its test package, to ROAD_KIT_DEV.
+Approach: Recompile the ctx spec, body, test spec and test body, then print any compile errors.
+Reason: Patch 14 was cut down to the database-user identity path on 20 Nov 2026; batches were deferred.
+Expected objects: ROAD_CTX_PKG and ROAD_CTX_PKG_TEST valid. No tables or data change.
+Risk: Low. Package specs change signature only by additions; dependants stay valid. Schema is dev only.
+Prior history checked: 29 Aug 2026 runs deployed these same four files the same way and succeeded.
+[END INTENT]
+
+[ACTION]
+
+SQLcl: Release 26.1 Production on Fri Nov 20 10:39:51 2026
+
+Copyright (c) 1982, 2026, Oracle.  All rights reserved.
+
+Connected to:
+Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+
+
+Package ROAD_CTX_PKG compiled
+
+Elapsed: 00:00:00.399
+Elapsed: 00:00:00.421
+
+Package Body ROAD_CTX_PKG compiled
+
+Elapsed: 00:00:00.172
+Elapsed: 00:00:00.189
+
+Package ROAD_CTX_PKG_TEST compiled
+
+Elapsed: 00:00:00.164
+Elapsed: 00:00:00.181
+
+Package Body ROAD_CTX_PKG_TEST compiled
+
+Elapsed: 00:00:00.190
+Elapsed: 00:00:00.206
+USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.274
+
+[1mOBJECT_NAME[m          [1mSTATUS[m    
+____________________ _________ 
+ROAD_CTX_PKG         VALID     
+ROAD_CTX_PKG         VALID     
+ROAD_CTX_PKG_TEST    VALID     
+ROAD_CTX_PKG_TEST    VALID     
+
+4 rows selected. 
+
+Elapsed: 00:00:00.090
+Elapsed: 00:00:00.108
+[INFO] USER_ERRORS_CHECK
+
+
+0 rows selected. 
+
+Elapsed: 00:00:00.038
+Disconnected from Oracle AI Database 26ai Enterprise Edition Release 23.26.4.1.0 - Production
+Version 23.26.4.1.0
+[OUTCOME]
+STATUS=SUCCESS
+SQLCL_EXIT=0
+
+[INFO] SQLCL_EXIT=0
+[INFO] END

@@ -446,6 +446,33 @@ create or replace package body road_ctx_pkg_test as
     assert_false('context not established', road_ctx_pkg.is_authenticated);
   end test_suspended_is_not_reprovisioned;
 
+  -- Spec-patch-14. These tests run as the schema owner, which is also the identity ORDS runs REST
+  -- handlers as, so they prove the refusal paths. The accepted path (a mapped database user is
+  -- established, an unmapped one is not, and none is created) needs a second database user and is
+  -- not covered here: ROAD_KIT_DEV has no CREATE USER.
+  procedure test_database_identity_refuses_rest_users is
+  begin
+    assert_false('null refused', road_ctx_pkg.is_database_identity_allowed(null));
+    assert_false('ORDS_PUBLIC_USER refused',
+                 road_ctx_pkg.is_database_identity_allowed('ords_public_user'));
+    assert_false('schema owner refused',
+                 road_ctx_pkg.is_database_identity_allowed(sys_context('USERENV', 'CURRENT_USER')));
+    assert_true('an ordinary user allowed', road_ctx_pkg.is_database_identity_allowed('AN_AGENT'));
+
+    -- This session is the owner, so the call is refused, and it must clear what was there.
+    assert_true('A establishes', road_ctx_pkg.begin_request('TESTA', c_issuer));
+    assert_false('owner session refused', road_ctx_pkg.begin_database_request);
+    assert_false('and cleared', road_ctx_pkg.is_authenticated);
+    assert_null('issuer not set', road_ctx_pkg.issuer);
+  end test_database_identity_refuses_rest_users;
+
+  procedure test_database_issuer_is_fixed is
+  begin
+    if road_ctx_pkg.c_database_issuer != 'urn:oracle-db' then
+      fail('database issuer changed');
+    end if;
+  end test_database_issuer_is_fixed;
+
   procedure run_all is
   begin
     setup;
@@ -463,9 +490,11 @@ create or replace package body road_ctx_pkg_test as
     test_auto_provision_creates_principal;
     test_suspended_is_not_reprovisioned;
     test_auto_provision_off_denies;
+    test_database_identity_refuses_rest_users;
+    test_database_issuer_is_fixed;
 
     teardown;
-    dbms_output.put_line('[PASS] road_ctx_pkg_test: 13 tests');
+    dbms_output.put_line('[PASS] road_ctx_pkg_test: 15 tests');
   exception
     when others then
       teardown;

@@ -51,6 +51,21 @@ create or replace package road_ctx_pkg as
     p_issuer  in varchar2 default null
   ) return boolean;
 
+  -- The issuer of every database-user principal (spec-patch-14).
+  c_database_issuer constant varchar2(20) := 'urn:oracle-db';
+
+  -- True for a database user that may be mapped to a principal: not null, not ORDS_PUBLIC_USER and
+  -- not the schema owner, the two identities a REST call runs as.
+  function is_database_identity_allowed(p_database_user in varchar2) return boolean;
+
+  -- Establishes identity for a call made by a database user (an agent or batch process with its own
+  -- login, through a definer's-rights wrapper). Maps SESSION_USER, which a definer's-rights wrapper
+  -- cannot change, to the principal with issuer c_database_issuer and that subject. Identity is
+  -- never a parameter. Returns false, never raises, when the user is refused (see
+  -- is_database_identity_allowed) or has no ACTIVE principal. Never creates a principal, whatever
+  -- road_config.auto_provision_principals says. Clears any existing context first.
+  function begin_database_request return boolean;
+
   -- Clears all session identity. Safe to call when nothing was established.
   procedure end_request;
 

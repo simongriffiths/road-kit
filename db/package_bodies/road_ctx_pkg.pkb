@@ -7,6 +7,9 @@ create or replace package body road_ctx_pkg as
   c_namespace   constant varchar2(30)  :=
     substr('ROAD_CTX_' || sys_context('USERENV', 'CURRENT_SCHEMA'), 1, 30);
 
+  -- The schema that owns this package. In a definer's-rights unit CURRENT_USER is the owner.
+  c_owner constant varchar2(128) := upper(sys_context('USERENV', 'CURRENT_USER'));
+
   -- Fixed attributes.
   c_attr_established  constant varchar2(30) := 'ESTABLISHED';
   c_attr_principal_id constant varchar2(30) := 'PRINCIPAL_ID';
@@ -126,9 +129,13 @@ create or replace package body road_ctx_pkg as
     dbms_session.clear_all_context(c_namespace);
   end end_request;
 
-  function begin_request(
-    p_subject in varchar2,
-    p_issuer  in varchar2 default null
+  -- The one place identity is established. begin_request calls it with provisioning allowed;
+  -- begin_database_request calls it with provisioning refused, because a database user never
+  -- becomes a principal by logging in: an administrator maps it deliberately.
+  function establish(
+    p_subject       in varchar2,
+    p_issuer        in varchar2,
+    p_may_provision in boolean
   ) return boolean is
     l_issuer       varchar2(512 char);
     l_subject      varchar2(255 char);
@@ -159,6 +166,9 @@ create or replace package body road_ctx_pkg as
          and subject = l_subject;
     exception
       when no_data_found then
+        if not p_may_provision then
+          return false;
+        end if;
         -- The issuer authenticated them; this application has simply never seen them before.
         l_principal_id := provision_principal(l_issuer, l_subject);
         if l_principal_id is null then
@@ -213,7 +223,34 @@ create or replace package body road_ctx_pkg as
           null;
       end;
       return false;
+  end establish;
+
+  function begin_request(
+    p_subject in varchar2,
+    p_issuer  in varchar2 default null
+  ) return boolean is
+  begin
+    return establish(p_subject, p_issuer, true);
   end begin_request;
+
+  function is_database_identity_allowed(p_database_user in varchar2) return boolean is
+  begin
+    -- ORDS connects through ORDS_PUBLIC_USER and runs the REST handlers as the schema owner, so
+    -- either name here means the call came through REST, never from an agent's own login.
+    return p_database_user is not null
+       and upper(p_database_user) not in ('ORDS_PUBLIC_USER', c_owner);
+  end is_database_identity_allowed;
+
+  function begin_database_request return boolean is
+    l_user varchar2(128) := sys_context('USERENV', 'SESSION_USER');
+  begin
+    if not is_database_identity_allowed(l_user) then
+      -- Clear, as begin_request does, so a refusal never leaves a previous identity behind.
+      dbms_session.clear_all_context(c_namespace);
+      return false;
+    end if;
+    return establish(l_user, c_database_issuer, false);
+  end begin_database_request;
 
   -- NVL is load-bearing, not decoration. SYS_CONTEXT returns NULL for an attribute that was never
   -- set, and NULL = 'Y' evaluates to NULL rather than FALSE. A NULL returned from here would make

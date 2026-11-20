@@ -2,6 +2,13 @@
 
 Read this after `AGENTS.md`. It records where road-kit stands and where the next session starts.
 
+## Spec-patch 14 (20 November): identity path built, batches deferred
+
+Simon reviewed the batch design and ruled it too much for the framework: a batch is application PL/SQL
+with local variables and a savepoint. Spec-patch 14 now covers only `road_ctx_pkg.begin_database_request`
+(built, `road_ctx_pkg_test` 15 tests and all framework suites pass on dev). Not tested: the accepted path,
+which needs a second database user. Not committed. Atlas B-02 is updated (road-kit `partial`).
+
 ## Start here: spec-patches 15 to 17 are committed; spec-patch 18 is next
 
 Spec-patch 16 (`planning/spec-patch-16-gsc-reference-implementation.md`) makes road-kit the reference
@@ -52,7 +59,7 @@ Next, in order:
    in an event, and whether the three row-level access items (checklist 27, 28, 30) matter for a
    simple per-user todo list.
 7. **Later patches:** the admin API converted to decisions (6.5); row-level access (checklist 27, 28,
-   30); the MCP projector for 0.3.0 contracts (RK-11); batches (spec-patch-14, unruled).
+   30); the MCP projector for 0.3.0 contracts (RK-11); batches (deferred 20 November; spec-patch-14 section 6 lists what is open).
 
 ## How to test
 
@@ -84,5 +91,5 @@ Next, in order:
 
 ## Waiting on Simon
 
-- Spec-patch 14 (batches and the database-user identity path): written 14 November, not ruled.
+- Commit of spec-patch 14 (identity path only; built and tested on dev 20 November, uncommitted).
 - Pushing `main` and the `v0.4.0` tag (local, on the commit before spec-patch 18).
